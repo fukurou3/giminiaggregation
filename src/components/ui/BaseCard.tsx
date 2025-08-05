@@ -1,0 +1,181 @@
+'use client';
+
+import Link from 'next/link';
+import { Heart, Eye } from 'lucide-react';
+import { Post } from '@/types/Post';
+
+// Style constants
+const SIZE_STYLES = {
+  small: {
+    card: 'p-1.5',
+    image: 'aspect-[5/3]',
+    title: 'text-xs font-semibold',
+    description: 'text-xs'
+  },
+  medium: {
+    card: 'p-2',
+    image: 'aspect-[5/3]',
+    title: 'text-sm font-bold',
+    description: 'text-xs'
+  },
+  large: {
+    card: 'p-3',
+    image: 'aspect-[5/3]',
+    title: 'text-base font-bold',
+    description: 'text-xs'
+  }
+} as const;
+
+const VARIANT_STYLES = {
+  work: {
+    card: "bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group",
+    padding: 'p-3',
+    title: 'font-bold text-base',
+    description: 'text-xs',
+    image: 'aspect-[5/3]'
+  },
+  site: {
+    card: "bg-background border border-border rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden group",
+    padding: 'p-3',
+    title: 'font-bold text-base',
+    description: 'text-xs',
+    image: 'aspect-[5/3]'
+  }
+} as const;
+
+export interface BaseCardProps {
+  post: Post;
+  size?: 'small' | 'medium' | 'large';
+  variant?: 'work' | 'site';
+  layout?: 'vertical' | 'horizontal';
+  showCategory?: boolean;
+  className?: string;
+}
+
+export function BaseCard({ post, size = 'medium', variant = 'work', layout = 'vertical', showCategory = true, className }: BaseCardProps) {
+  // Get styles based on size and variant
+  const sizeStyles = SIZE_STYLES[size];
+  const variantStyles = VARIANT_STYLES[variant];
+  
+  // For site variant, use variant styles; otherwise use size styles
+  const cardClasses = variant === 'site' ? variantStyles.padding : sizeStyles.card;
+  const titleClasses = variant === 'site' ? variantStyles.title : sizeStyles.title;
+  const descriptionClasses = variant === 'site' ? variantStyles.description : sizeStyles.description;
+  const imageClasses = variant === 'site' ? variantStyles.image : sizeStyles.image;
+  const cardStyling = variantStyles.card;
+
+  const previewText = variant === 'site' ? 'Canvas Preview' : 'Canvas';
+
+  // 横長レイアウトの場合
+  if (layout === 'horizontal') {
+    return (
+      <Link href={`/posts/${post.id}`} className={`${cardStyling} ${className || ''} flex cursor-pointer`}>
+        {/* サムネイル画像 */}
+        <div className="w-32 h-24 bg-muted relative overflow-hidden flex-shrink-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+            <span className="text-muted-foreground font-medium text-xs">
+              {previewText}
+            </span>
+          </div>
+        </div>
+
+        {/* コンテンツ */}
+        <div className="flex-1 p-2 flex flex-col min-w-0 h-24">
+          {/* タイトル */}
+          <h3 className="text-foreground line-clamp-1 group-hover:text-primary transition-colors text-sm font-bold mb-1">
+            {post.title}
+          </h3>
+          
+          {/* 説明文 */}
+          {post.description && (
+            <p className="text-muted-foreground line-clamp-2 text-xs mb-2 flex-1">
+              {post.description}
+            </p>
+          )}
+
+          {/* カテゴリとタグ */}
+          {showCategory && (
+            <div className="flex items-center flex-wrap gap-1 mb-1">
+              <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
+                {post.category}
+              </span>
+              {post.tags?.slice(0, 2).map((tag, index) => (
+                <span key={index} className="bg-muted text-muted-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* お気に入り数と閲覧数 */}
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <div className="flex items-center space-x-1">
+              <Heart size={10} />
+              <span>{post.favoriteCount ?? post.likes ?? 0}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Eye size={10} />
+              <span>{post.views || 0}</span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <Link href={`/posts/${post.id}`} className={`${cardStyling} ${className || ''} cursor-pointer block`}>
+      {/* Preview Image */}
+      <div className={`bg-muted relative overflow-hidden ${imageClasses}`}>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+          <span className={`text-muted-foreground font-medium ${variant === 'site' ? 'text-xs' : 'text-xs'}`}>
+            {previewText}
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className={`${cardClasses} flex flex-col h-32`}>
+        {/* Title */}
+        <h3 className={`text-foreground line-clamp-2 group-hover:text-primary transition-colors ${titleClasses} mb-1`}>
+          {post.title}
+        </h3>
+        
+        {/* Description */}
+        <div className="flex-1 mb-2">
+          {post.description && (
+            <p className={`text-muted-foreground line-clamp-2 ${descriptionClasses}`}>
+              {post.description}
+            </p>
+          )}
+        </div>
+
+        {/* カテゴリとタグ */}
+        {showCategory && (
+          <div className="flex items-center flex-wrap gap-1 mb-2">
+            <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
+              {post.category}
+            </span>
+            {post.tags?.slice(0, 2).map((tag, index) => (
+              <span key={index} className="bg-muted text-muted-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* お気に入り数と閲覧数 */}
+        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+          <div className="flex items-center space-x-1">
+            <Heart size={10} />
+            <span>{post.favoriteCount ?? post.likes ?? 0}</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <Eye size={10} />
+            <span>{post.views || 0}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}

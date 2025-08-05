@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #0ea5e9;
+  --secondary-foreground: #ffffff;
+  --muted: #f9fafb;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --input-foreground: #1a1a1a;
+  --input-border: #e5e7eb;
+  --error: #ef4444;
+  --error-foreground: #ffffff;
+  --success: #10b981;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --ring: #3b82f6;
+  --radius: 0.8rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-foreground: var(--input-foreground);
+  --color-input-border: var(--input-border);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-ring: var(--ring);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', monospace;
+  --radius: var(--radius);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #1a1a1a;
+    --muted: #f9fafb;
+    --muted-foreground: #6b7280;
+    --border: #e5e7eb;
+    --input: #ffffff;
+    --input-foreground: #1a1a1a;
+    --input-border: #e5e7eb;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-feature-settings: 'cv01', 'cv03', 'cv04', 'cv11';
+}
+
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 512px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 614px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 819px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1024px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* カテゴリ画面の自然な列数調整グリッド */
+.auto-fit-category-cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  justify-content: start;
+}
+

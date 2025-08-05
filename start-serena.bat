@@ -1,0 +1,3 @@
+@echo off
+echo Starting Serena MCP Server...
+uvx --from git+https://github.com/oraios/serena serena-mcp-server --context ide-assistant

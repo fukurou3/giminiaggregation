@@ -1,0 +1,48 @@
+{
+  "name": "giminiaggregation",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "predev": "node scripts/kill-port.js 3000",
+    "test": "echo \"no tests\""
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.16.0",
+    "@hookform/resolvers": "^5.2.1",
+    "browser-image-compression": "^2.0.2",
+    "firebase": "^12.0.0",
+    "firebase-admin": "^13.4.0",
+    "ioredis": "^5.4.1",
+    "lucide-react": "^0.536.0",
+    "multer": "^2.0.2",
+    "next": "15.4.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-firebase-hooks": "^5.1.1",
+    "react-hook-form": "^7.62.0",
+    "zod": "^4.0.14",
+    "zustand": "^5.0.7"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.5",
+    "firebase-tools": "^13.7.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
