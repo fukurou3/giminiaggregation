@@ -180,8 +180,7 @@ export default function TagSearchPage() {
               <div className="space-y-8">
                 {categoryStats.map((stat) => {
                   const categoryPosts = posts.filter(post => 
-                    (post.categoryId === stat.categoryId) || 
-                    (post.category === stat.categoryName)
+                    post.categoryId === stat.categoryId
                   );
                   
                   if (categoryPosts.length === 0) return null;

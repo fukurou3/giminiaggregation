@@ -6,10 +6,8 @@ export type Post = {
   title: string;
   url: string;
   description: string;
-  tags?: string[]; // 既存の文字列配列（後方互換性）
-  tagIds?: string[]; // 新しいタグID配列
-  category: string; // 既存の文字列（後方互換性）
-  categoryId?: string; // 新しいカテゴリID
+  tagIds: string[]; // タグID配列
+  categoryId: string; // カテゴリID
   customCategory?: string;
   authorId: string;
   authorName: string;

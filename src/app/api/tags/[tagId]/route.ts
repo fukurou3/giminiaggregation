@@ -76,37 +76,22 @@ export async function GET(
       where('isPublic', '==', true)
     );
 
-    // 新しいタグID形式と古い文字列形式の両方をサポート
+    // タグIDで投稿を検索
     // 複合クエリができないため、全件取得後にフィルタリング
     const postsSnapshot = await getDocs(postsQuery);
     
     let matchingPosts = postsSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .filter((post: any) => {
-        // 新形式のtagIds配列をチェック
-        if (post.tagIds && post.tagIds.includes(tagId)) {
-          return true;
-        }
-        // 旧形式のtags配列をチェック（タグ名で一致）
-        if (post.tags && post.tags.includes(tag.name)) {
-          return true;
-        }
-        return false;
+        // tagIds配列にtagIdが含まれるかチェック
+        return post.tagIds && post.tagIds.includes(tagId);
       }) as Post[];
 
     // カテゴリフィルタを適用
     if (categoryFilter && categoryFilter !== 'all') {
       matchingPosts = matchingPosts.filter(post => {
-        // 新しいカテゴリID形式をチェック
-        if (post.categoryId === categoryFilter) {
-          return true;
-        }
-        // 古いカテゴリ名形式をチェック
-        const category = findCategoryById(categoryFilter);
-        if (category && post.category === category.name) {
-          return true;
-        }
-        return false;
+        // categoryIdがフィルタと一致するかチェック
+        return post.categoryId === categoryFilter;
       });
     }
 
@@ -133,8 +118,7 @@ export async function GET(
     // カテゴリ別統計を計算
     const categoryStats = CATEGORY_MASTERS.map(category => {
       const count = matchingPosts.filter(post => {
-        return (post.categoryId === category.id) || 
-               (post.category === category.name);
+        return post.categoryId === category.id;
       }).length;
       
       return {

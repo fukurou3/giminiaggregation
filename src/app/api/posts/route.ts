@@ -200,17 +200,21 @@ export async function POST(request: NextRequest) {
     // カテゴリIDの取得
     const { findCategoryByName } = await import('@/lib/constants/categories');
     const categoryObj = findCategoryByName(formData.category);
-    const categoryId = categoryObj?.id;
+    
+    if (!categoryObj) {
+      return createErrorResponse(
+        'invalid_category',
+        '無効なカテゴリが指定されました'
+      );
+    }
 
     // 投稿データの準備
     const postData = {
       title: formData.title,
       url: formData.url,
       description: formData.description,
-      tags: formData.tags || [], // 後方互換性のため保持
-      tagIds: tagIds, // 新しいタグID配列
-      category: formData.category, // 後方互換性のため保持
-      ...(categoryId ? { categoryId } : {}), // 新しいカテゴリID
+      tagIds: tagIds, // タグID配列
+      categoryId: categoryObj.id, // カテゴリID
       ...(formData.category === 'その他' && formData.customCategory
         ? { customCategory: formData.customCategory }
         : {}),
@@ -247,9 +251,7 @@ export async function POST(request: NextRequest) {
         try {
           const { updateTagStats, updateTagCategoryCount } = await import('@/lib/tags');
           await updateTagStats(tagId, { count: 1 });
-          if (categoryId) {
-            await updateTagCategoryCount(tagId, categoryId, 1);
-          }
+          await updateTagCategoryCount(tagId, categoryObj.id, 1);
         } catch (error) {
           console.warn(`Failed to update tag stats for ${tagId}:`, error);
         }
