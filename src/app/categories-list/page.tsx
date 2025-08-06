@@ -14,7 +14,7 @@ import {
   Package,
   Grid3X3
 } from 'lucide-react';
-import { CategoryCard } from '@/components/CategoryCard';
+import { CategoryCard } from '@/components/ui/CategoryCard';
 import { CATEGORY_MASTERS } from '@/lib/constants/categories';
 import { useFetch } from '@/lib/api';
 import { Post } from '@/types/Post';

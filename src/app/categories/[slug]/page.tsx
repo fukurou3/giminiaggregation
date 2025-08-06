@@ -1,80 +1,37 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Filter, SortDesc } from 'lucide-react';
 import { SiteCard } from '@/components/SiteCard';
 import { usePostStore } from '@/lib/stores/postStore';
-import { Post } from '@/types/Post';
+import { useCategoryPosts } from '@/hooks/useCategoryPosts';
+import { SortBy } from '@/utils/postSorting';
 
 export default function CategoryDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { posts, categories } = usePostStore();
   
-  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-  const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'trending'>('newest');
-  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
 
-  // スラッグからカテゴリ名を復元
-  const categoryName = slug?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  const category = categories.find(cat => 
-    cat.id === slug || 
-    cat.name.toLowerCase() === categoryName?.toLowerCase()
-  );
+  // カスタムフックを使用してカテゴリ投稿を取得
+  const { categoryName, filteredPosts, categoryDisplayName } = useCategoryPosts({
+    posts,
+    categorySlug: slug,
+    sortBy,
+  });
 
-  useEffect(() => {
-    if (!slug) return;
+  // カテゴリ情報を取得（メモ化）
+  const category = useMemo(() => {
+    return categories.find(cat => 
+      cat.id === slug || 
+      cat.name.toLowerCase() === categoryName.toLowerCase()
+    );
+  }, [categories, slug, categoryName]);
 
-    const publicPosts = posts.filter(post => post.isPublic);
-    
-    // カテゴリに一致する作品を取得
-    const categoryPosts = publicPosts.filter(post => {
-      if (category) {
-        return post.category === category.name;
-      }
-      // フォールバック: スラッグから推測
-      return post.category.toLowerCase().replace(/\s+/g, '-') === slug;
-    });
-
-    // ソート処理
-    let sortedPosts = [...categoryPosts];
-    switch (sortBy) {
-      case 'popular':
-        sortedPosts.sort((a, b) => (b.favoriteCount + b.views) - (a.favoriteCount + a.views));
-        break;
-      case 'trending':
-        // 最近の投稿で人気の高いもの
-        const recentPosts = sortedPosts.filter(post => {
-          if (!post.createdAt) return false;
-          const postDate = typeof post.createdAt === 'object' && 'toDate' in post.createdAt 
-            ? post.createdAt.toDate() 
-            : new Date(post.createdAt as Date);
-          const daysDiff = (Date.now() - postDate.getTime()) / (1000 * 60 * 60 * 24);
-          return daysDiff <= 30; // 30日以内
-        });
-        recentPosts.sort((a, b) => (b.favoriteCount + b.views) - (a.favoriteCount + a.views));
-        sortedPosts = recentPosts;
-        break;
-      case 'newest':
-      default:
-        sortedPosts.sort((a, b) => {
-          if (!a.createdAt || !b.createdAt) return 0;
-          const dateA = typeof a.createdAt === 'object' && 'toDate' in a.createdAt 
-            ? a.createdAt.toDate() 
-            : new Date(a.createdAt as Date);
-          const dateB = typeof b.createdAt === 'object' && 'toDate' in b.createdAt 
-            ? b.createdAt.toDate() 
-            : new Date(b.createdAt as Date);
-          return dateB.getTime() - dateA.getTime();
-        });
-        break;
-    }
-
-    setFilteredPosts(sortedPosts);
-    setLoading(false);
-  }, [slug, posts, categories, category, sortBy]);
+  const loading = posts.length === 0;
 
   if (loading) {
     return (
@@ -94,7 +51,7 @@ export default function CategoryDetailPage() {
     );
   }
 
-  const displayName = category?.name || categoryName || 'カテゴリ';
+  const displayName = category?.name || categoryDisplayName;
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,7 +88,7 @@ export default function CategoryDetailPage() {
                   id="category-sort-select"
                   name="sortBy"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'newest' | 'popular' | 'trending')}
+                  onChange={(e) => setSortBy(e.target.value as SortBy)}
                   className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="newest">新着順</option>
