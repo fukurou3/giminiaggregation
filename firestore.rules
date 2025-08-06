@@ -17,5 +17,35 @@ service cloud.firestore {
         allow write: if request.auth != null && request.auth.token.admin == true;
       }
     }
+
+    // Categories collection
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Tags collection
+    match /tags/{tagId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && 
+        (request.auth.token.admin == true || 
+         (resource.data.keys().hasAny(['views', 'favorites']) && 
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'favorites', 'count', 'updatedAt'])));
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+
+      // Tag reports subcollection
+      match /reports/{reportId} {
+        allow read: if request.auth != null && request.auth.token.admin == true;
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        allow update, delete: if request.auth != null && request.auth.token.admin == true;
+      }
+    }
+
+    // Tag category count collection
+    match /tagCategoryCount/{countId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
   }
 }

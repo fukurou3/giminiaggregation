@@ -5,6 +5,7 @@ import { useFetch } from '@/lib/api';
 import { TrendingSection } from '@/components/sections/TrendingSection';
 import { ColumnSection } from '@/components/sections/ColumnSection';
 import { TopicHighlightSection } from '@/components/sections/TopicHighlightSection';
+import { PopularTags } from '@/components/ui/PopularTags';
 
 import { getTopicHighlights } from '@/lib/api/home';
 import { TopicHighlight } from '@/types/Topic';
@@ -51,6 +52,17 @@ export default function HomePage() {
           />
         </div>
 
+
+        {/* Popular Tags Section */}
+        <div className="bg-muted/30 rounded-2xl p-8">
+          <PopularTags 
+            title="人気のタグ"
+            limit={15}
+            sortBy="combined"
+            size="md"
+            showStats={true}
+          />
+        </div>
 
         {/* Column Section */}
         <ColumnSection 

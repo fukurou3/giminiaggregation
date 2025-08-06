@@ -183,13 +183,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // タグとカテゴリの処理
+    const tags = formData.tags || [];
+    const tagIds: string[] = [];
+    
+    // タグを作成または取得してIDを収集
+    if (tags.length > 0) {
+      const { createOrGetTag } = await import('@/lib/tags');
+      const tagPromises = tags.map((tagName: string) => 
+        createOrGetTag(tagName.trim(), false)
+      );
+      const createdTags = await Promise.all(tagPromises);
+      tagIds.push(...createdTags.map(tag => tag.id));
+    }
+
+    // カテゴリIDの取得
+    const { findCategoryByName } = await import('@/lib/constants/categories');
+    const categoryObj = findCategoryByName(formData.category);
+    const categoryId = categoryObj?.id;
+
     // 投稿データの準備
     const postData = {
       title: formData.title,
       url: formData.url,
       description: formData.description,
-      tags: formData.tags || [],
-      category: formData.category,
+      tags: formData.tags || [], // 後方互換性のため保持
+      tagIds: tagIds, // 新しいタグID配列
+      category: formData.category, // 後方互換性のため保持
+      ...(categoryId ? { categoryId } : {}), // 新しいカテゴリID
       ...(formData.category === 'その他' && formData.customCategory
         ? { customCategory: formData.customCategory }
         : {}),
@@ -220,7 +241,21 @@ export async function POST(request: NextRequest) {
       const shardPromises = Array.from({ length: SHARD_COUNT }).map((_, idx) =>
         setDoc(doc(db, `posts/${docRef.id}/favoriteShards/${idx}`), { count: 0 })
       );
-      await Promise.all(shardPromises);
+      
+      // タグ統計の更新（非同期）
+      const updateTagsPromises = tagIds.map(async (tagId) => {
+        try {
+          const { updateTagStats, updateTagCategoryCount } = await import('@/lib/tags');
+          await updateTagStats(tagId, { count: 1 });
+          if (categoryId) {
+            await updateTagCategoryCount(tagId, categoryId, 1);
+          }
+        } catch (error) {
+          console.warn(`Failed to update tag stats for ${tagId}:`, error);
+        }
+      });
+
+      await Promise.all([...shardPromises, ...updateTagsPromises]);
 
     // ログ出力（デバッグ・監査用）
     console.log(`Post created: ${docRef.id} by ${userInfo.uid} - IP: ${ip}`);

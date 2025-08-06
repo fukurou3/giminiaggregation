@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
+import { TagChip } from './TagChip';
 
 // Style constants
 const SIZE_STYLES = {
@@ -99,10 +100,38 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
               <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
                 {post.category}
               </span>
-              {post.tags?.slice(0, 2).map((tag, index) => (
-                <span key={index} className="bg-muted text-muted-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-                  #{tag}
-                </span>
+              
+              {/* 新しいtagIds形式のタグ */}
+              {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
+                <TagChip
+                  key={`tagid-${tagId}`}
+                  tag={{ 
+                    id: tagId, 
+                    name: tagId.replace(/_/g, ' '),
+                    aliases: [], 
+                    count: 0, 
+                    isOfficial: false, 
+                    views: 0, 
+                    favorites: 0, 
+                    flagged: false,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  showIcon={false}
+                />
+              ))}
+              
+              {/* 旧形式のtagsサポート */}
+              {post.tags && !post.tagIds && post.tags.slice(0, 2).map((tagName) => (
+                <TagChip
+                  key={`tag-${tagName}`}
+                  tag={tagName}
+                  size="sm"
+                  variant="ghost"
+                  showIcon={false}
+                />
               ))}
             </div>
           )}
@@ -156,10 +185,38 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
             <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
               {post.category}
             </span>
-            {post.tags?.slice(0, 2).map((tag, index) => (
-              <span key={index} className="bg-muted text-muted-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-                #{tag}
-              </span>
+            
+            {/* 新しいtagIds形式のタグ */}
+            {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
+              <TagChip
+                key={`tagid-${tagId}`}
+                tag={{ 
+                  id: tagId, 
+                  name: tagId.replace(/_/g, ' '),
+                  aliases: [], 
+                  count: 0, 
+                  isOfficial: false, 
+                  views: 0, 
+                  favorites: 0, 
+                  flagged: false,
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                }}
+                size="sm"
+                variant="ghost"
+                showIcon={false}
+              />
+            ))}
+            
+            {/* 旧形式のtagsサポート */}
+            {post.tags && !post.tagIds && post.tags.slice(0, 2).map((tagName) => (
+              <TagChip
+                key={`tag-${tagName}`}
+                tag={tagName}
+                size="sm"
+                variant="ghost"
+                showIcon={false}
+              />
             ))}
           </div>
         )}

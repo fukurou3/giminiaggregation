@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase";
 import { toggleFavorite, isFavorited as checkIsFavorited } from "@/lib/favorites";
 import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
+import { TagChip } from "@/components/ui/TagChip";
 import { ExternalLink, Heart, Eye, Calendar, User, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import type { Post } from "@/types/Post";
@@ -224,7 +225,42 @@ export default function PostDetailPage() {
                   <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
                     {post.customCategory || post.category}
                   </span>
-
+                  
+                  {/* タグ表示 */}
+                  {(post.tags || post.tagIds) && (
+                    <>
+                      {/* 新しいtagIds形式のタグ */}
+                      {post.tagIds && post.tagIds.map((tagId) => (
+                        <TagChip
+                          key={`tagid-${tagId}`}
+                          tag={{ 
+                            id: tagId, 
+                            name: tagId.replace(/_/g, ' '),
+                            aliases: [], 
+                            count: 0, 
+                            isOfficial: false, 
+                            views: 0, 
+                            favorites: 0, 
+                            flagged: false,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                          }}
+                          size="sm"
+                          variant="outlined"
+                        />
+                      ))}
+                      
+                      {/* 旧しいtags形式のタグ（後方互換性） */}
+                      {post.tags && post.tags.map((tagName) => (
+                        <TagChip
+                          key={`tag-${tagName}`}
+                          tag={tagName}
+                          size="sm"
+                          variant="outlined"
+                        />
+                      ))}
+                    </>
+                  )}
                 </div>
 
                 {/* 説明 */}
