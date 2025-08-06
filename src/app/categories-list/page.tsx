@@ -108,7 +108,7 @@ export default function CategoriesListPage() {
             return (
               <Link 
                 key={category.id}
-                href={`/categories/${category.id}`}
+                href={`/categories?category=${category.id}`}
                 className="group bg-card hover:bg-card/80 transition-colors border border-border rounded-2xl p-6 block"
               >
                 <div className="flex items-center mb-4">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { CategorySidebar } from '@/components/categories/CategorySidebar';
 import { CategoryContent } from '@/components/categories/CategoryContent';
@@ -8,8 +9,10 @@ import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useMobileSidebar } from '@/hooks/useMobileSidebar';
 import { useStickyHeader } from '@/hooks/useStickyHeader';
+import CategoriesListContent from './CategoriesListContent';
 
 export default function CategoriesPage() {
+  const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   
   // Custom hooks for cleaner component architecture
@@ -22,19 +25,26 @@ export default function CategoriesPage() {
   });
   const { isSidebarFixed, sidebarContainerRef } = useStickyHeader({ layoutPhase });
   
-  // データが読み込まれたら最初のカテゴリを選択（データがあるものを優先）
+  // URLパラメータから選択されたカテゴリを取得
   useEffect(() => {
-    if (!loading && categories.length > 0 && !selectedCategory) {
-      const categoryWithData = categories.find(cat => getCategoryCount(cat.name) > 0);
-      const defaultCategory = categoryWithData || categories[0];
-      setSelectedCategory(defaultCategory.name);
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && categories.length > 0) {
+      const category = categories.find(cat => cat.id === categoryParam);
+      if (category) {
+        setSelectedCategory(category.name);
+      }
     }
-  }, [loading, categories, selectedCategory, getCategoryCount]);
+  }, [searchParams, categories]);
 
   // カテゴリ選択時の処理
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);
     setIsSidebarOpen(false);
+    // URLを更新（ブラウザ履歴に追加）
+    const category = categories.find(cat => cat.name === categoryName);
+    if (category) {
+      window.history.pushState({}, '', `/categories?category=${category.id}`);
+    }
   };
 
   const selectedCategoryPosts = getSelectedCategoryPosts(selectedCategory);
@@ -121,13 +131,19 @@ export default function CategoriesPage() {
               maxWidth: layoutPhase === 'phase1' ? undefined : 'none'
             }}
           >
-            <CategoryContent
-              selectedCategory={selectedCategory}
-              selectedCategoryPosts={selectedCategoryPosts}
-              categories={categories}
-              layoutPhase={layoutPhase}
-              error={error}
-            />
+{selectedCategory ? (
+              <CategoryContent
+                selectedCategory={selectedCategory}
+                selectedCategoryPosts={selectedCategoryPosts}
+                categories={categories}
+                layoutPhase={layoutPhase}
+                error={error}
+              />
+            ) : (
+              <CategoriesListContent 
+                onCategorySelect={handleCategorySelect}
+              />
+            )}
           </div>
         </main>
 
