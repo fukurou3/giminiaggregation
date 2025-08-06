@@ -164,7 +164,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
     // ★ 4. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
     <div
       onClick={handleCardClick}
-      className={`${cardStyling} ${className || ''} cursor-pointer w-[350px] max-w-full`} // ★ 6. ここでカードの幅を固定
+      className={`${cardStyling} ${className || ''} cursor-pointer max-w-full`}
       role="link"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}

@@ -67,7 +67,7 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
         <>
           {/* Desktop: Auto-fit Grid - Show in Phase 1, 2, 3 */}
           {layoutPhase !== 'phase4' && (
-            <div className="grid gap-6 auto-fit-category-cards">
+            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', justifyContent: 'start' }}>
               {selectedCategoryPosts.map((post) => (
                 <CategoryCard
                   key={post.id}

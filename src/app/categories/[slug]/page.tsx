@@ -101,11 +101,11 @@ export default function CategoryDetailPage() {
         </div>
 
         {/* Posts Grid */}
-{filteredPosts.length > 0 ? (
+        {filteredPosts.length > 0 ? (
           <div 
             className="grid gap-6"
             style={{ 
-              gridTemplateColumns: 'repeat(auto-fill, 350px)',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
               justifyContent: 'start'
             }}
           >

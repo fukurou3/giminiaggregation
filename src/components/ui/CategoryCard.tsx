@@ -118,7 +118,7 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
     // ★ 3. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
     <div
       onClick={handleCardClick}
-      className={`${cardClasses} w-[320px] max-w-full`} // ★ 5. カードの幅を固定してレイアウト崩れを防止
+      className={`${cardClasses} max-w-full`} // 柔軟なレスポンシブ対応
       role="link"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
