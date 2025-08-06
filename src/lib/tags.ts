@@ -90,18 +90,19 @@ export async function updateTagStats(tagId: string, updates: {
  */
 export async function getPopularTags(limitCount = 20): Promise<Tag[]> {
   const tagsRef = collection(db, 'tags');
-  const q = query(
-    tagsRef,
-    where('flagged', '==', false),
-    orderBy('count', 'desc'),
-    limit(limitCount)
-  );
   
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ 
+  // インデックスが必要なクエリを避けるため、全てのタグを取得してクライアント側でフィルタリング
+  const snapshot = await getDocs(tagsRef);
+  const allTags = snapshot.docs.map(doc => ({ 
     id: doc.id, 
     ...doc.data() 
   })) as Tag[];
+  
+  // フラグされていないタグのみフィルタリングし、カウント順でソート
+  return allTags
+    .filter(tag => !tag.flagged)
+    .sort((a, b) => (b.count || 0) - (a.count || 0))
+    .slice(0, limitCount);
 }
 
 /**
