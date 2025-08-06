@@ -108,3 +108,9 @@ body {
   justify-content: start;
 }
 
+/* カテゴリ一覧ページ用のグリッド */
+.auto-fit-category-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  justify-content: center;
+}
+
