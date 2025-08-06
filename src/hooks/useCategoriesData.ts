@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useFetch } from '@/lib/api';
 import { Post } from '@/types/Post';
+import { CATEGORY_MASTERS, findCategoryById } from '@/lib/constants/categories';
 
 export interface Category {
   id: string;
@@ -8,19 +9,7 @@ export interface Category {
   description: string;
 }
 
-// 運営設定カテゴリ（投稿画面と同じ）
-const PRESET_CATEGORIES: Category[] = [
-  { id: 'business', name: 'ビジネス・業務支援', description: '業務効率化、生産性向上、プロジェクト管理など' },
-  { id: 'education', name: '学習・教育', description: '勉強支援ツール、教育用コンテンツ、スキルアップ' },
-  { id: 'development', name: '開発・テクニカル', description: 'プログラミング、開発支援、技術文書など' },
-  { id: 'creative', name: 'クリエイティブ・デザイン', description: 'デザイン、画像生成、クリエイティブ制作' },
-  { id: 'knowledge', name: '情報管理・ナレッジ', description: 'データ整理、知識管理、情報収集' },
-  { id: 'lifestyle', name: 'ライフスタイル', description: '日常生活、趣味、健康管理など' },
-  { id: 'social', name: 'ソーシャル・コミュニケーション', description: 'SNS活用、コミュニケーション支援' },
-  { id: 'chatbot', name: 'チャットボット', description: '対話AI、自動応答、カスタマーサポート' },
-  { id: 'game', name: 'ゲーム・エンターテインメント', description: 'ゲーム、娯楽、エンターテインメント' },
-  { id: 'other', name: 'その他', description: '分類不能なもの、ニッチ系' }
-];
+// CATEGORY_MASTERSを使用するため削除
 
 interface UseCategoriesDataReturn {
   categories: Category[];
@@ -40,31 +29,31 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
   const posts = postsResponse?.data?.posts || [];
 
   const categories = useMemo(() => {
-    // 実際にデータがあるカテゴリを取得（isPublicがundefinedの場合は公開とみなす）
-    const actualCategories = [...new Set(posts.filter(post => post.isPublic !== false && post.customCategory).map(post => post.customCategory!))];
-    
-    // PRESET_CATEGORIESにない実際のカテゴリを動的に追加
-    const additionalCategories = actualCategories
-      .filter(categoryName => !PRESET_CATEGORIES.find(preset => preset.name === categoryName))
-      .map(categoryName => ({
-        id: categoryName.toLowerCase().replace(/[・／\s]+/g, '-'),
-        name: categoryName,
-        description: `${categoryName}に関する作品`
-      }));
-    
-    // 全カテゴリを表示（データがないものも含む）
-    return [...PRESET_CATEGORIES, ...additionalCategories];
-  }, [posts]);
+    // CATEGORY_MASTERSをベースにして、categoryIdを使用
+    return CATEGORY_MASTERS.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.description
+    }));
+  }, []);
 
-  // カテゴリごとの作品数を取得（メモ化）
+  // カテゴリごとの作品数を取得（メモ化）- categoryIdベースに変更
   const getCategoryCount = useCallback((categoryName: string): number => {
-    return posts.filter(post => post.isPublic !== false && post.customCategory === categoryName).length;
+    // categoryNameからcategoryIdを逆引き
+    const category = CATEGORY_MASTERS.find(cat => cat.name === categoryName);
+    if (!category) return 0;
+    
+    return posts.filter(post => post.isPublic !== false && post.categoryId === category.id).length;
   }, [posts]);
 
-  // 選択されたカテゴリの作品を取得（メモ化）
+  // 選択されたカテゴリの作品を取得（メモ化）- categoryIdベースに変更
   const getSelectedCategoryPosts = useCallback((selectedCategory: string, limit = 20): Post[] => {
+    // categoryNameからcategoryIdを逆引き
+    const category = CATEGORY_MASTERS.find(cat => cat.name === selectedCategory);
+    if (!category) return [];
+    
     return posts
-      .filter(post => post.isPublic !== false && post.customCategory === selectedCategory)
+      .filter(post => post.isPublic !== false && post.categoryId === category.id)
       .slice(0, limit);
   }, [posts]);
 

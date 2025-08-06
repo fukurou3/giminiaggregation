@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limitParam = searchParams.get('limit');
     const featuredOnly = searchParams.get('featured') === 'true';
+    const categoryFilter = searchParams.get('category');
     const sortBy = searchParams.get('sortBy') || 'createdAt'; // createdAt, trending, views, favorites
     
     // クエリ制限値（デフォルト10、最大50）
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
     // データを取得
     const snapshot = await getDocs(postsQuery);
     
-    const posts = snapshot.docs.map(doc => {
+    let posts = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -70,7 +71,9 @@ export async function GET(request: NextRequest) {
         url: data.url || '',
         description: data.description || '',
         tags: data.tags || [],
+        tagIds: data.tagIds || [], // tagIds配列を追加
         category: data.category || 'その他',
+        categoryId: data.categoryId || 'other', // categoryIdを追加
         customCategory: data.customCategory || undefined,
         thumbnailUrl: data.thumbnailUrl || '',
         authorId: data.authorId || '',
@@ -86,7 +89,15 @@ export async function GET(request: NextRequest) {
         ogpDescription: data.ogpDescription || null,
         ogpImage: data.ogpImage || null,
       };
-    })
+    });
+
+    // カテゴリフィルターを適用
+    if (categoryFilter && categoryFilter !== 'all') {
+      posts = posts.filter(post => post.categoryId === categoryFilter);
+    }
+
+    // ソートを適用
+    posts = posts
     // ソート方法に応じてクライアント側でソート
     .sort((a, b) => {
       switch (sortBy) {

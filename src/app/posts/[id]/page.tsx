@@ -13,6 +13,7 @@ import { ExternalLink, Heart, Eye, Calendar, User, ArrowLeft } from "lucide-reac
 import Image from "next/image";
 import type { Post } from "@/types/Post";
 import { formatDate } from '@/lib/utils/date';
+import { findCategoryById } from '@/lib/constants/categories';
 
 declare global {
   interface Window {
@@ -223,7 +224,10 @@ export default function PostDetailPage() {
                 {/* カテゴリ・タグ */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
-                    {post.customCategory}
+                    {(() => {
+                      const category = post.categoryId ? findCategoryById(post.categoryId) : null;
+                      return category?.name || post.customCategory || 'その他';
+                    })()}
                   </span>
                   
                   {/* タグ表示 */}

@@ -57,6 +57,10 @@ export interface BaseCardProps {
 export function BaseCard({ post, size = 'medium', variant = 'work', layout = 'vertical', showCategory = true, className }: BaseCardProps) {
   const router = useRouter(); // ★ 2. useRouterフックを初期化
 
+  // Get category name from categoryId
+  const category = post.categoryId ? findCategoryById(post.categoryId) : null;
+  const categoryName = category?.name || post.customCategory || 'その他';
+
   // Get styles based on size and variant
   const sizeStyles = SIZE_STYLES[size];
   const variantStyles = VARIANT_STYLES[variant];
@@ -116,7 +120,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
           {showCategory && (
             <div className="flex items-center flex-wrap gap-1 mb-1">
               <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-                {post.customCategory}
+                {categoryName}
               </span>
               
               {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
@@ -191,7 +195,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
         {showCategory && (
           <div className="flex items-center flex-wrap gap-1 mb-2">
             <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-              {post.customCategory}
+              {categoryName}
             </span>
             
             {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
