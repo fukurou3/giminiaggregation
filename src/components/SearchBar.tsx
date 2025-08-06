@@ -207,11 +207,6 @@ export function SearchBar({
         </div>
       )}
 
-      {enableTagSearch && (
-        <div className="mt-2 text-xs text-muted-foreground">
-          ヒント: # を付けてタグ検索、通常の文字で作品検索
-        </div>
-      )}
     </div>
   );
 }
