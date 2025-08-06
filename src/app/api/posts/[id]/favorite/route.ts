@@ -2,12 +2,9 @@ import { NextRequest } from 'next/server';
 import { 
   doc, 
   getDoc,
-  setDoc, 
-  deleteDoc, 
   runTransaction,
   collection,
   getDocs,
-  updateDoc,
   increment 
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -21,7 +18,7 @@ import { updateTagStats } from '@/lib/tags';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const ip = getClientIP(request);
@@ -34,7 +31,7 @@ export async function POST(
       );
     }
 
-    const { id: postId } = params;
+    const { id: postId } = await params;
     const body = await request.json();
     const { userId } = body;
 
@@ -137,7 +134,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const ip = getClientIP(request);
@@ -150,7 +147,7 @@ export async function GET(
       );
     }
 
-    const { id: postId } = params;
+    const { id: postId } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 

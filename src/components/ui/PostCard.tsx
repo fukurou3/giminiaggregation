@@ -72,9 +72,8 @@ export const PostCard = React.memo<PostCardProps>(function PostCard({
   // タグコンポーネント
   const TagsComponent = ({ maxTags = 3 }: { maxTags?: number }) => {
     const hasTagIds = post.tagIds && post.tagIds.length > 0;
-    const hasTags = post.tags && post.tags.length > 0;
 
-    if (!hasTagIds && !hasTags) return null;
+    if (!hasTagIds) return null;
 
     return (
       <div className="flex gap-1 overflow-hidden min-w-0 flex-wrap">
@@ -101,12 +100,6 @@ export const PostCard = React.memo<PostCardProps>(function PostCard({
           </div>
         ))}
 
-        {/* tagIdsがない場合のみtags使用 */}
-        {!hasTagIds && hasTags && post.tags!.slice(0, maxTags).map((tagName) => (
-          <div key={`tag-${tagName}`} onClick={handleTagClick} className="inline-block">
-            <TagChip tag={tagName} size="sm" variant="ghost" showIcon={false} />
-          </div>
-        ))}
       </div>
     );
   };
@@ -149,7 +142,7 @@ export const PostCard = React.memo<PostCardProps>(function PostCard({
               {/* カテゴリ */}
               {showCategory && (
                 <span className="bg-primary text-primary-foreground rounded-full font-medium px-2 py-1 text-xs whitespace-nowrap">
-                  {post.category}
+                  {post.customCategory}
                 </span>
               )}
 
@@ -200,7 +193,7 @@ export const PostCard = React.memo<PostCardProps>(function PostCard({
         {showCategory && (
           <div className="flex items-center">
             <span className="bg-primary text-primary-foreground rounded-full font-medium px-3 py-1 text-sm">
-              {post.category}
+              {post.customCategory}
             </span>
           </div>
         )}

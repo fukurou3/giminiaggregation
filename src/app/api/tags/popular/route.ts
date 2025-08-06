@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const queryLimit = limitParam ? Math.min(parseInt(limitParam, 10), 50) : 20;
 
     // 人気タグを取得
-    let popularTags = await getPopularTags(100); // 多めに取得してソート
+    const popularTags = await getPopularTags(100); // 多めに取得してソート
 
     // ソート方法に応じて並び替え
     popularTags.sort((a, b) => {

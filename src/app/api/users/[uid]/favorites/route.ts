@@ -79,7 +79,7 @@ export async function GET(
           category: postData.category || 'その他',
           customCategory: postData.customCategory || undefined,
           thumbnailUrl: postData.thumbnailUrl || '',
-          authorName: postData.authorName || '匿名ユーザー',
+          authorUsername: postData.authorUsername || '匿名ユーザー',
           createdAt: postData.createdAt?.toDate() || new Date(),
           updatedAt: postData.updatedAt?.toDate() || undefined,
           likes: postData.likes || 0,

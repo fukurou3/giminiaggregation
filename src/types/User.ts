@@ -1,7 +1,7 @@
 export interface UserProfile {
   uid: string;
-  email: string;
-  displayName: string;
+  publicId: string;  // 英数字6-10桁のランダムID
+  username: string;  // 日本語10文字までの公開ハンドル
   photoURL?: string;
   photoFileName?: string;
   createdAt: Date;
@@ -10,6 +10,7 @@ export interface UserProfile {
 }
 
 export interface UserProfileForm {
-  displayName: string;
+  publicId: string;  // 英数字6-10桁のランダムID
+  username: string;  // 日本語10文字までの公開ハンドル
   photoFile?: File;
 }

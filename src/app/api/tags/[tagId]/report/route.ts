@@ -9,7 +9,7 @@ import { reportTag } from '@/lib/tags';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tagId: string } }
+  { params }: { params: Promise<{ tagId: string }> }
 ) {
   try {
     const ip = getClientIP(request);
@@ -22,7 +22,7 @@ export async function POST(
       );
     }
 
-    const { tagId } = params;
+    const { tagId } = await params;
     const body = await request.json();
     
     if (!body.reason || !body.userInfo?.uid) {

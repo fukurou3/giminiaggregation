@@ -5,9 +5,7 @@ import {
   getDoc,
   getDocs, 
   query, 
-  where, 
-  orderBy,
-  limit as firestoreLimit
+  where
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { 
@@ -17,13 +15,13 @@ import {
 } from '@/lib/api/utils';
 import { checkRateLimit } from '@/lib/api/rateLimiter';
 import { Tag, TagSearchResult } from '@/types/Tag';
-import { Post, Category } from '@/types/Post';
-import { CATEGORY_MASTERS, findCategoryById, findCategoryByName } from '@/lib/constants/categories';
-import { getTagCategoryStats, updateTagStats } from '@/lib/tags';
+import { Post } from '@/types/Post';
+import { CATEGORY_MASTERS } from '@/lib/constants/categories';
+import { updateTagStats } from '@/lib/tags';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tagId: string } }
+  { params }: { params: Promise<{ tagId: string }> }
 ) {
   try {
     const ip = getClientIP(request);
@@ -36,7 +34,7 @@ export async function GET(
       );
     }
 
-    const { tagId } = params;
+    const { tagId } = await params;
     const { searchParams } = new URL(request.url);
     const categoryFilter = searchParams.get('category');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
@@ -71,7 +69,7 @@ export async function GET(
 
     // タグを含む投稿を検索
     const postsRef = collection(db, 'posts');
-    let postsQuery = query(
+    const postsQuery = query(
       postsRef,
       where('isPublic', '==', true)
     );
@@ -82,7 +80,7 @@ export async function GET(
     
     let matchingPosts = postsSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter((post: any) => {
+      .filter((post: { id: string; tagIds?: string[]; [key: string]: unknown }) => {
         // tagIds配列にtagIdが含まれるかチェック
         return post.tagIds && post.tagIds.includes(tagId);
       }) as Post[];
@@ -106,8 +104,8 @@ export async function GET(
           return b.favoriteCount - a.favoriteCount;
         case 'createdAt':
         default:
-          const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt as any);
-          const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt as any);
+          const aDate = a.createdAt instanceof Date ? a.createdAt : a.createdAt ? new Date(a.createdAt.toDate?.() || a.createdAt) : new Date();
+          const bDate = b.createdAt instanceof Date ? b.createdAt : b.createdAt ? new Date(b.createdAt.toDate?.() || b.createdAt) : new Date();
           return bDate.getTime() - aDate.getTime();
       }
     });

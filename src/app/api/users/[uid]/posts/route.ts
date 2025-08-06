@@ -70,7 +70,7 @@ export async function GET(
         customCategory: data.customCategory || undefined,
         thumbnailUrl: data.thumbnailUrl || '',
         authorId: data.authorId || '',
-        authorName: data.authorName || '匿名ユーザー',
+        authorUsername: data.authorUsername || '匿名ユーザー',
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || undefined,
         likes: data.likes || 0,

@@ -22,9 +22,9 @@ export const useUserProfile = () => {
       try {
         let profile = await getUserProfile(user.uid);
         
-        // プロフィールが存在しない場合は作成
-        if (!profile && user.email) {
-          await createUserProfile(user.uid, user.email);
+        // プロフィールが存在しない場合は作成（emailを使用せず）
+        if (!profile) {
+          await createUserProfile(user.uid);
           profile = await getUserProfile(user.uid);
         }
 

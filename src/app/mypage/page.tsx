@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useRouter } from "next/navigation";
 import { Post } from "@/types/Post";
 import { Heart, FileText, Loader2 } from "lucide-react";
@@ -9,6 +10,7 @@ import { WorkCard } from "@/components/ui/WorkCard";
 
 export default function MyPage() {
   const { user } = useAuth();
+  const { userProfile } = useUserProfile();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"favorites" | "posts">("favorites");
   const [favorites, setFavorites] = useState<Post[]>([]);
@@ -96,7 +98,7 @@ export default function MyPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">マイページ</h1>
           <p className="text-muted-foreground">
-            {user.displayName || user.email || "ユーザー"}さんのページ
+            {userProfile?.username || "ユーザー"}さんのページ
           </p>
         </div>
 

@@ -16,7 +16,7 @@ import { updateTagStats } from '@/lib/tags';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const ip = getClientIP(request);
@@ -29,7 +29,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const incrementViews = searchParams.get('incrementViews') === 'true';
 
@@ -45,7 +45,7 @@ export async function GET(
       );
     }
 
-    const postData = { id, ...postDoc.data() };
+    const postData = { id, ...postDoc.data() } as { id: string; isPublic?: boolean; views?: number; [key: string]: unknown };
 
     // 公開投稿のみ表示
     if (!postData.isPublic) {

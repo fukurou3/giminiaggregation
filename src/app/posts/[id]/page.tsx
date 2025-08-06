@@ -190,7 +190,7 @@ export default function PostDetailPage() {
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-1">
                         <User size={16} />
-                        <span>{post.authorName}</span>
+                        <span>{post.authorUsername}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Calendar size={16} />
@@ -223,11 +223,11 @@ export default function PostDetailPage() {
                 {/* カテゴリ・タグ */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-sm">
-                    {post.customCategory || post.category}
+                    {post.customCategory}
                   </span>
                   
                   {/* タグ表示 */}
-                  {(post.tags || post.tagIds) && (
+                  {post.tagIds && (
                     <>
                       {/* 新しいtagIds形式のタグ */}
                       {post.tagIds && post.tagIds.map((tagId) => (
@@ -245,16 +245,6 @@ export default function PostDetailPage() {
                             createdAt: new Date(),
                             updatedAt: new Date()
                           }}
-                          size="sm"
-                          variant="outlined"
-                        />
-                      ))}
-                      
-                      {/* 旧しいtags形式のタグ（後方互換性） */}
-                      {post.tags && post.tags.map((tagName) => (
-                        <TagChip
-                          key={`tag-${tagName}`}
-                          tag={tagName}
                           size="sm"
                           variant="outlined"
                         />

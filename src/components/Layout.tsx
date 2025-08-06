@@ -29,7 +29,6 @@ export function Layout({ children }: LayoutProps) {
     return (
       <ProfileSetup
         uid={userProfile!.uid}
-        email={userProfile!.email}
         onComplete={refreshProfile}
       />
     );

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'; // ★ 1. useRouterをインポー�
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
 import { TagChip } from './TagChip';
+import { findCategoryById } from '@/lib/constants/categories';
 
 // Style constants (変更なし)
 const SIZE_STYLES = {
@@ -115,7 +116,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
           {showCategory && (
             <div className="flex items-center flex-wrap gap-1 mb-1">
               <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-                {post.category}
+                {post.customCategory}
               </span>
               
               {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
@@ -132,14 +133,6 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
                 </div>
               ))}
               
-              {post.tags && !post.tagIds && post.tags.slice(0, 2).map((tagName) => (
-                 // ★ 5. TagChipにonClickハンドラを追加
-                <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick}>
-                  <TagChip
-                    tag={tagName} size="sm" variant="ghost" showIcon={false}
-                  />
-                </div>
-              ))}
             </div>
           )}
 
@@ -198,7 +191,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
         {showCategory && (
           <div className="flex items-center flex-wrap gap-1 mb-2">
             <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-              {post.category}
+              {post.customCategory}
             </span>
             
             {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
@@ -215,14 +208,6 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
               </div>
             ))}
             
-            {post.tags && !post.tagIds && post.tags.slice(0, 2).map((tagName) => (
-               // ★ 5. TagChipをdivで囲み、onClickハンドラを追加
-              <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick} className="inline-block">
-                <TagChip
-                  tag={tagName} size="sm" variant="ghost" showIcon={false}
-                />
-              </div>
-            ))}
           </div>
         )}
 

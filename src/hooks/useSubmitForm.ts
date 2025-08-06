@@ -128,8 +128,6 @@ export function useSubmitForm(): UseSubmitFormReturn {
           },
           userInfo: {
             uid: user.uid,
-            displayName: user.displayName,
-            email: user.email,
           },
           ogpData: urlValidation.ogpData,
         }),

@@ -14,7 +14,7 @@ import {
   Package,
   Grid3X3
 } from 'lucide-react';
-import { CategoryCard } from '@/components/ui/CategoryCard';
+import Link from 'next/link';
 import { CATEGORY_MASTERS } from '@/lib/constants/categories';
 import { useFetch } from '@/lib/api';
 import { Post } from '@/types/Post';
@@ -49,7 +49,7 @@ export default function CategoriesListPage() {
       const updatedCategories = CATEGORY_MASTERS.map(category => {
         const count = posts.filter(post => 
           post.isPublic !== false && 
-          (post.categoryId === category.id || post.category === category.name)
+          post.categoryId === category.id
         ).length;
         
         return {
@@ -106,11 +106,28 @@ export default function CategoriesListPage() {
             const IconComponent = ICON_MAP[category.icon as keyof typeof ICON_MAP] || Package;
             
             return (
-              <CategoryCard
+              <Link 
                 key={category.id}
-                category={category}
-                icon={IconComponent}
-              />
+                href={`/categories/${category.id}`}
+                className="group bg-card hover:bg-card/80 transition-colors border border-border rounded-2xl p-6 block"
+              >
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mr-4">
+                    <IconComponent className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                      {category.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {category.count}作品
+                    </p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {category.description}
+                </p>
+              </Link>
             );
           })}
         </div>

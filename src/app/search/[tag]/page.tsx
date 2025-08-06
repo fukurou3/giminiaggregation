@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Hash, Flag, Eye, Heart, Users } from 'lucide-react';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { useFetch } from '@/lib/api';
-import { Tag, TagSearchResult } from '@/types/Tag';
+import { TagSearchResult } from '@/types/Tag';
 import { Post } from '@/types/Post';
 
 interface TagSearchResponse {

@@ -18,7 +18,14 @@ export type ApiErrorType =
   | 'server_error'
   | 'permission_denied'
   | 'network_error'
-  | 'not_implemented';
+  | 'not_implemented'
+  | 'not_found'
+  | 'forbidden'
+  | 'profile_incomplete'
+  | 'invalid_category'
+  | 'invalid_reason'
+  | 'tag_flagged'
+  | 'invalid_query';
 
 // Standard API error response interface
 export interface ApiErrorResponse {

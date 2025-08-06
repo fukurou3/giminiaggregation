@@ -10,7 +10,7 @@ export type Post = {
   categoryId: string; // カテゴリID
   customCategory?: string;
   authorId: string;
-  authorName: string;
+  authorUsername: string;  // ユーザーの公開ハンドル
   thumbnailUrl?: string;
   ogpTitle?: string;
   ogpDescription?: string;

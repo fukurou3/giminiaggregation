@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { TrendingUp, Hash } from 'lucide-react';
 import { TagChip } from './TagChip';
 import { useFetch } from '@/lib/api';

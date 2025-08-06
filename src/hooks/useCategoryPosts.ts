@@ -40,12 +40,12 @@ export const useCategoryPosts = ({
     // カテゴリに一致する投稿を取得
     const categoryPosts = publicPosts.filter(post => {
       // 直接的なマッチング
-      if (post.category === restoredCategoryName) {
+      if (post.customCategory === restoredCategoryName) {
         return true;
       }
       
       // スラッグベースのマッチング（フォールバック）
-      const postSlug = post.category.toLowerCase().replace(/\\s+/g, '-');
+      const postSlug = post.customCategory?.toLowerCase().replace(/\\s+/g, '-');
       return postSlug === categorySlug;
     });
 

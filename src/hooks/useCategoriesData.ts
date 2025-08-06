@@ -41,7 +41,7 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
 
   const categories = useMemo(() => {
     // 実際にデータがあるカテゴリを取得（isPublicがundefinedの場合は公開とみなす）
-    const actualCategories = [...new Set(posts.filter(post => post.isPublic !== false).map(post => post.category))];
+    const actualCategories = [...new Set(posts.filter(post => post.isPublic !== false && post.customCategory).map(post => post.customCategory!))];
     
     // PRESET_CATEGORIESにない実際のカテゴリを動的に追加
     const additionalCategories = actualCategories
@@ -58,13 +58,13 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
 
   // カテゴリごとの作品数を取得（メモ化）
   const getCategoryCount = useCallback((categoryName: string): number => {
-    return posts.filter(post => post.isPublic !== false && post.category === categoryName).length;
+    return posts.filter(post => post.isPublic !== false && post.customCategory === categoryName).length;
   }, [posts]);
 
   // 選択されたカテゴリの作品を取得（メモ化）
   const getSelectedCategoryPosts = useCallback((selectedCategory: string, limit = 20): Post[] => {
     return posts
-      .filter(post => post.isPublic !== false && post.category === selectedCategory)
+      .filter(post => post.isPublic !== false && post.customCategory === selectedCategory)
       .slice(0, limit);
   }, [posts]);
 

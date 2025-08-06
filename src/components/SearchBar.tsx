@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, Hash } from 'lucide-react';
-import { TagChip } from './ui/TagChip';
 import { useFetch } from '@/lib/api';
 import { Tag } from '@/types/Tag';
 

@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp, getDocs, query, where, limit, doc,
 import { db } from '@/lib/firebase';
 import { postSchema } from '@/lib/schemas/postSchema';
 import { validateGeminiUrl } from '@/lib/validators/urlValidator';
+import { getUserProfile } from '@/lib/userProfile';
 import { 
   createErrorResponse, 
   createSuccessResponse, 
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
         customCategory: data.customCategory || undefined,
         thumbnailUrl: data.thumbnailUrl || '',
         authorId: data.authorId || '',
-        authorName: data.authorName || '匿名ユーザー',
+        authorUsername: data.authorUsername || '匿名ユーザー',
         isPublic: data.isPublic !== false, // Default to true if not explicitly false
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || undefined,
@@ -172,6 +173,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ユーザープロフィールを取得
+    const userProfile = await getUserProfile(userInfo.uid);
+    if (!userProfile || !userProfile.isSetupComplete) {
+      return createErrorResponse(
+        'profile_incomplete',
+        'プロフィールの設定が完了していません',
+        400
+      );
+    }
+
     // URL の再検証（サーバー側で二重チェック）
     if (formData.url) {
       const urlValidationResult = await validateGeminiUrl(formData.url);
@@ -223,7 +234,7 @@ export async function POST(request: NextRequest) {
       
       // システム自動設定項目
       authorId: userInfo.uid,
-      authorName: userInfo.displayName || userInfo.email || '匿名ユーザー',
+      authorUsername: userProfile.username,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       likes: 0,

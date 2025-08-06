@@ -181,7 +181,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                       <div className="w-7 h-7 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
                         <Image
                           src={userProfile.photoURL}
-                          alt={userProfile.displayName || 'User'}
+                          alt={userProfile.username || 'User'}
                           width={28}
                           height={28}
                           className="object-cover w-full h-full"
@@ -197,10 +197,10 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                     <div className="absolute right-0 mt-1.5 w-40 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
                       <div className="px-2 py-1.5 border-b border-border">
                         <p className="text-xs font-semibold text-foreground">
-                          {userProfile?.displayName || 'ユーザー'}
+                          {userProfile?.username || 'ユーザー'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {userProfile?.email}
+                          {userProfile?.publicId}
                         </p>
                       </div>
                       <Link
@@ -234,7 +234,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                 onClick={handleLogin}
                 className="bg-primary text-primary-foreground px-3 py-1.5 rounded-xl font-medium hover:bg-primary/90 transition-colors shrink-0 text-sm"
               >
-                ログイン
+                アカウント作成・ログイン
               </button>
             )}
           </div>
@@ -267,7 +267,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                         <div className="w-7 h-7 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
                           <Image
                             src={userProfile.photoURL}
-                            alt={userProfile.displayName || 'User'}
+                            alt={userProfile.username || 'User'}
                             width={28}
                             height={28}
                             className="object-cover w-full h-full"
@@ -283,10 +283,10 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                       <div className="absolute right-0 mt-1.5 w-40 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
                         <div className="px-2 py-1.5 border-b border-border">
                           <p className="text-xs font-semibold text-foreground">
-                            {userProfile?.displayName || 'ユーザー'}
+                            {userProfile?.username || 'ユーザー'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {userProfile?.email}
+                            {userProfile?.publicId}
                           </p>
                         </div>
                         <Link
@@ -320,7 +320,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                   onClick={handleLogin}
                   className="bg-primary text-primary-foreground px-3 py-1.5 rounded-xl font-medium hover:bg-primary/90 transition-colors shrink-0 text-sm"
                 >
-                  ログイン
+                  アカウント作成・ログイン
                 </button>
               )}
             </div>

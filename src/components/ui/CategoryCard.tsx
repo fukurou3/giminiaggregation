@@ -76,7 +76,7 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
           <div className="flex items-center justify-between text-xs">
             {/* タグ */}
             <div className="flex gap-1 overflow-hidden min-w-0">
-              {(post.tags || post.tagIds) && (
+              {post.tagIds && (
                 <>
                   {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
                     // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
@@ -89,13 +89,6 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
                         }}
                         size="sm" variant="ghost"
                       />
-                    </div>
-                  ))}
-                  
-                  {post.tags && post.tags.slice(0, 2).map((tagName) => (
-                     // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
-                    <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick} className="inline-block">
-                      <TagChip tag={tagName} size="sm" variant="ghost" />
                     </div>
                   ))}
                 </>
@@ -140,7 +133,7 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
         </h3>
 
         {/* タグ */}
-        {(post.tags || post.tagIds) && (
+        {post.tagIds && (
           <div className="flex gap-1 overflow-hidden min-w-0">
             <>
               {post.tagIds && post.tagIds.slice(0, 3).map((tagId) => (
@@ -154,13 +147,6 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
                     }}
                     size="sm" variant="ghost"
                   />
-                </div>
-              ))}
-              
-              {post.tags && post.tags.slice(0, 3).map((tagName) => (
-                // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
-                <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick} className="inline-block">
-                  <TagChip tag={tagName} size="sm" variant="ghost" />
                 </div>
               ))}
             </>

@@ -2,26 +2,42 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { User, Upload, Check, Loader2 } from 'lucide-react';
+import { User, Upload, Check, Loader2, RefreshCw } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
-import { updateUserProfile } from '@/lib/userProfile';
+import { setupUserProfile, generateUniquePublicId } from '@/lib/userProfile';
 import type { UserProfileForm } from '@/types/User';
 
 interface ProfileSetupProps {
   uid: string;
-  email: string;
   onComplete: () => void;
 }
 
-export function ProfileSetup({ uid, email, onComplete }: ProfileSetupProps) {
+export function ProfileSetup({ uid, onComplete }: ProfileSetupProps) {
   const [formData, setFormData] = useState<UserProfileForm>({
-    displayName: '',
+    publicId: '',
+    username: '',
   });
   const [previewImage, setPreviewImage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 公開IDを自動生成
+  const generatePublicId = async () => {
+    setIsGeneratingId(true);
+    try {
+      const newPublicId = await generateUniquePublicId();
+      setFormData(prev => ({ ...prev, publicId: newPublicId }));
+      setError('');
+    } catch (error) {
+      console.error('Error generating publicId:', error);
+      setError('公開IDの生成に失敗しました');
+    } finally {
+      setIsGeneratingId(false);
+    }
+  };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,13 +90,30 @@ export function ProfileSetup({ uid, email, onComplete }: ProfileSetupProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.displayName.trim()) {
+    // 公開IDの入力チェック
+    if (!formData.publicId.trim()) {
+      setError('公開IDを入力してください');
+      return;
+    }
+
+    if (formData.publicId.length < 6 || formData.publicId.length > 10) {
+      setError('公開IDは6-10文字で入力してください');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(formData.publicId)) {
+      setError('公開IDは英数字のみ使用できます');
+      return;
+    }
+
+    // ユーザー名の入力チェック
+    if (!formData.username.trim()) {
       setError('ユーザー名を入力してください');
       return;
     }
 
-    if (formData.displayName.length > 50) {
-      setError('ユーザー名は50文字以内で入力してください');
+    if (formData.username.length > 10) {
+      setError('ユーザー名は10文字以内で入力してください');
       return;
     }
 
@@ -88,11 +121,11 @@ export function ProfileSetup({ uid, email, onComplete }: ProfileSetupProps) {
     setError('');
 
     try {
-      await updateUserProfile(uid, formData);
+      await setupUserProfile(uid, formData);
       onComplete();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Profile setup error:', error);
-      setError('プロフィールの設定に失敗しました。もう一度お試しください。');
+      setError(error instanceof Error ? error.message : 'プロフィールの設定に失敗しました。もう一度お試しください。');
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +139,7 @@ export function ProfileSetup({ uid, email, onComplete }: ProfileSetupProps) {
             プロフィール設定
           </h1>
           <p className="text-muted-foreground">
-            安全のため、表示名とアイコンを設定してください
+            公開ID（英数字6-10文字）とユーザー名（10文字まで）を設定してください
           </p>
         </div>
 
@@ -163,40 +196,62 @@ export function ProfileSetup({ uid, email, onComplete }: ProfileSetupProps) {
             </p>
           </div>
 
-          {/* ユーザー名 */}
+          {/* 公開ID */}
           <div className="space-y-2">
-            <label htmlFor="setup-displayName" className="block text-sm font-medium text-foreground">
-              ユーザー名 <span className="text-red-500">*</span>
+            <label htmlFor="setup-publicId" className="block text-sm font-medium text-foreground">
+              公開ID <span className="text-red-500">*</span>
             </label>
-            <input
-              id="setup-displayName"
-              name="setupDisplayName"
-              type="text"
-              value={formData.displayName}
-              onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
-              placeholder="表示するユーザー名を入力"
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              maxLength={50}
-              required
-            />
+            <div className="flex space-x-2">
+              <input
+                id="setup-publicId"
+                name="setupPublicId"
+                type="text"
+                value={formData.publicId}
+                onChange={(e) => setFormData(prev => ({ ...prev, publicId: e.target.value }))}
+                placeholder="英数字6-10文字"
+                className="flex-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                maxLength={10}
+                pattern="[a-zA-Z0-9]+"
+                required
+              />
+              <button
+                type="button"
+                onClick={generatePublicId}
+                disabled={isGeneratingId}
+                className="px-3 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="ランダム生成"
+              >
+                {isGeneratingId ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={16} />
+                )}
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              {formData.displayName.length}/50文字
+              {formData.publicId.length}/10文字 (英数字のみ、あなたを識別するユニークなID)
             </p>
           </div>
 
-          {/* メールアドレス表示 */}
+          {/* ユーザー名 */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground">
-              メールアドレス
+            <label htmlFor="setup-username" className="block text-sm font-medium text-foreground">
+              ユーザー名 <span className="text-red-500">*</span>
             </label>
             <input
-              id="setup-userEmail"
-              name="setupUserEmail"
-              type="email"
-              value={email}
-              disabled
-              className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-muted-foreground"
+              id="setup-username"
+              name="setupUsername"
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              placeholder="表示するユーザー名を入力"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              maxLength={10}
+              required
             />
+            <p className="text-xs text-muted-foreground">
+              {formData.username.length}/10文字 (日本語可、公開表示名)
+            </p>
           </div>
 
           {error && (
@@ -207,7 +262,7 @@ export function ProfileSetup({ uid, email, onComplete }: ProfileSetupProps) {
 
           <button
             type="submit"
-            disabled={isSubmitting || !formData.displayName.trim()}
+            disabled={isSubmitting || !formData.publicId.trim() || !formData.username.trim()}
             className="w-full flex items-center justify-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (

@@ -8,7 +8,6 @@ import {
   increment, 
   query, 
   where, 
-  orderBy, 
   limit,
   serverTimestamp,
   runTransaction
@@ -68,7 +67,7 @@ export async function updateTagStats(tagId: string, updates: {
 }): Promise<void> {
   const tagRef = doc(db, 'tags', tagId);
   
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updatedAt: serverTimestamp(),
   };
   
