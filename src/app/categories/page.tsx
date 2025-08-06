@@ -26,7 +26,9 @@ export default function CategoriesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+  const [isSidebarFixed, setIsSidebarFixed] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const sidebarContainerRef = useRef<HTMLDivElement>(null);
   
   // Dynamic layout state
   const [layoutPhase, setLayoutPhase] = useState<'phase1' | 'phase2' | 'phase3' | 'phase4'>('phase1');
@@ -231,6 +233,30 @@ export default function CategoriesPage() {
     };
   }, [isSidebarOpen]);
 
+  // Sticky sidebar scroll handler
+  useEffect(() => {
+    // Skip on mobile layout
+    if (layoutPhase === 'phase4') return;
+
+    const HEADER_HEIGHT = 80; // Adjust based on your header height
+
+    const handleScroll = () => {
+      if (sidebarContainerRef.current) {
+        const { top } = sidebarContainerRef.current.getBoundingClientRect();
+        if (top <= HEADER_HEIGHT) {
+          setIsSidebarFixed(true);
+        } else {
+          setIsSidebarFixed(false);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [layoutPhase]);
+
   // Window resize listener for dynamic layout
   useEffect(() => {
     // Ensure we're on client side
@@ -321,45 +347,55 @@ export default function CategoriesPage() {
       )}
 
       {/* Layout Container */}
-      <div className="flex min-w-0 w-full">
+      <div className="flex min-w-0 w-full" ref={sidebarContainerRef}>
         {/* Left Sidebar - Outside padding, screen left edge */}
         <div
           ref={sidebarRef}
           className={`
-            ${layoutPhase === 'phase4' ? 'md:relative md:translate-x-0 md:z-auto' : ''}
-            ${layoutPhase === 'phase4' && isSidebarOpen ? 'translate-x-0' : layoutPhase === 'phase4' ? '-translate-x-full' : ''}
-            ${layoutPhase === 'phase4' ? 'fixed md:static z-40 transition-transform duration-300 ease-in-out' : ''}
             w-48 flex-shrink-0
+            ${layoutPhase === 'phase4'
+              ? `fixed z-40 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+              : ''
+            }
           `}
           style={{
-            display: layoutPhase === 'phase4' ? undefined : 'block'
+            display: layoutPhase === 'phase4' ? undefined : 'block',
+            position: layoutPhase === 'phase4' ? 'fixed' : (isSidebarFixed ? 'fixed' : 'static'),
+            top: layoutPhase === 'phase4' ? '0' : (isSidebarFixed ? '80px' : undefined),
+            height: layoutPhase === 'phase4' ? '100vh' : undefined,
+            zIndex: layoutPhase === 'phase4' ? 40 : (isSidebarFixed ? 10 : undefined),
           }}
         >
-          <div className="bg-background border-r border-border p-3 md:px-4 md:py-8 h-screen md:h-auto overflow-y-auto md:overflow-visible md:sticky md:top-8" style={{paddingTop: layoutPhase === 'phase4' ? '1rem' : undefined, marginTop: layoutPhase === 'phase4' ? '-3rem' : undefined}}>
-              {/* Mobile Header with Hamburger - Only in Phase 4 */}
+          <div 
+            className="bg-background border-r border-border overflow-y-auto h-full relative" 
+          >
+              {/* Fixed Mobile Header - Only in Phase 4 */}
               {layoutPhase === 'phase4' && (
-                <>
-                  <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="md:hidden absolute top-8 left-4 z-40 p-2 hover:bg-muted rounded-md transition-colors"
-                  >
-                    <Menu className="w-5 h-5" />
-                  </button>
-                  <div className="md:hidden absolute top-8 left-16 z-40">
-                    <h2 className="text-base font-semibold text-foreground flex items-center h-9">
+                <div className="sticky bg-background p-4 z-10" style={{top: '92px'}}>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                      className="p-2 hover:bg-muted rounded-md transition-colors mr-2"
+                    >
+                      <Menu className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-base font-semibold text-foreground flex items-center">
                       カテゴリ
                     </h2>
                   </div>
-                </>
+                </div>
               )}
 
+              {/* Content wrapper with appropriate padding */}
+              <div className={layoutPhase === 'phase4' ? "pt-23 p-3" : "p-3 md:px-4 md:py-8"}>
+
               {/* Desktop Header - Show in all phases except mobile */}
-              <h2 className={`${layoutPhase === 'phase4' ? 'hidden md:block' : 'block'} text-base font-semibold text-foreground mb-3 flex items-center`}>
+              <h2 className={`${layoutPhase === 'phase4' ? 'hidden md:block' : 'block transform translate-y-2 translate-x-2'} text-base font-semibold text-foreground mb-3 flex items-center`}>
                 <Hash className="w-4 h-4 mr-1.5" />
                 カテゴリ
               </h2>
             
-            <div className={`space-y-1 ${layoutPhase === 'phase4' ? 'mt-28' : ''}`}>
+              <div className={`space-y-1 ${layoutPhase === 'phase4' ? '' : 'mt-7'}`}>
               {displayCategories.map((category) => {
                 const count = getCategoryCount(category.name);
                 const hasData = count > 0;
@@ -368,7 +404,7 @@ export default function CategoriesPage() {
                   <button
                     key={category.id}
                     onClick={() => handleCategorySelect(category.name)}
-                    className={`w-full text-left px-2.5 py-2.5 rounded-md text-sm transition-colors ${
+                    className={`w-full text-left ${layoutPhase === 'phase4' ? 'px-2 py-2' : 'px-2 py-2'} rounded-md text-sm transition-colors ${
                       selectedCategory === category.name
                         ? 'bg-primary/20 text-foreground font-medium'
                         : 'hover:bg-muted text-foreground hover:text-foreground'
@@ -381,8 +417,14 @@ export default function CategoriesPage() {
                 );
               })}
               </div>
+              </div>
             </div>
         </div>
+
+        {/* Layout spacer to prevent content jumping when sidebar becomes fixed */}
+        {layoutPhase !== 'phase4' && isSidebarFixed && (
+          <div className="w-48 flex-shrink-0" />
+        )}
 
         {/* Main Content - Centered with padding */}
         <div 
