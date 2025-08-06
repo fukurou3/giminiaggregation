@@ -2,28 +2,71 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { Menu, Grid3X3, Briefcase, GraduationCap, Laptop, Palette, BarChart3, Home, MessageCircle, Bot, Gamepad2, Package } from 'lucide-react';
 import { CategorySidebar } from '@/components/categories/CategorySidebar';
 import { CategoryContent } from '@/components/categories/CategoryContent';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useMobileSidebar } from '@/hooks/useMobileSidebar';
 import { useStickyHeader } from '@/hooks/useStickyHeader';
-import CategoriesListContent from './CategoriesListContent';
+import { CATEGORY_MASTERS } from '@/lib/constants/categories';
+import { useFetch } from '@/lib/api';
+import { Post } from '@/types/Post';
+
+// アイコンマッピング
+const ICON_MAP = {
+  '💼': Briefcase,
+  '🎓': GraduationCap, 
+  '💻': Laptop,
+  '🎨': Palette,
+  '📊': BarChart3,
+  '🏠': Home,
+  '💬': MessageCircle,
+  '🤖': Bot,
+  '🎮': Gamepad2,
+  '📦': Package
+};
 
 export default function CategoriesPage() {
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [categoriesWithCounts, setCategoriesWithCounts] = useState(CATEGORY_MASTERS);
   
   // Custom hooks for cleaner component architecture
   const { layoutPhase, contentWidth, spacerWidth } = useResponsiveLayout();
   const { categories, loading, error, getCategoryCount, getSelectedCategoryPosts } = useCategoriesData();
+  
+  // 投稿データを取得してカテゴリ別の件数をカウント
+  const { data: postsResponse } = useFetch<{
+    data?: { posts: Post[] };
+  }>('/api/posts?limit=100');
+  const posts = postsResponse?.data?.posts || [];
+  
   const { isSidebarOpen, setIsSidebarOpen, sidebarRef } = useMobileSidebar({ 
     layoutPhase, 
     hasCategories: categories.length > 0, 
     isLoading: loading 
   });
   const { isSidebarFixed, sidebarContainerRef } = useStickyHeader({ layoutPhase });
+  
+  // カテゴリ別の作品数を計算
+  useEffect(() => {
+    if (posts.length > 0) {
+      const updatedCategories = CATEGORY_MASTERS.map(category => {
+        const count = posts.filter(post => 
+          post.isPublic !== false && 
+          post.categoryId === category.id
+        ).length;
+        
+        return {
+          ...category,
+          count
+        };
+      });
+      
+      setCategoriesWithCounts(updatedCategories);
+    }
+  }, [posts]);
   
   // URLパラメータから選択されたカテゴリを取得
   useEffect(() => {
@@ -32,7 +75,13 @@ export default function CategoriesPage() {
       const category = categories.find(cat => cat.id === categoryParam);
       if (category) {
         setSelectedCategory(category.name);
+      } else {
+        // 無効なカテゴリIDの場合はクリア
+        setSelectedCategory('');
       }
+    } else {
+      // categoryパラメータがない場合はカテゴリ一覧表示のためクリア
+      setSelectedCategory('');
     }
   }, [searchParams, categories]);
 
@@ -45,6 +94,12 @@ export default function CategoriesPage() {
     if (category) {
       window.history.pushState({}, '', `/categories?category=${category.id}`);
     }
+  };
+
+  // カテゴリ一覧に戻る処理
+  const handleBackToList = () => {
+    setSelectedCategory('');
+    window.history.pushState({}, '', '/categories');
   };
 
   const selectedCategoryPosts = getSelectedCategoryPosts(selectedCategory);
@@ -138,11 +193,68 @@ export default function CategoriesPage() {
                 categories={categories}
                 layoutPhase={layoutPhase}
                 error={error}
+                onBackToList={handleBackToList}
               />
             ) : (
-              <CategoriesListContent 
-                onCategorySelect={handleCategorySelect}
-              />
+              <div className="space-y-8">
+                {/* ヘッダー */}
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-foreground mb-4 flex items-center">
+                    <Grid3X3 className="w-8 h-8 mr-3" />
+                    カテゴリ一覧
+                  </h1>
+                  <p className="text-muted-foreground">
+                    興味のあるカテゴリを選んで、関連する作品を探してみましょう
+                  </p>
+                </div>
+
+                {/* カテゴリグリッド */}
+                <div className="grid gap-6 auto-fit-category-list">
+                  {categoriesWithCounts.map((category) => {
+                    const IconComponent = ICON_MAP[category.icon as keyof typeof ICON_MAP] || Package;
+                    
+                    return (
+                      <button
+                        key={category.id}
+                        onClick={() => handleCategorySelect(category.name)}
+                        className="group bg-card hover:bg-card/80 transition-colors border border-border rounded-2xl p-6 block text-left w-full"
+                      >
+                        <div className="flex items-center mb-4">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mr-4">
+                            <IconComponent className="w-6 h-6 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                              {category.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {category.count || 0}作品
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-muted-foreground text-sm leading-relaxed">
+                          {category.description}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 統計情報 */}
+                <div className="mt-12 text-center">
+                  <div className="bg-muted/50 rounded-lg p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-2">
+                      登録作品数
+                    </h2>
+                    <p className="text-3xl font-bold text-primary">
+                      {posts.filter(post => post.isPublic !== false).length}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      公開中の作品
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </main>

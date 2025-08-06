@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hash } from 'lucide-react';
+import { Hash, ArrowLeft } from 'lucide-react';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { Post } from '@/types/Post';
 import { Category } from '@/hooks/useCategoriesData';
@@ -11,6 +11,7 @@ interface CategoryContentProps {
   categories: Category[];
   layoutPhase: LayoutPhase;
   error: string | null;
+  onBackToList?: () => void;
 }
 
 export const CategoryContent = React.memo<CategoryContentProps>(function CategoryContent({
@@ -19,11 +20,23 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
   categories,
   layoutPhase,
   error,
+  onBackToList,
 }) {
   const selectedCategoryData = categories.find(cat => cat.name === selectedCategory);
 
   return (
     <>
+      {/* Back to Categories List Button */}
+      {onBackToList && (
+        <button
+          onClick={onBackToList}
+          className="inline-flex items-center space-x-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          <span>カテゴリ一覧に戻る</span>
+        </button>
+      )}
+      
       {/* Header */}
       <header className="mb-8 mt-0">
         {layoutPhase === 'phase4' ? (
