@@ -113,7 +113,23 @@ export async function GET(
     // 制限を適用
     const limitedPosts = matchingPosts.slice(0, queryLimit);
 
-    // カテゴリ別統計を計算
+    // 全投稿（フィルター前）でのカテゴリ別統計を計算（ボタン表示用）
+    const allCategoryStats = CATEGORY_MASTERS.map(category => {
+      const count = postsSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((post: { id: string; tagIds?: string[]; categoryId?: string; [key: string]: unknown }) => {
+          return post.tagIds && post.tagIds.includes(tagId) && post.categoryId === category.id;
+        }).length;
+      
+      return {
+        categoryId: category.id,
+        categoryName: category.name,
+        categoryIcon: category.icon,
+        count
+      };
+    }).filter(stat => stat.count > 0);
+
+    // フィルター後の投稿でのカテゴリ別統計を計算（現在の選択カテゴリ用）
     const categoryStats = CATEGORY_MASTERS.map(category => {
       const count = matchingPosts.filter(post => {
         return post.categoryId === category.id;
@@ -125,12 +141,12 @@ export async function GET(
         categoryIcon: category.icon,
         count
       };
-    }).filter(stat => stat.count > 0);
+    });
 
     const result: TagSearchResult = {
       tag,
       totalCount: matchingPosts.length,
-      categoryStats
+      categoryStats: allCategoryStats
     };
 
     return createSuccessResponse(

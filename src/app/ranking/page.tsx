@@ -114,10 +114,10 @@ export default function RankingPage({ searchParams }: RankingPageProps) {
               <button
                 key={sort.key}
                 onClick={() => setSelectedSort(sort.key)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                   selectedSort === sort.key
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+                    ? 'text-primary border-primary'
+                    : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
               >
                 {sort.label}

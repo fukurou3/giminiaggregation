@@ -108,35 +108,29 @@ export default function TagSearchPage() {
             <div className="flex items-center space-x-3">
               <Hash className="w-8 h-8 text-primary" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
+<h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
                   <span>{tag.name}</span>
                   {tag.isOfficial && (
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
                       公式
                     </span>
                   )}
+                  <span className="text-muted-foreground text-sm font-normal ml-4 translate-y-1">
+                    合計: {totalCount}件
+                  </span>
                 </h1>
-                <p className="text-muted-foreground mt-1">
-                  合計: {totalCount}件
-                </p>
               </div>
             </div>
             
             {/* タグ統計とアクション */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-1">
-                  <Eye className="w-4 h-4" />
-                  <span>{tag.views.toLocaleString()}</span>
-                </div>
+
                 <div className="flex items-center space-x-1">
                   <Heart className="w-4 h-4" />
                   <span>{tag.favorites.toLocaleString()}</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Users className="w-4 h-4" />
-                  <span>{tag.count.toLocaleString()}</span>
-                </div>
+
               </div>
               
               <button
@@ -153,10 +147,10 @@ export default function TagSearchPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handleCategoryChange('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${ 
+className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${ 
                 selectedCategory === 'all'
-                  ? 'bg-primary text-white'
-                  : 'bg-muted hover:bg-muted/80 text-foreground'
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
               }`}
             >
               すべて ({totalCount})
@@ -166,13 +160,12 @@ export default function TagSearchPage() {
               <button
                 key={stat.categoryId}
                 onClick={() => handleCategoryChange(stat.categoryId)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${ 
+className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${ 
                   selectedCategory === stat.categoryId
-                    ? 'bg-primary text-white'
-                    : 'bg-muted hover:bg-muted/80 text-foreground'
+                    ? 'text-primary border-primary'
+                    : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
-              >
-                {stat.categoryIcon} {stat.categoryName} ({stat.count})
+              >{stat.categoryName} ({stat.count})
               </button>
             ))}
           </div>
@@ -195,8 +188,7 @@ export default function TagSearchPage() {
                   return (
                     <div key={stat.categoryId}>
                       <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-                        <span className="mr-2">{stat.categoryIcon}</span>
-                        {stat.categoryName}カテゴリ：
+                        {stat.categoryName}
                       </h2>
                       
                       {/* 大画面：グリッドカード */}
