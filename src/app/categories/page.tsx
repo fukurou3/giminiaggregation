@@ -367,7 +367,8 @@ export default function CategoriesPage() {
           }}
         >
           <div 
-            className="bg-background border-r border-border overflow-y-auto h-full relative" 
+            className="bg-background border-r border-border overflow-y-auto h-full relative"
+            style={{width: '192px', minWidth: '192px', maxWidth: '192px'}} 
           >
               {/* Fixed Mobile Header - Only in Phase 4 */}
               {layoutPhase === 'phase4' && (
@@ -387,15 +388,20 @@ export default function CategoriesPage() {
               )}
 
               {/* Content wrapper with appropriate padding */}
-              <div className={layoutPhase === 'phase4' ? "pt-23 p-3" : "p-3 md:px-4 md:py-8"}>
+              <div 
+                className={layoutPhase === 'phase4' ? "pt-23 px-3 pb-3" : "px-3 py-8"}
+                style={{width: '190px', minWidth: '190px', maxWidth: '190px'}}
+              >
 
               {/* Desktop Header - Show in all phases except mobile */}
-              <h2 className={`${layoutPhase === 'phase4' ? 'hidden md:block' : 'block transform translate-y-2 translate-x-2'} text-base font-semibold text-foreground mb-3 flex items-center`}>
-                <Hash className="w-4 h-4 mr-1.5" />
+              <h2 className={`${layoutPhase === 'phase4' ? 'hidden' : 'block'} text-base font-semibold text-foreground mb-3 flex items-center`}>
+                <div className="p-2 mr-2">
+                  <Menu className="w-5 h-5" />
+                </div>
                 カテゴリ
               </h2>
             
-              <div className={`space-y-1 ${layoutPhase === 'phase4' ? '' : 'mt-7'}`}>
+              <div className="space-y-1">
               {displayCategories.map((category) => {
                 const count = getCategoryCount(category.name);
                 const hasData = count > 0;
@@ -404,7 +410,7 @@ export default function CategoriesPage() {
                   <button
                     key={category.id}
                     onClick={() => handleCategorySelect(category.name)}
-                    className={`w-full text-left ${layoutPhase === 'phase4' ? 'px-2 py-2' : 'px-2 py-2'} rounded-md text-sm transition-colors ${
+                    className={`w-full text-left px-2 py-2 rounded-md text-sm transition-colors ${
                       selectedCategory === category.name
                         ? 'bg-primary/20 text-foreground font-medium'
                         : 'hover:bg-muted text-foreground hover:text-foreground'
