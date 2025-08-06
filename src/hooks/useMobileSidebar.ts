@@ -24,7 +24,7 @@ export const useMobileSidebar = ({
 
   // 横長リスト表示時の初回読み込みでモーダルを自動で開く
   useEffect(() => {
-    if (layoutPhase === 'phase4' && !isLoading && hasCategories && isInitialLoad) {
+    if ((layoutPhase === 'phase4' || layoutPhase === 'phase5') && !isLoading && hasCategories && isInitialLoad) {
       setIsSidebarOpen(true);
       setIsInitialLoad(false);
     }
@@ -33,7 +33,7 @@ export const useMobileSidebar = ({
   // ページアクセス時の処理（上部タブからのアクセスを検出）
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && layoutPhase === 'phase4') {
+      if (document.visibilityState === 'visible' && (layoutPhase === 'phase4' || layoutPhase === 'phase5')) {
         setIsSidebarOpen(true);
       }
     };
@@ -45,7 +45,7 @@ export const useMobileSidebar = ({
   // 右スワイプでカテゴリモーダルを開く（phase4のタッチデバイスのみ）
   useEffect(() => {
     // phase4かつタッチデバイスの場合のみ
-    if (layoutPhase !== 'phase4' || !('ontouchstart' in window)) return;
+    if ((layoutPhase !== 'phase4' && layoutPhase !== 'phase5') || !('ontouchstart' in window)) return;
 
     let startX = 0;
     let startY = 0;

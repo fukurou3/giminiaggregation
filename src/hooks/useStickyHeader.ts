@@ -16,7 +16,7 @@ export const useStickyHeader = ({ layoutPhase }: UseStickyHeaderProps): UseStick
 
   useEffect(() => {
     // Skip on mobile layout
-    if (layoutPhase === 'phase4') return;
+    if (layoutPhase === 'phase4' || layoutPhase === 'phase5') return;
 
     const HEADER_HEIGHT = 80; // Adjust based on your header height
 

@@ -70,20 +70,20 @@ export default function CategoriesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile Hamburger Button - Only in Phase 4 */}
-      {layoutPhase === 'phase4' && (
+      {/* Mobile Hamburger Button - Only in Phase 4 and Phase 5 */}
+      {(layoutPhase === 'phase4' || layoutPhase === 'phase5') && (
         <button
           onClick={() => setIsSidebarOpen(true)}
-          className="md:hidden absolute top-27 left-4 z-40 p-2 hover:bg-muted rounded-md transition-colors"
+          className="absolute top-27 left-4 z-40 p-2 hover:bg-muted rounded-md transition-colors"
           aria-label="カテゴリメニューを開く"
         >
           <Menu className="w-5 h-5" />
         </button>
       )}
 
-      {/* Mobile Overlay - Only in Phase 4 */}
-      {layoutPhase === 'phase4' && isSidebarOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setIsSidebarOpen(false)} />
+      {/* Mobile Overlay - Only in Phase 4 and Phase 5 */}
+      {(layoutPhase === 'phase4' || layoutPhase === 'phase5') && isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsSidebarOpen(false)} />
       )}
 
       {/* Layout Container */}
@@ -101,7 +101,7 @@ export default function CategoriesPage() {
         />
 
         {/* Layout spacer to prevent content jumping when sidebar becomes fixed */}
-        {layoutPhase !== 'phase4' && isSidebarFixed && (
+        {layoutPhase !== 'phase4' && layoutPhase !== 'phase5' && isSidebarFixed && (
           <div className="w-48 flex-shrink-0" />
         )}
 
@@ -110,13 +110,13 @@ export default function CategoriesPage() {
           style={{
             width: layoutPhase === 'phase2' || layoutPhase === 'phase3' ? 
               (contentWidth ? `${contentWidth}px` : 'auto') : undefined,
-            flexGrow: layoutPhase === 'phase1' || layoutPhase === 'phase4' ? 1 : 0,
+            flexGrow: layoutPhase === 'phase1' || layoutPhase === 'phase4' || layoutPhase === 'phase5' ? 1 : 0,
             flexShrink: layoutPhase === 'phase2' ? 0 : 1,
             minWidth: 0
           }}
         >
           <div 
-            className={layoutPhase === 'phase1' ? "max-w-screen-xl mx-auto px-4 py-8" : layoutPhase === 'phase4' ? "px-4 pt-8 pb-8" : "px-4 py-8"}
+            className={layoutPhase === 'phase1' ? "max-w-screen-xl mx-auto px-4 py-8" : (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? "px-4 pt-8 pb-8" : "px-4 py-8"}
             style={{
               maxWidth: layoutPhase === 'phase1' ? undefined : 'none'
             }}
@@ -133,7 +133,7 @@ export default function CategoriesPage() {
 
         {/* Right Smart Spacer */}
         <div 
-          className={layoutPhase === 'phase4' ? "hidden" : ""}
+          className={(layoutPhase === 'phase4' || layoutPhase === 'phase5') ? "hidden" : ""}
           style={{
             width: layoutPhase === 'phase1' ? '192px' : (spacerWidth !== undefined ? `${spacerWidth}px` : undefined),
             flexShrink: 0,

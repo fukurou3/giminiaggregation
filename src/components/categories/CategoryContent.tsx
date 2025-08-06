@@ -39,6 +39,19 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               {selectedCategoryPosts.length} 作品
             </div>
           </div>
+        ) : layoutPhase === 'phase5' ? (
+          // Phase5 layout: Category info positioned relative to external hamburger (like mobile but without horizontal list)
+          <div className="ml-13">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              {selectedCategory}
+            </h1>
+            <p className="text-muted-foreground">
+              {selectedCategoryData?.description}
+            </p>
+            <div className="mt-4 text-sm text-muted-foreground">
+              {selectedCategoryPosts.length} 作品
+            </div>
+          </div>
         ) : (
           // Desktop layout: Normal layout
           <>
@@ -65,8 +78,8 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
       {/* Category Posts Grid */}
       {selectedCategoryPosts.length > 0 ? (
         <>
-          {/* Desktop: Auto-fit Grid - Show in Phase 1, 2, 3 */}
-          {layoutPhase !== 'phase4' && (
+          {/* Desktop: Auto-fit Grid - Show in Phase 1, 2, 3, 5 */}
+          {(layoutPhase !== 'phase4') && (
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', justifyContent: 'start' }}>
               {selectedCategoryPosts.map((post) => (
                 <CategoryCard

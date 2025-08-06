@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type LayoutPhase = 'phase1' | 'phase2' | 'phase3' | 'phase4';
+export type LayoutPhase = 'phase1' | 'phase2' | 'phase3' | 'phase4' | 'phase5';
 
 interface LayoutDimensions {
   contentWidth: number | undefined;
@@ -24,12 +24,20 @@ export const useResponsiveLayout = (): UseResponsiveLayoutReturn => {
   const SIDEBAR_WIDTH = 192; // w-48 = 12rem = 192px
   const MAX_CONTENT_WIDTH = 1280; // max-w-screen-xl
   const MAX_SPACER_WIDTH = 192; // w-48 = 12rem = 192px
-  const MOBILE_BREAKPOINT = 767; // カスタムブレークポイント
+  const MOBILE_BREAKPOINT = 680; // カスタムブレークポイント
+  const COLLAPSED_SIDEBAR_BREAKPOINT = 810; // サイドバー格納ブレークポイント
 
   const calculateLayout = useCallback((containerWidth: number) => {
     // Phase 4: Mobile view
-    if (containerWidth < MOBILE_BREAKPOINT) {
+    if (containerWidth <= MOBILE_BREAKPOINT) {
       setLayoutPhase('phase4');
+      setDimensions({ contentWidth: undefined, spacerWidth: undefined });
+      return;
+    }
+
+    // Phase 5: Collapsed sidebar view (681px - 810px)
+    if (containerWidth <= COLLAPSED_SIDEBAR_BREAKPOINT) {
+      setLayoutPhase('phase5');
       setDimensions({ contentWidth: undefined, spacerWidth: undefined });
       return;
     }
