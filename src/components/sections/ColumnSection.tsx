@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { BookOpen, ArrowRight, ChevronLeft, ChevronRight, Calendar, Eye, Heart, AlertCircle } from 'lucide-react';
 import { ColumnSummary } from '@/types/Column';
 import { formatDate } from '@/lib/utils/date';
-import { useColumnStore } from '@/lib/stores/columnStore';
+import { useFetch } from '@/lib/api';
 
 interface ColumnSectionProps {
   featuredOnly?: boolean;
@@ -14,15 +14,17 @@ interface ColumnSectionProps {
 }
 
 export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectionProps) {
-  const { columns, loading, error, fetchColumns, clearError } = useColumnStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const router = useRouter();
 
-  // データ取得（一時的にfeaturedOnlyを無効化）
-  useEffect(() => {
-    fetchColumns({ limit, featuredOnly: false });
-  }, [fetchColumns, limit]);
+  // APIエンドポイントを構築
+  const apiUrl = `/api/columns?limit=${limit}${featuredOnly ? '&featured=true' : ''}`;
+  const { data: columnsResponse, loading, error } = useFetch<{
+    data?: { columns: ColumnSummary[] };
+  }>(apiUrl);
+
+  const columns = columnsResponse?.data?.columns || [];
 
 
 
@@ -74,12 +76,9 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
         <div className="text-center py-12 bg-muted/50 rounded-2xl border border-destructive/20">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">読み込みエラー</h3>
-          <p className="text-muted-foreground mb-4">{error}</p>
+          <p className="text-muted-foreground mb-4">コラムの読み込みに失敗しました</p>
           <button
-            onClick={() => {
-              clearError();
-              fetchColumns({ limit, featuredOnly });
-            }}
+            onClick={() => window.location.reload()}
             className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
           >
             再試行

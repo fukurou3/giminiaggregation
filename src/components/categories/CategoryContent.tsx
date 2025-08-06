@@ -1,8 +1,8 @@
 import React from 'react';
-import { Hash, ArrowLeft } from 'lucide-react';
+import { Hash } from 'lucide-react';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { Post } from '@/types/Post';
-import { Category } from '@/hooks/useCategoriesData';
+import { type Category } from '@/lib/constants/categories';
 import { LayoutPhase } from '@/hooks/useResponsiveLayout';
 
 interface CategoryContentProps {
@@ -30,9 +30,8 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
       {onBackToList && (
         <button
           onClick={onBackToList}
-          className="inline-flex items-center space-x-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6 ml-10 mt-1.5 transition-colors"
         >
-          <ArrowLeft size={16} />
           <span>カテゴリ一覧に戻る</span>
         </button>
       )}

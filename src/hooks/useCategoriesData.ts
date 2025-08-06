@@ -1,15 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useFetch } from '@/lib/api';
 import { Post } from '@/types/Post';
-import { CATEGORY_MASTERS, findCategoryById } from '@/lib/constants/categories';
-
-export interface Category {
-  id: string;
-  name: string;
-  description: string;
-}
-
-// CATEGORY_MASTERSを使用するため削除
+import { CATEGORY_MASTERS, type Category } from '@/lib/constants/categories';
 
 interface UseCategoriesDataReturn {
   categories: Category[];
