@@ -417,7 +417,7 @@ export default function CategoriesPage() {
                     }`}
                   >
                     <span>
-                      {category.name} <span className="text-sm opacity-75">({count})</span>
+                      {category.name}
                     </span>
                   </button>
                 );

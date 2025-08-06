@@ -115,9 +115,11 @@ export default function CategoryDetailPage() {
                 {displayName}
               </h1>
               <p className="text-muted-foreground">
-                {filteredPosts.length} 件の作品
-                {category?.description && ` • ${category.description}`}
+                {category?.description || 'このカテゴリの作品を表示しています'}
               </p>
+              <div className="mt-4 text-sm text-muted-foreground">
+                {filteredPosts.length} 作品
+              </div>
             </div>
             
             {/* Sort Controls */}

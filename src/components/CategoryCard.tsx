@@ -29,9 +29,7 @@ export function CategoryCard({ category, icon: Icon }: CategoryCardProps) {
             <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
               {category.name}
             </h3>
-            <span className="bg-muted text-muted-foreground px-2 py-1 rounded-full text-sm font-medium">
-              {category.count}
-            </span>
+
           </div>
           
           {category.description && (
