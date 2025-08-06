@@ -1,12 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation'; // ★ 1. useRouterをインポート
+import { useRouter } from 'next/navigation';
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
 import { TagChip } from './TagChip';
 import { findCategoryById } from '@/lib/constants/categories';
 
-// Style constants (変更なし)
+// Style constants
 const SIZE_STYLES = {
   small: {
     card: 'p-1.5',
@@ -51,11 +51,12 @@ export interface BaseCardProps {
   variant?: 'work' | 'site';
   layout?: 'vertical' | 'horizontal';
   showCategory?: boolean;
+  showViews?: boolean;
   className?: string;
 }
 
-export function BaseCard({ post, size = 'medium', variant = 'work', layout = 'vertical', showCategory = true, className }: BaseCardProps) {
-  const router = useRouter(); // ★ 2. useRouterフックを初期化
+export function BaseCard({ post, size = 'medium', variant = 'work', layout = 'vertical', showCategory = true, showViews = true, className }: BaseCardProps) {
+  const router = useRouter();
 
   // Get category name from categoryId
   const category = post.categoryId ? findCategoryById(post.categoryId) : null;
@@ -73,28 +74,27 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
 
   const previewText = variant === 'site' ? 'Canvas Preview' : 'Canvas';
 
-  // ★ 3. クリックハンドラを定義
+  // Click handlers
   const handleCardClick = () => {
     router.push(`/posts/${post.id}`);
   };
 
   const handleTagClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 親要素へのイベント伝播を停止
+    e.stopPropagation();
   };
 
   // 横長レイアウトの場合
   if (layout === 'horizontal') {
     return (
-      // ★ 4. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
       <div
         onClick={handleCardClick}
-        className={`${cardStyling} ${className || ''} flex cursor-pointer w-full`} // 横長はw-fullを維持
+        className={`${cardStyling} ${className || ''} flex cursor-pointer w-full`}
         role="link"
         tabIndex={0}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
       >
         {/* サムネイル画像 */}
-        <div className="w-32 h-24 bg-muted relative overflow-hidden flex-shrink-0">
+        <div className="w-32 h-32 bg-muted relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
             <span className="text-muted-foreground font-medium text-xs">
               {previewText}
@@ -103,7 +103,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
         </div>
 
         {/* コンテンツ */}
-        <div className="flex-1 p-2 flex flex-col min-w-0 h-24">
+        <div className="flex-1 p-2 flex flex-col min-w-0 h-32">
           {/* タイトル */}
           <h3 className="text-foreground line-clamp-1 group-hover:text-primary transition-colors text-sm font-bold mb-1">
             {post.title}
@@ -124,7 +124,6 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
               </span>
               
               {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-                // ★ 5. TagChipにonClickハンドラを追加
                 <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick}>
                   <TagChip
                     tag={{ 
@@ -136,20 +135,21 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
                   />
                 </div>
               ))}
-              
             </div>
           )}
 
           {/* お気に入り数と閲覧数 */}
-          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+          <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
               <Heart size={10} />
               <span>{post.favoriteCount ?? post.likes ?? 0}</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <Eye size={10} />
-              <span>{post.views || 0}</span>
-            </div>
+            {showViews && (
+              <div className="flex items-center space-x-1">
+                <Eye size={10} />
+                <span>{post.views || 0}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -158,7 +158,6 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
 
   // デフォルトの縦長レイアウトの場合
   return (
-    // ★ 4. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
     <div
       onClick={handleCardClick}
       className={`${cardStyling} ${className || ''} cursor-pointer max-w-full`}
@@ -199,7 +198,6 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
             </span>
             
             {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-              // ★ 5. TagChipをdivで囲み、onClickハンドラを追加
               <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
                 <TagChip
                   tag={{ 
@@ -211,20 +209,21 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
                 />
               </div>
             ))}
-            
           </div>
         )}
 
         {/* お気に入り数と閲覧数 */}
-        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
           <div className="flex items-center space-x-1">
             <Heart size={10} />
             <span>{post.favoriteCount ?? post.likes ?? 0}</span>
           </div>
-          <div className="flex items-center space-x-1">
-            <Eye size={10} />
-            <span>{post.views || 0}</span>
-          </div>
+          {showViews && (
+            <div className="flex items-center space-x-1">
+              <Eye size={10} />
+              <span>{post.views || 0}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

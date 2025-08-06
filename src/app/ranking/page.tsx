@@ -142,6 +142,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                   <WorkCard 
                     post={post} 
                     size="medium"
+                    showViews={false}
                   />
                 </div>
               )
@@ -165,6 +166,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                     post={post} 
                     size="medium"
                     layout="horizontal"
+                    showViews={false}
                   />
                 </div>
               )

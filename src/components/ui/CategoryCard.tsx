@@ -154,7 +154,7 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
         )}
 
         {/* お気に入り数 */}
-        <div className="flex items-center text-xs text-muted-foreground pt-1">
+        <div className="flex items-center justify-end text-xs text-muted-foreground pt-1">
           <div className="flex items-center gap-1">
             <Heart size={10} />
             <span>{post.favoriteCount ?? post.likes ?? 0}</span>

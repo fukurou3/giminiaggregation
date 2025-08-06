@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Hash, Flag, Eye, Heart, Users } from 'lucide-react';
-import { WorkCard } from '@/components/ui/WorkCard';
+import { CategoryCard } from '@/components/ui/CategoryCard';
 import { useFetch } from '@/lib/api';
 import { TagSearchResult } from '@/types/Tag';
 import { Post } from '@/types/Post';
@@ -194,10 +194,10 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                       {/* 大画面：グリッドカード */}
                       <div className="hidden min-[681px]:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {categoryPosts.map((post) => (
-                          <WorkCard
+                          <CategoryCard
                             key={post.id}
                             post={post}
-                            size="medium"
+                            layout="vertical"
                           />
                         ))}
                       </div>
@@ -205,12 +205,10 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                       {/* 小画面：横長リスト */}
                       <div className="max-[680px]:block hidden space-y-3">
                         {categoryPosts.map((post) => (
-                          <WorkCard
+                          <CategoryCard
                       key={post.id}
                       post={post}
-                      size="medium"
                       layout="horizontal"
-                      className="max-w-full"
                           />
                         ))}
                       </div>
@@ -224,11 +222,10 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                 {/* 大画面：グリッドカード */}
                 <div className="hidden min-[680px]:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {posts.map((post) => (
-                    <WorkCard
+                    <CategoryCard
                       key={post.id}
                       post={post}
-                      size="medium"
-                      className="max-w-sm"
+                      layout="vertical"
                     />
                   ))}
                 </div>
@@ -236,12 +233,10 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                 {/* 小画面：横長リスト */}
                 <div className="max-[679px]:block hidden space-y-3">
                   {posts.map((post) => (
-                    <WorkCard
+                    <CategoryCard
                       key={post.id}
                       post={post}
-                      size="medium"
                       layout="horizontal"
-                      className="max-w-full"
                     />
                   ))}
                 </div>

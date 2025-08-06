@@ -7,9 +7,10 @@ interface WorkCardProps {
   post: Post;
   size?: 'small' | 'medium' | 'large';
   layout?: 'vertical' | 'horizontal';
+  showViews?: boolean;
   className?: string;
 }
 
-export function WorkCard({ post, size = 'medium', layout = 'vertical', className }: WorkCardProps) {
-  return <BaseCard post={post} size={size} variant="work" layout={layout} className={className} />;
+export function WorkCard({ post, size = 'medium', layout = 'vertical', showViews = true, className }: WorkCardProps) {
+  return <BaseCard post={post} size={size} variant="work" layout={layout} showViews={showViews} className={className} />;
 }
