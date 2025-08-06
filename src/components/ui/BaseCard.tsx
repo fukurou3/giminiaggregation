@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // ★ 1. useRouterをインポート
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
 import { TagChip } from './TagChip';
 
-// Style constants
+// Style constants (変更なし)
 const SIZE_STYLES = {
   small: {
     card: 'p-1.5',
@@ -54,11 +54,12 @@ export interface BaseCardProps {
 }
 
 export function BaseCard({ post, size = 'medium', variant = 'work', layout = 'vertical', showCategory = true, className }: BaseCardProps) {
+  const router = useRouter(); // ★ 2. useRouterフックを初期化
+
   // Get styles based on size and variant
   const sizeStyles = SIZE_STYLES[size];
   const variantStyles = VARIANT_STYLES[variant];
   
-  // For site variant, use variant styles; otherwise use size styles
   const cardClasses = variant === 'site' ? variantStyles.padding : sizeStyles.card;
   const titleClasses = variant === 'site' ? variantStyles.title : sizeStyles.title;
   const descriptionClasses = variant === 'site' ? variantStyles.description : sizeStyles.description;
@@ -67,10 +68,26 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
 
   const previewText = variant === 'site' ? 'Canvas Preview' : 'Canvas';
 
+  // ★ 3. クリックハンドラを定義
+  const handleCardClick = () => {
+    router.push(`/posts/${post.id}`);
+  };
+
+  const handleTagClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 親要素へのイベント伝播を停止
+  };
+
   // 横長レイアウトの場合
   if (layout === 'horizontal') {
     return (
-      <Link href={`/posts/${post.id}`} className={`${cardStyling} ${className || ''} flex cursor-pointer`}>
+      // ★ 4. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
+      <div
+        onClick={handleCardClick}
+        className={`${cardStyling} ${className || ''} flex cursor-pointer w-full`} // 横長はw-fullを維持
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+      >
         {/* サムネイル画像 */}
         <div className="w-32 h-24 bg-muted relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -101,37 +118,27 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
                 {post.category}
               </span>
               
-              {/* 新しいtagIds形式のタグ */}
               {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-                <TagChip
-                  key={`tagid-${tagId}`}
-                  tag={{ 
-                    id: tagId, 
-                    name: tagId.replace(/_/g, ' '),
-                    aliases: [], 
-                    count: 0, 
-                    isOfficial: false, 
-                    views: 0, 
-                    favorites: 0, 
-                    flagged: false,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                  }}
-                  size="sm"
-                  variant="ghost"
-                  showIcon={false}
-                />
+                // ★ 5. TagChipにonClickハンドラを追加
+                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick}>
+                  <TagChip
+                    tag={{ 
+                      id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
+                      isOfficial: false, views: 0, favorites: 0, flagged: false,
+                      createdAt: new Date(), updatedAt: new Date()
+                    }}
+                    size="sm" variant="ghost" showIcon={false}
+                  />
+                </div>
               ))}
               
-              {/* 旧形式のtagsサポート */}
               {post.tags && !post.tagIds && post.tags.slice(0, 2).map((tagName) => (
-                <TagChip
-                  key={`tag-${tagName}`}
-                  tag={tagName}
-                  size="sm"
-                  variant="ghost"
-                  showIcon={false}
-                />
+                 // ★ 5. TagChipにonClickハンドラを追加
+                <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick}>
+                  <TagChip
+                    tag={tagName} size="sm" variant="ghost" showIcon={false}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -148,12 +155,20 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
             </div>
           </div>
         </div>
-      </Link>
+      </div>
     );
   }
 
+  // デフォルトの縦長レイアウトの場合
   return (
-    <Link href={`/posts/${post.id}`} className={`${cardStyling} ${className || ''} cursor-pointer block`}>
+    // ★ 4. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
+    <div
+      onClick={handleCardClick}
+      className={`${cardStyling} ${className || ''} cursor-pointer w-[350px] max-w-full`} // ★ 6. ここでカードの幅を固定
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+    >
       {/* Preview Image */}
       <div className={`bg-muted relative overflow-hidden ${imageClasses}`}>
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -186,37 +201,27 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
               {post.category}
             </span>
             
-            {/* 新しいtagIds形式のタグ */}
             {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-              <TagChip
-                key={`tagid-${tagId}`}
-                tag={{ 
-                  id: tagId, 
-                  name: tagId.replace(/_/g, ' '),
-                  aliases: [], 
-                  count: 0, 
-                  isOfficial: false, 
-                  views: 0, 
-                  favorites: 0, 
-                  flagged: false,
-                  createdAt: new Date(),
-                  updatedAt: new Date()
-                }}
-                size="sm"
-                variant="ghost"
-                showIcon={false}
-              />
+              // ★ 5. TagChipをdivで囲み、onClickハンドラを追加
+              <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
+                <TagChip
+                  tag={{ 
+                    id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
+                    isOfficial: false, views: 0, favorites: 0, flagged: false,
+                    createdAt: new Date(), updatedAt: new Date()
+                  }}
+                  size="sm" variant="ghost" showIcon={false}
+                />
+              </div>
             ))}
             
-            {/* 旧形式のtagsサポート */}
             {post.tags && !post.tagIds && post.tags.slice(0, 2).map((tagName) => (
-              <TagChip
-                key={`tag-${tagName}`}
-                tag={tagName}
-                size="sm"
-                variant="ghost"
-                showIcon={false}
-              />
+               // ★ 5. TagChipをdivで囲み、onClickハンドラを追加
+              <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick} className="inline-block">
+                <TagChip
+                  tag={tagName} size="sm" variant="ghost" showIcon={false}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -233,6 +238,6 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

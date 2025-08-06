@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Linkの代わりにuseRouterをインポート
 import { Heart } from 'lucide-react';
 import { Post } from '@/types/Post';
 import { TagChip } from './TagChip';
@@ -17,7 +17,18 @@ interface CategoryCardProps {
  * - シンプルなレイアウトで統計情報のみ表示
  */
 export function CategoryCard({ post, layout = 'vertical', className = '' }: CategoryCardProps) {
-  // 追加するベースクラス（BaseCard の work.variant.card と同等）
+  const router = useRouter(); // ★ 1. useRouterフックを初期化
+
+  // ★ 2. クリックハンドラを定義
+  const handleCardClick = () => {
+    router.push(`/posts/${post.id}`);
+  };
+
+  const handleTagClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 親要素（カード）のonClickが発火しないようにする
+  };
+
+  // 既存のスタイル定義（変更なし）
   const baseClasses = [
     'bg-background',
     'border border-border',
@@ -37,7 +48,14 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
   // 横長レイアウトの場合
   if (layout === 'horizontal') {
     return (
-      <Link href={`/posts/${post.id}`} className={cardClasses}>
+      // ★ 3. <Link>を<div onClick>に変更し、アクセシビリティ属性を追加
+      <div 
+        onClick={handleCardClick}
+        className={cardClasses}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+      >
         {/* サムネイル画像 */}
         <div className="w-32 h-24 bg-muted relative overflow-hidden flex-shrink-0 rounded-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -60,35 +78,25 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
             <div className="flex gap-1 overflow-hidden min-w-0">
               {(post.tags || post.tagIds) && (
                 <>
-                  {/* 新しいtagIds形式のタグ（最初の2つのみ） */}
                   {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-                    <TagChip
-                      key={`tagid-${tagId}`}
-                      tag={{ 
-                        id: tagId, 
-                        name: tagId.replace(/_/g, ' '),
-                        aliases: [], 
-                        count: 0, 
-                        isOfficial: false, 
-                        views: 0, 
-                        favorites: 0, 
-                        flagged: false,
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                      }}
-                      size="sm"
-                      variant="ghost"
-                    />
+                    // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
+                    <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
+                      <TagChip
+                        tag={{ 
+                          id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
+                          isOfficial: false, views: 0, favorites: 0, flagged: false,
+                          createdAt: new Date(), updatedAt: new Date()
+                        }}
+                        size="sm" variant="ghost"
+                      />
+                    </div>
                   ))}
                   
-                  {/* 旧しいtags形式のタグ（最初の2つのみ） */}
                   {post.tags && post.tags.slice(0, 2).map((tagName) => (
-                    <TagChip
-                      key={`tag-${tagName}`}
-                      tag={tagName}
-                      size="sm"
-                      variant="ghost"
-                    />
+                     // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
+                    <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick} className="inline-block">
+                      <TagChip tag={tagName} size="sm" variant="ghost" />
+                    </div>
                   ))}
                 </>
               )}
@@ -101,13 +109,20 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
             </div>
           </div>
         </div>
-      </Link>
+      </div>
     );
   }
 
   // 縦型レイアウト（デフォルト）
   return (
-    <Link href={`/posts/${post.id}`} className={cardClasses}>
+    // ★ 3. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
+    <div
+      onClick={handleCardClick}
+      className={`${cardClasses} w-[320px] max-w-full`} // ★ 5. カードの幅を固定してレイアウト崩れを防止
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+    >
       {/* プレビュー画像 */}
       <div className="bg-muted relative overflow-hidden aspect-[5/3] rounded-lg">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -128,35 +143,25 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
         {(post.tags || post.tagIds) && (
           <div className="flex gap-1 overflow-hidden min-w-0">
             <>
-              {/* 新しいtagIds形式のタグ（最初の3つのみ） */}
               {post.tagIds && post.tagIds.slice(0, 3).map((tagId) => (
-                <TagChip
-                  key={`tagid-${tagId}`}
-                  tag={{ 
-                    id: tagId, 
-                    name: tagId.replace(/_/g, ' '),
-                    aliases: [], 
-                    count: 0, 
-                    isOfficial: false, 
-                    views: 0, 
-                    favorites: 0, 
-                    flagged: false,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                  }}
-                  size="sm"
-                  variant="ghost"
-                />
+                // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
+                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
+                  <TagChip
+                    tag={{ 
+                      id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
+                      isOfficial: false, views: 0, favorites: 0, flagged: false,
+                      createdAt: new Date(), updatedAt: new Date()
+                    }}
+                    size="sm" variant="ghost"
+                  />
+                </div>
               ))}
               
-              {/* 旧しいtags形式のタグ（最初の3つのみ） */}
               {post.tags && post.tags.slice(0, 3).map((tagName) => (
-                <TagChip
-                  key={`tag-${tagName}`}
-                  tag={tagName}
-                  size="sm"
-                  variant="ghost"
-                />
+                // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
+                <div key={`tag-wrapper-${tagName}`} onClick={handleTagClick} className="inline-block">
+                  <TagChip tag={tagName} size="sm" variant="ghost" />
+                </div>
               ))}
             </>
           </div>
@@ -170,6 +175,6 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

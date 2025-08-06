@@ -144,13 +144,20 @@ export default function CategoryDetailPage() {
         </div>
 
         {/* Posts Grid */}
-        {filteredPosts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPosts.map((post) => (
-              <SiteCard key={post.id} post={post} />
-            ))}
-          </div>
-        ) : (
+{filteredPosts.length > 0 ? (
+          <div 
+            className="grid gap-6"
+            style={{ 
+              gridTemplateColumns: 'repeat(auto-fill, 350px)',
+              justifyContent: 'start'
+            }}
+          >
+    {filteredPosts.map((post) => (
+      <SiteCard key={post.id} post={post} />
+    ))}
+
+  </div>
+) : (
           <div className="text-center py-16">
             <Filter className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">
