@@ -1,8 +1,7 @@
 import React from 'react';
 import { Hash } from 'lucide-react';
 import { CategoryCard } from '@/components/ui/CategoryCard';
-import { Post } from '@/types/Post';
-import { type Category } from '@/lib/constants/categories';
+import { Post, Category } from '@/types/Post';
 import { LayoutPhase } from '@/hooks/useResponsiveLayout';
 
 interface CategoryContentProps {

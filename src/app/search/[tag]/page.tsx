@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Hash, Flag, Eye, Heart, Users } from 'lucide-react';
-import { CategoryCard } from '@/components/ui/CategoryCard';
+import { WorkCard } from '@/components/ui/WorkCard';
 import { useFetch } from '@/lib/api';
 import { TagSearchResult } from '@/types/Tag';
 import { Post } from '@/types/Post';
@@ -63,9 +63,16 @@ export default function TagSearchPage() {
               <div className="h-12 bg-muted rounded-lg w-1/3 mb-4"></div>
               <div className="h-6 bg-muted rounded-lg w-1/2 mb-8"></div>
             </div>
-            <div className="grid gap-6 auto-fit-category-cards">
+            {/* 大画面：グリッドカード */}
+            <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(12)].map((_, i) => (
                 <div key={i} className="bg-muted animate-pulse rounded-xl h-80"></div>
+              ))}
+            </div>
+            {/* 小画面：横長リスト */}
+            <div className="md:hidden space-y-3">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="bg-muted animate-pulse rounded-lg h-24"></div>
               ))}
             </div>
           </div>
@@ -191,12 +198,26 @@ export default function TagSearchPage() {
                         <span className="mr-2">{stat.categoryIcon}</span>
                         {stat.categoryName}カテゴリ：
                       </h2>
-                      <div className="grid gap-6 auto-fit-category-cards">
+                      
+                      {/* 大画面：グリッドカード */}
+                      <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {categoryPosts.map((post) => (
-                          <CategoryCard
+                          <WorkCard
                             key={post.id}
                             post={post}
-                            layout="vertical"
+                            size="medium"
+                          />
+                        ))}
+                      </div>
+
+                      {/* 小画面：横長リスト */}
+                      <div className="md:hidden space-y-3">
+                        {categoryPosts.map((post) => (
+                          <WorkCard
+                            key={post.id}
+                            post={post}
+                            size="medium"
+                            layout="horizontal"
                           />
                         ))}
                       </div>
@@ -206,15 +227,30 @@ export default function TagSearchPage() {
               </div>
             ) : (
               // 選択されたカテゴリのみ表示
-              <div className="grid gap-6 auto-fit-category-cards">
-                {posts.map((post) => (
-                  <CategoryCard
-                    key={post.id}
-                    post={post}
-                    layout="vertical"
-                  />
-                ))}
-              </div>
+              <>
+                {/* 大画面：グリッドカード */}
+                <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {posts.map((post) => (
+                    <WorkCard
+                      key={post.id}
+                      post={post}
+                      size="medium"
+                    />
+                  ))}
+                </div>
+
+                {/* 小画面：横長リスト */}
+                <div className="md:hidden space-y-3">
+                  {posts.map((post) => (
+                    <WorkCard
+                      key={post.id}
+                      post={post}
+                      size="medium"
+                      layout="horizontal"
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </>
         ) : (

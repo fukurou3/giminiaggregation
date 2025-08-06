@@ -14,8 +14,7 @@ import {
   Gamepad2, 
   Package 
 } from 'lucide-react';
-import type { Category } from '@/lib/constants/categories';
-import type { Post } from '@/types/Post';
+import type { Post, Category } from '@/types/Post';
 
 // アイコンマッピング
 const ICON_MAP = {
