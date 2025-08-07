@@ -8,7 +8,9 @@ interface WorkCardProps {
   size?: 'small' | 'medium' | 'large';
   layout?: 'vertical' | 'horizontal';
   showViews?: boolean;
+  showCategory?: boolean;
   className?: string;
+  rank?: number;
 }
 
 /**
@@ -16,14 +18,16 @@ interface WorkCardProps {
  * - カテゴリ、タグ、説明文、いいね数、閲覧数を表示
  * - BaseCardをラップしてwork variantを適用
  */
-export function WorkCard({ post, size = 'medium', layout = 'vertical', showViews = true, className }: WorkCardProps) {
+export function WorkCard({ post, size = 'medium', layout = 'vertical', showViews = true, showCategory = true, className, rank }: WorkCardProps) {
   return (
     <BaseCard 
       post={post} 
       size={size} 
       layout={layout} 
       showViews={showViews} 
-      className={className} 
+      showCategory={showCategory}
+      className={className}
+      rank={rank}
     />
   );
 }

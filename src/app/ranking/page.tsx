@@ -98,6 +98,7 @@ export default function RankingPage() {
                     post={post} 
                     size="medium"
                     showViews={false}
+                    showCategory={false}
                   />
                 </div>
               )
@@ -109,21 +110,15 @@ export default function RankingPage() {
             {posts.slice(0, 20).map((post, index) => {
               const rank = index + 1
               return (
-                <div key={post.id} className="relative">
-                  {/* Ranking Badge */}
-                  <div className="absolute -top-1 -left-1 z-10">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs ${getRankingBadgeColor(rank)}`}>
-                      {rank}
-                    </div>
-                  </div>
-                  
-                  <WorkCard 
-                    post={post} 
-                    size="medium"
-                    layout="horizontal"
-                    showViews={false}
-                  />
-                </div>
+                <WorkCard 
+                  key={post.id}
+                  post={post} 
+                  size="medium"
+                  layout="horizontal"
+                  showViews={false}
+                  showCategory={false}
+                  rank={rank}
+                />
               )
             })}
           </div>

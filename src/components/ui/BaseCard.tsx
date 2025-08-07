@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
@@ -27,7 +28,20 @@ const SIZE_STYLES = {
   }
 } as const;
 
-const CARD_STYLES = "bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group";
+// 数値を短縮表示する関数
+const formatNumber = (num: number): string => {
+  if (num < 10000) return num.toString()
+  if (num < 1000000) {
+    const k = num / 1000
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`
+  }
+  const m = num / 1000000
+  return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
+}
+
+
+
+const CARD_STYLES = "transition-all duration-300 overflow-hidden group";
 
 export interface BaseCardProps {
   post: Post;
@@ -36,13 +50,14 @@ export interface BaseCardProps {
   showCategory?: boolean;
   showViews?: boolean;
   className?: string;
+  rank?: number;
 }
 
 /**
  * ランキング画面用の詳細表示カードコンポーネント
  * - カテゴリ、タグ、説明文、いいね数、閲覧数を表示
  */
-export function BaseCard({ post, size = 'medium', layout = 'vertical', showCategory = true, showViews = true, className }: BaseCardProps) {
+export function BaseCard({ post, size = 'medium', layout = 'vertical', showCategory = true, showViews = true, className, rank }: BaseCardProps) {
   const router = useRouter();
 
   const category = post.categoryId ? findCategoryById(post.categoryId) : null;
@@ -66,61 +81,80 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         tabIndex={0}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
       >
-        {/* サムネイル画像 */}
-        <div className="w-32 h-32 bg-muted relative overflow-hidden flex-shrink-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-            <span className="text-muted-foreground font-medium text-xs">Canvas</span>
+        {/* サムネイル画像とカテゴリ */}
+        <div className="w-32 flex-shrink-0 flex flex-col justify-center h-28">
+          {/* サムネイル画像 */}
+          <div className="bg-muted relative overflow-hidden ml-1 border border-black" style={{width: '124px', height: '93px'}}>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+              <span className="text-muted-foreground font-medium text-xs">Canvas</span>
+            </div>
           </div>
-        </div>
-
-        {/* コンテンツ */}
-        <div className="flex-1 p-2 flex flex-col min-w-0 h-32">
-          {/* タイトル */}
-          <h3 className="text-foreground line-clamp-1 group-hover:text-primary transition-colors text-sm font-bold mb-1">
-            {post.title}
-          </h3>
-          
-          {/* 説明文 */}
-          {post.description && (
-            <p className="text-muted-foreground line-clamp-2 text-xs mb-2 flex-1">
-              {post.description}
-            </p>
-          )}
-
-          {/* カテゴリとタグ */}
+          {/* カテゴリ表示 */}
           {showCategory && (
-            <div className="flex items-center flex-wrap gap-1 mb-1">
+            <div className="mt-1">
               <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
                 {categoryName}
               </span>
-              
-              {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick}>
+            </div>
+          )}
+        </div>
+
+        {/* コンテンツ */}
+        <div className="flex-1 p-2 flex flex-col min-w-0 h-28">
+          {/* 上部：タイトルと説明文 */}
+          <div className="flex-1 flex flex-col justify-start mt-1">
+            {/* タイトル */}
+            <div className="flex items-center gap-2">
+              {rank && (
+                <span className="text-foreground font-bold text-sm flex-shrink-0">
+                  {rank}
+                </span>
+              )}
+              <h3 className="text-foreground line-clamp-1 group-hover:text-primary transition-colors text-sm font-normal">
+                {post.title}
+              </h3>
+            </div>
+            
+            {/* 説明文 */}
+            {post.description && (
+              <p className="text-foreground line-clamp-2 text-xs mt-1">
+                {post.description}
+              </p>
+            )}
+          </div>
+
+          {/* 下部：タグといいね数 */}
+          <div className="flex items-center justify-between text-xs mt-auto mb-1">
+            {/* タグ */}
+            <div className="flex gap-1 overflow-hidden min-w-0 flex-1 mr-2">
+              {post.tagIds && post.tagIds.slice(0, 1).map((tagId) => (
+                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
                   <TagChip
                     tag={{ 
                       id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
                       isOfficial: false, views: 0, favorites: 0, flagged: false,
                       createdAt: new Date(), updatedAt: new Date()
                     }}
-                    size="sm" variant="ghost" showIcon={false}
+                    size="sm" variant="ghost"
+                    className="!bg-gray-50"
                   />
                 </div>
               ))}
             </div>
-          )}
-
-          {/* いいね数と閲覧数 */}
-          <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
-            <div className="flex items-center space-x-1">
-              <Heart size={10} />
-              <span>{post.favoriteCount ?? post.likes ?? 0}</span>
-            </div>
-            {showViews && (
+            
+            {/* いいね数と閲覧数 */}
+            <div className="flex items-center space-x-2 text-muted-foreground flex-shrink-0">
               <div className="flex items-center space-x-1">
-                <Eye size={10} />
-                <span>{post.views || 0}</span>
+                <Heart size={10} className="flex-shrink-0" />
+                <span className="text-xs">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
               </div>
-            )}
+              {showViews && (
+                <div className="flex items-center space-x-1">
+                  <Eye size={10} className="flex-shrink-0" />
+                  <span className="text-xs">{formatNumber(post.views || 0)}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -184,12 +218,12 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
           <div className="flex items-center space-x-1">
             <Heart size={10} />
-            <span>{post.favoriteCount ?? post.likes ?? 0}</span>
+            <span>{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
           </div>
           {showViews && (
             <div className="flex items-center space-x-1">
               <Eye size={10} />
-              <span>{post.views || 0}</span>
+              <span>{formatNumber(post.views || 0)}</span>
             </div>
           )}
         </div>

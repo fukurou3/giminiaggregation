@@ -25,7 +25,7 @@ export const useResponsiveLayout = (): UseResponsiveLayoutReturn => {
   const MAX_CONTENT_WIDTH = 1280; // max-w-screen-xl
   const MAX_SPACER_WIDTH = 192; // w-48 = 12rem = 192px
   const MOBILE_BREAKPOINT = 680; // カスタムブレークポイント
-  const COLLAPSED_SIDEBAR_BREAKPOINT = 810; // サイドバー格納ブレークポイント
+  const COLLAPSED_SIDEBAR_BREAKPOINT = 830; // サイドバー格納ブレークポイント
 
   const calculateLayout = useCallback((containerWidth: number) => {
     // Phase 4: Mobile view
