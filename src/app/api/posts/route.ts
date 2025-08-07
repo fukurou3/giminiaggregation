@@ -186,7 +186,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { formData, userInfo } = body;
+    const { userInfo } = body;
+    const formData = validationResult.data;
 
     // AuthorizationヘッダーからIDトークンを取得
     const authHeader = request.headers.get('authorization');
@@ -270,7 +271,7 @@ export async function POST(request: NextRequest) {
         ? { customCategory: formData.customCategory }
         : {}),
       thumbnailUrl: formData.thumbnailUrl || '',
-      isPublic: formData.isPublic !== false, // デフォルトはtrue
+      isPublic: formData.isPublic,
       
       // システム自動設定項目
       authorId: userInfo.uid,
