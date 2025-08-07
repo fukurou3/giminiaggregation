@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Hash, Flag, Eye, Heart, Users } from 'lucide-react';
+import { Hash, Flag, Eye, Heart, Users, ChevronDown } from 'lucide-react';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { useFetch } from '@/lib/api';
 import { TagSearchResult } from '@/types/Tag';
@@ -19,6 +19,8 @@ export default function TagSearchPage() {
   const categoryFilter = searchParams.get('category') || 'all';
   const [selectedCategory, setSelectedCategory] = useState(categoryFilter);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [sortBy, setSortBy] = useState<'favorites' | 'createdAt'>('favorites');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // URLのクエリパラメータを構築
   const queryString = selectedCategory !== 'all' ? `?category=${selectedCategory}` : '';
@@ -30,6 +32,17 @@ export default function TagSearchPage() {
   const posts = result?.posts || [];
   const totalCount = result?.totalCount || 0;
   const categoryStats = result?.categoryStats || [];
+
+  // ソートされた投稿リスト
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      if (sortBy === 'favorites') {
+        return (b.favorites || 0) - (a.favorites || 0);
+      } else {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+  }, [posts, sortBy]);
 
   // カテゴリ選択の変更
   const handleCategoryChange = (category: string) => {
@@ -104,42 +117,75 @@ export default function TagSearchPage() {
       <div className="max-w-screen-xl mx-auto">
         {/* タグヘッダー */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <Hash className="w-8 h-8 text-primary" />
-              <div>
-<h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
-                  <span>{tag.name}</span>
-                  {tag.isOfficial && (
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
-                      公式
-                    </span>
-                  )}
-                  <span className="text-muted-foreground text-sm font-normal ml-4 translate-y-1">
-                    合計: {totalCount}件
+          {/* タイトル行 - 中央配置 */}
+          <div className="text-center mb-4">
+            <div className="flex items-center justify-center mb-2">
+              <h1 className="text-3xl font-bold text-foreground flex items-center space-x-2">
+                <span>
+                  <span className="text-primary"># </span>{tag.name}
+                </span>
+                {tag.isOfficial && (
+                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                    公式
                   </span>
-                </h1>
-              </div>
+                )}
+              </h1>
+            </div>
+          </div>
+          
+          {/* 統計・アクション行 */}
+          <div className="flex items-center justify-end space-x-3 mb-4">
+
+            
+            <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+              <Heart className="w-4 h-4" />
+              <span>{tag.favorites.toLocaleString()}</span>
             </div>
             
-            {/* タグ統計とアクション */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="p-2 hover:bg-muted rounded-md transition-colors"
+              title="タグを通報"
+            >
+              <Flag className="w-4 h-4 text-muted-foreground" />
+            </button>
 
-                <div className="flex items-center space-x-1">
-                  <Heart className="w-4 h-4" />
-                  <span>{tag.favorites.toLocaleString()}</span>
-                </div>
-
-              </div>
-              
+            {/* Sort Options - Dropdown */}
+            <div className="relative">
               <button
-                onClick={() => setShowReportModal(true)}
-                className="p-2 hover:bg-muted rounded-md transition-colors"
-                title="タグを通報"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between px-3 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[100px]"
               >
-                <Flag className="w-4 h-4 text-muted-foreground" />
+                <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
+              
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[100px]">
+                  <button
+                    onClick={() => {
+                      setSortBy('favorites');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
+                      sortBy === 'favorites' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    人気順
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('createdAt');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                      sortBy === 'createdAt' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    新着順
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -172,14 +218,14 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
         </div>
 
         {/* 投稿一覧 */}
-        {posts.length > 0 ? (
+        {sortedPosts.length > 0 ? (
           <>
             {/* カテゴリ別表示 */}
             {selectedCategory === 'all' ? (
               // すべてのカテゴリを表示
               <div className="space-y-8">
                 {categoryStats.map((stat) => {
-                  const categoryPosts = posts.filter(post => 
+                  const categoryPosts = sortedPosts.filter(post => 
                     post.categoryId === stat.categoryId
                   );
                   
@@ -221,7 +267,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               <>
                 {/* 大画面：グリッドカード */}
                 <div className="hidden min-[680px]:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {posts.map((post) => (
+                  {sortedPosts.map((post) => (
                     <CategoryCard
                       key={post.id}
                       post={post}
@@ -232,7 +278,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
 
                 {/* 小画面：横長リスト */}
                 <div className="max-[679px]:block hidden space-y-3">
-                  {posts.map((post) => (
+                  {sortedPosts.map((post) => (
                     <CategoryCard
                       key={post.id}
                       post={post}

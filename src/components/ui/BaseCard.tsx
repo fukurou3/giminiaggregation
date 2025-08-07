@@ -6,7 +6,6 @@ import { Post } from '@/types/Post';
 import { TagChip } from './TagChip';
 import { findCategoryById } from '@/lib/constants/categories';
 
-// Style constants
 const SIZE_STYLES = {
   small: {
     card: 'p-1.5',
@@ -28,53 +27,28 @@ const SIZE_STYLES = {
   }
 } as const;
 
-const VARIANT_STYLES = {
-  work: {
-    card: "bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group",
-    padding: 'p-3',
-    title: 'font-bold text-base',
-    description: 'text-xs',
-    image: 'aspect-[5/3]'
-  },
-  site: {
-    card: "bg-background border border-border rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden group",
-    padding: 'p-3',
-    title: 'font-bold text-base',
-    description: 'text-xs',
-    image: 'aspect-[5/3]'
-  }
-} as const;
+const CARD_STYLES = "bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group";
 
 export interface BaseCardProps {
   post: Post;
   size?: 'small' | 'medium' | 'large';
-  variant?: 'work' | 'site';
   layout?: 'vertical' | 'horizontal';
   showCategory?: boolean;
   showViews?: boolean;
   className?: string;
 }
 
-export function BaseCard({ post, size = 'medium', variant = 'work', layout = 'vertical', showCategory = true, showViews = true, className }: BaseCardProps) {
+/**
+ * ランキング画面用の詳細表示カードコンポーネント
+ * - カテゴリ、タグ、説明文、いいね数、閲覧数を表示
+ */
+export function BaseCard({ post, size = 'medium', layout = 'vertical', showCategory = true, showViews = true, className }: BaseCardProps) {
   const router = useRouter();
 
-  // Get category name from categoryId
   const category = post.categoryId ? findCategoryById(post.categoryId) : null;
   const categoryName = category?.name || post.customCategory || 'その他';
-
-  // Get styles based on size and variant
   const sizeStyles = SIZE_STYLES[size];
-  const variantStyles = VARIANT_STYLES[variant];
-  
-  const cardClasses = variant === 'site' ? variantStyles.padding : sizeStyles.card;
-  const titleClasses = variant === 'site' ? variantStyles.title : sizeStyles.title;
-  const descriptionClasses = variant === 'site' ? variantStyles.description : sizeStyles.description;
-  const imageClasses = variant === 'site' ? variantStyles.image : sizeStyles.image;
-  const cardStyling = variantStyles.card;
 
-  const previewText = variant === 'site' ? 'Canvas Preview' : 'Canvas';
-
-  // Click handlers
   const handleCardClick = () => {
     router.push(`/posts/${post.id}`);
   };
@@ -83,12 +57,11 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
     e.stopPropagation();
   };
 
-  // 横長レイアウトの場合
   if (layout === 'horizontal') {
     return (
       <div
         onClick={handleCardClick}
-        className={`${cardStyling} ${className || ''} flex cursor-pointer w-full`}
+        className={`${CARD_STYLES} ${className || ''} flex cursor-pointer w-full`}
         role="link"
         tabIndex={0}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
@@ -96,9 +69,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
         {/* サムネイル画像 */}
         <div className="w-32 h-32 bg-muted relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-            <span className="text-muted-foreground font-medium text-xs">
-              {previewText}
-            </span>
+            <span className="text-muted-foreground font-medium text-xs">Canvas</span>
           </div>
         </div>
 
@@ -138,7 +109,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
             </div>
           )}
 
-          {/* お気に入り数と閲覧数 */}
+          {/* いいね数と閲覧数 */}
           <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
               <Heart size={10} />
@@ -156,35 +127,32 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
     );
   }
 
-  // デフォルトの縦長レイアウトの場合
   return (
     <div
       onClick={handleCardClick}
-      className={`${cardStyling} ${className || ''} cursor-pointer max-w-full`}
+      className={`${CARD_STYLES} ${className || ''} cursor-pointer max-w-full`}
       role="link"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
     >
-      {/* Preview Image */}
-      <div className={`bg-muted relative overflow-hidden ${imageClasses}`}>
+      {/* プレビュー画像 */}
+      <div className={`bg-muted relative overflow-hidden ${sizeStyles.image}`}>
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-          <span className={`text-muted-foreground font-medium ${variant === 'site' ? 'text-xs' : 'text-xs'}`}>
-            {previewText}
-          </span>
+          <span className="text-muted-foreground font-medium text-xs">Canvas</span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className={`${cardClasses} flex flex-col h-32`}>
-        {/* Title */}
-        <h3 className={`text-foreground line-clamp-2 group-hover:text-primary transition-colors ${titleClasses} mb-1`}>
+      {/* コンテンツ */}
+      <div className={`${sizeStyles.card} flex flex-col h-32`}>
+        {/* タイトル */}
+        <h3 className={`text-foreground line-clamp-2 group-hover:text-primary transition-colors ${sizeStyles.title} mb-1`}>
           {post.title}
         </h3>
         
-        {/* Description */}
+        {/* 説明文 */}
         <div className="flex-1 mb-2">
           {post.description && (
-            <p className={`text-muted-foreground line-clamp-2 ${descriptionClasses}`}>
+            <p className={`text-muted-foreground line-clamp-2 ${sizeStyles.description}`}>
               {post.description}
             </p>
           )}
@@ -212,7 +180,7 @@ export function BaseCard({ post, size = 'medium', variant = 'work', layout = 've
           </div>
         )}
 
-        {/* お気に入り数と閲覧数 */}
+        {/* いいね数と閲覧数 */}
         <div className="flex items-center justify-end space-x-2 text-xs text-muted-foreground">
           <div className="flex items-center space-x-1">
             <Heart size={10} />

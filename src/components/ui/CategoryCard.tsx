@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation'; // Linkの代わりにuseRouterをインポート
+import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { Post } from '@/types/Post';
 import { TagChip } from './TagChip';
@@ -17,18 +17,18 @@ interface CategoryCardProps {
  * - シンプルなレイアウトで統計情報のみ表示
  */
 export function CategoryCard({ post, layout = 'vertical', className = '' }: CategoryCardProps) {
-  const router = useRouter(); // ★ 1. useRouterフックを初期化
+  const router = useRouter();
 
-  // ★ 2. クリックハンドラを定義
+  // Click handlers
   const handleCardClick = () => {
     router.push(`/posts/${post.id}`);
   };
 
   const handleTagClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 親要素（カード）のonClickが発火しないようにする
+    e.stopPropagation();
   };
 
-  // 既存のスタイル定義（変更なし）
+  // Card styles
   const baseClasses = [
     'bg-background',
     'border border-border',
@@ -45,10 +45,9 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
     .filter(Boolean)
     .join(' ');
 
-  // 横長レイアウトの場合
+  // 横長レイアウト
   if (layout === 'horizontal') {
     return (
-      // ★ 3. <Link>を<div onClick>に変更し、アクセシビリティ属性を追加
       <div 
         onClick={handleCardClick}
         className={cardClasses}
@@ -78,8 +77,7 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
             <div className="flex gap-1 overflow-hidden min-w-0">
               {post.tagIds && (
                 <>
-                  {post.tagIds && post.tagIds.slice(0, 2).map((tagId) => (
-                    // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
+                  {post.tagIds.slice(0, 2).map((tagId) => (
                     <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
                       <TagChip
                         tag={{ 
@@ -106,12 +104,11 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
     );
   }
 
-  // 縦型レイアウト（デフォルト）
+  // 縦長レイアウト（デフォルト）
   return (
-    // ★ 3. <Link>を<div onClick>に変更し、幅とアクセシビリティ属性を追加
     <div
       onClick={handleCardClick}
-      className={`${cardClasses} max-w-full`} // 柔軟なレスポンシブ対応
+      className={`${cardClasses} max-w-full`}
       role="link"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
@@ -135,21 +132,18 @@ export function CategoryCard({ post, layout = 'vertical', className = '' }: Cate
         {/* タグ */}
         {post.tagIds && (
           <div className="flex gap-1 overflow-hidden min-w-0">
-            <>
-              {post.tagIds && post.tagIds.slice(0, 3).map((tagId) => (
-                // ★ 4. TagChipをdivで囲み、onClickハンドラを追加
-                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
-                  <TagChip
-                    tag={{ 
-                      id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
-                      isOfficial: false, views: 0, favorites: 0, flagged: false,
-                      createdAt: new Date(), updatedAt: new Date()
-                    }}
-                    size="sm" variant="ghost"
-                  />
-                </div>
-              ))}
-            </>
+            {post.tagIds.slice(0, 3).map((tagId) => (
+              <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block">
+                <TagChip
+                  tag={{ 
+                    id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
+                    isOfficial: false, views: 0, favorites: 0, flagged: false,
+                    createdAt: new Date(), updatedAt: new Date()
+                  }}
+                  size="sm" variant="ghost"
+                />
+              </div>
+            ))}
           </div>
         )}
 

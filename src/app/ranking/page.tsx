@@ -1,33 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+
 import { TrendingUp } from 'lucide-react'
 import { Post } from '@/types/Post'
 import { WorkCard } from '@/components/ui/WorkCard'
 import { useFetch } from '@/lib/api/useApi'
 
-interface RankingPageProps {
-  searchParams?: Promise<{
-    sortBy?: string
-  }>
-}
 
-export default function RankingPage({ searchParams }: RankingPageProps) {
-  const [selectedSort, setSelectedSort] = useState('trending')
 
-  useEffect(() => {
-    const loadSearchParams = async () => {
-      if (searchParams) {
-        const params = await searchParams
-        setSelectedSort(params.sortBy || 'trending')
-      }
-    }
-    loadSearchParams()
-  }, [searchParams])
+export default function RankingPage() {
 
   const { data: postsResponse, loading } = useFetch<{
     data?: { posts: Post[] }
-  }>(`/api/posts?limit=20&sortBy=${selectedSort}`)
+  }>(`/api/posts?limit=20&sortBy=favorites`)
 
   const posts = postsResponse?.data?.posts || []
 
@@ -55,17 +40,7 @@ export default function RankingPage({ searchParams }: RankingPageProps) {
               </div>
             </div>
 
-            {/* Sort Options */}
-            <div className="flex flex-wrap gap-2">
-              {[
-                { key: 'trending', label: 'トレンド' },
-                { key: 'views', label: '閲覧数' },
-                { key: 'favorites', label: 'お気に入り' },
-                { key: 'createdAt', label: '新着' }
-              ].map((sort) => (
-                <div key={sort.key} className="px-4 py-2 bg-muted animate-pulse rounded-lg w-20 h-8"></div>
-              ))}
-            </div>
+  
 
             {/* Loading skeleton */}
             {/* 大画面：グリッドカード */}
@@ -103,27 +78,7 @@ export default function RankingPage({ searchParams }: RankingPageProps) {
             </div>
           </div>
 
-          {/* Sort Options */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: 'trending', label: 'トレンド' },
-              { key: 'views', label: '閲覧数' },
-              { key: 'favorites', label: 'お気に入り' },
-              { key: 'createdAt', label: '新着' }
-            ].map((sort) => (
-              <button
-                key={sort.key}
-                onClick={() => setSelectedSort(sort.key)}
-className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-                  selectedSort === sort.key
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
-              >
-                {sort.label}
-              </button>
-            ))}
-          </div>
+
 
           {/* Grid */}
           {/* 大画面：グリッドカード */}

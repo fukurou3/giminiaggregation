@@ -1,5 +1,5 @@
-import React from 'react';
-import { Hash } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Hash, ChevronDown } from 'lucide-react';
 import { CategoryCard } from '@/components/ui/CategoryCard';
 import { Post, Category } from '@/types/Post';
 import { LayoutPhase } from '@/hooks/useResponsiveLayout';
@@ -21,7 +21,20 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
   error,
   onBackToList,
 }) {
+  const [sortBy, setSortBy] = useState<'favorites' | 'createdAt'>('favorites');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const selectedCategoryData = categories.find(cat => cat.name === selectedCategory);
+
+  // ソートされた作品リスト
+  const sortedPosts = useMemo(() => {
+    return [...selectedCategoryPosts].sort((a, b) => {
+      if (sortBy === 'favorites') {
+        return (b.favorites || 0) - (a.favorites || 0);
+      } else {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+  }, [selectedCategoryPosts, sortBy]);
 
   return (
     <>
@@ -46,8 +59,48 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
             <p className="text-muted-foreground">
               {selectedCategoryData?.description}
             </p>
-            <div className="mt-4 text-sm text-muted-foreground">
-              {selectedCategoryPosts.length} 作品
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedCategoryPosts.length} 作品
+              </span>
+              
+              {/* Sort Options - Dropdown */}
+              <div className="relative">
+                <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px]"
+              >
+                <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                  <button
+                    onClick={() => {
+                      setSortBy('favorites');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
+                      sortBy === 'favorites' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    人気順
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('createdAt');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                      sortBy === 'createdAt' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    新着順
+                  </button>
+                </div>
+              )}
+              </div>
             </div>
           </div>
         ) : layoutPhase === 'phase5' ? (
@@ -59,8 +112,48 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
             <p className="text-muted-foreground">
               {selectedCategoryData?.description}
             </p>
-            <div className="mt-4 text-sm text-muted-foreground">
-              {selectedCategoryPosts.length} 作品
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedCategoryPosts.length} 作品
+              </span>
+              
+              {/* Sort Options - Dropdown */}
+              <div className="relative">
+                <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px]"
+              >
+                <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                  <button
+                    onClick={() => {
+                      setSortBy('favorites');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
+                      sortBy === 'favorites' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    人気順
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('createdAt');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                      sortBy === 'createdAt' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    新着順
+                  </button>
+                </div>
+              )}
+              </div>
             </div>
           </div>
         ) : (
@@ -72,8 +165,48 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
             <p className="text-muted-foreground">
               {selectedCategoryData?.description}
             </p>
-            <div className="mt-4 text-sm text-muted-foreground">
-              {selectedCategoryPosts.length} 作品
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {selectedCategoryPosts.length} 作品
+              </span>
+              
+              {/* Sort Options - Dropdown */}
+              <div className="relative">
+                <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px]"
+              >
+                <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                  <button
+                    onClick={() => {
+                      setSortBy('favorites');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
+                      sortBy === 'favorites' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    人気順
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortBy('createdAt');
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                      sortBy === 'createdAt' ? 'text-primary font-medium' : 'text-foreground'
+                    }`}
+                  >
+                    新着順
+                  </button>
+                </div>
+              )}
+              </div>
             </div>
           </>
         )}
@@ -87,12 +220,12 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
       </header>
 
       {/* Category Posts Grid */}
-      {selectedCategoryPosts.length > 0 ? (
+      {sortedPosts.length > 0 ? (
         <>
           {/* Desktop: Auto-fit Grid - Show in Phase 1, 2, 3, 5 */}
           {(layoutPhase !== 'phase4') && (
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', justifyContent: 'start' }}>
-              {selectedCategoryPosts.map((post) => (
+              {sortedPosts.map((post) => (
                 <CategoryCard
                   key={post.id}
                   post={post}
@@ -105,7 +238,7 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
           {/* Mobile: Horizontal Layout - Show in Phase 4 only */}
           {layoutPhase === 'phase4' && (
             <div className="space-y-3">
-              {selectedCategoryPosts.map((post) => (
+              {sortedPosts.map((post) => (
                 <CategoryCard
                   key={post.id}
                   post={post}
