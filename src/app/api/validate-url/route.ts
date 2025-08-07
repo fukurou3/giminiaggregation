@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateGeminiUrl, ValidationResult } from '@/lib/validators/urlValidator';
 import { getClientIP, CORS_HEADERS } from '@/lib/api/utils';
 import { checkRateLimit } from '@/lib/api/rateLimiter';
+import { logInfo, logError } from '@/lib/logger';
 
 // キャッシュの有効期間（5分）
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -93,12 +94,12 @@ export async function POST(request: NextRequest) {
     }
 
     // ログ出力（セキュリティ監査用）
-    console.log(`URL validation: ${url} - ${result.status} - IP: ${ip}`);
+    logInfo(`URL validation: ${url} - ${result.status} - IP: ${ip}`);
 
     return NextResponse.json(result, { headers: CORS_HEADERS });
 
   } catch (error) {
-    console.error('URL validation error:', error);
+    logError(error, { url });
     
     return NextResponse.json(
       {

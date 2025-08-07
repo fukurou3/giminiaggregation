@@ -34,3 +34,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.# giminiaggregation
+
+## Monitoring
+
+Sentry を用いたエラーモニタリングを導入しています。`SENTRY_DSN` 環境変数を設定すると、重大なエラー発生時に通知が送信されます。ログ出力は `src/lib/logger.ts` で共通化され、API ルートから呼び出されます。
+
