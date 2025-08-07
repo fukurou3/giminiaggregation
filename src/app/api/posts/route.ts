@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase';
 import { postSchema } from '@/lib/schemas/postSchema';
 import { validateGeminiUrl } from '@/lib/validators/urlValidator';
 import { getUserProfile } from '@/lib/userProfile';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -260,10 +261,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 投稿データの準備
+    const sanitizedTitle = sanitizeHtml(formData.title);
+    const sanitizedDescription = sanitizeHtml(formData.description);
     const postData = {
-      title: formData.title,
+      title: sanitizedTitle,
       url: formData.url,
-      description: formData.description,
+      description: sanitizedDescription,
       tagIds: tagIds, // タグID配列
       categoryId: categoryObj.id, // カテゴリID
       ...(formData.category === 'その他' && formData.customCategory

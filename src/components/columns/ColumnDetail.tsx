@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Eye, Heart, Calendar } from 'lucide-react';
 import type { Column } from '@/types/Column';
 import { formatDate } from '@/lib/utils/date';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 interface ColumnDetailProps {
   column: Column;
@@ -100,7 +101,9 @@ export function ColumnDetail({ column }: ColumnDetailProps) {
             fontFamily: 'system-ui, -apple-system, sans-serif'
           }}
           dangerouslySetInnerHTML={{
-            __html: column.body || '<p>本文が読み込まれていません。</p>'
+            __html: sanitizeHtml(
+              column.body || '<p>本文が読み込まれていません。</p>'
+            )
           }}
         />
 
