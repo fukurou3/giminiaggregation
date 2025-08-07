@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Layout } from "@/components/Layout";
 import { Inter } from "next/font/google";
+import { env } from '@/lib/env';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,7 +23,7 @@ export default function RootLayout({
     <html lang="ja">
       <head>
         <script
-          src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
+          src={`https://www.google.com/recaptcha/api.js?render=${env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
           async
           defer
         />

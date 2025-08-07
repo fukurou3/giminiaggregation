@@ -1,10 +1,11 @@
+import { env } from './env';
 let Sentry: any = null;
 
 try {
   // 動的に読み込み、パッケージ未インストール時の失敗を防ぐ
   Sentry = require('@sentry/nextjs');
   Sentry.init({
-    dsn: process.env.SENTRY_DSN,
+    dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
   });
 } catch {
