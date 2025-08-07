@@ -3,7 +3,7 @@
 
 import { TrendingUp } from 'lucide-react'
 import { Post } from '@/types/Post'
-import { WorkCard } from '@/components/ui/WorkCard'
+import { BaseCard } from '@/components/ui/BaseCard'
 import { useFetch } from '@/lib/api/useApi'
 
 
@@ -94,7 +94,7 @@ export default function RankingPage() {
                     </div>
                   </div>
                   
-                  <WorkCard 
+                  <BaseCard 
                     post={post} 
                     size="medium"
                     showViews={false}
@@ -110,7 +110,7 @@ export default function RankingPage() {
             {posts.slice(0, 20).map((post, index) => {
               const rank = index + 1
               return (
-                <WorkCard 
+                <BaseCard 
                   key={post.id}
                   post={post} 
                   size="medium"

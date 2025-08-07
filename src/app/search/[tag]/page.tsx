@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Hash, Flag, Eye, Heart, Users, ChevronDown } from 'lucide-react';
-import { CategoryCard } from '@/components/ui/CategoryCard';
+import { BaseCard } from '@/components/ui/BaseCard';
 import { useFetch } from '@/lib/api';
 import { TagSearchResult } from '@/types/Tag';
 import { Post } from '@/types/Post';
@@ -240,7 +240,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                       {/* 大画面：グリッドカード */}
                       <div className="hidden min-[681px]:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {categoryPosts.map((post) => (
-                          <CategoryCard
+                          <BaseCard
                             key={post.id}
                             post={post}
                             layout="vertical"
@@ -251,7 +251,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                       {/* 小画面：横長リスト */}
                       <div className="max-[680px]:block hidden space-y-3">
                         {categoryPosts.map((post) => (
-                          <CategoryCard
+                          <BaseCard
                       key={post.id}
                       post={post}
                       layout="horizontal"

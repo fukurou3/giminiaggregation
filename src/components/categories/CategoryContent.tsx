@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Hash, ChevronDown } from 'lucide-react';
-import { CategoryCard } from '@/components/ui/CategoryCard';
+import { BaseCard } from '@/components/ui/BaseCard';
 import { Post, Category } from '@/types/Post';
 import { LayoutPhase } from '@/hooks/useResponsiveLayout';
 
@@ -226,10 +226,11 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
           {(layoutPhase !== 'phase4') && (
             <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', justifyContent: 'start' }}>
               {sortedPosts.map((post) => (
-                <CategoryCard
+                <BaseCard
                   key={post.id}
                   post={post}
                   layout="vertical"
+                  showViews={false}
                 />
               ))}
             </div>
@@ -239,10 +240,11 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
           {layoutPhase === 'phase4' && (
             <div className="space-y-3">
               {sortedPosts.map((post) => (
-                <CategoryCard
+                <BaseCard
                   key={post.id}
                   post={post}
                   layout="horizontal"
+                  showViews={false}
                 />
               ))}
             </div>
