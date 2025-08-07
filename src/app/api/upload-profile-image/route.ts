@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api/utils';
+import { profileImageUploadSchema } from '@/lib/schemas/uploadSchema';
 
 // Firebase Admin初期化
 if (!getApps().length) {
@@ -27,29 +29,33 @@ export async function POST(request: NextRequest) {
     // 認証チェック
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+      return createErrorResponse('unauthorized', '認証が必要です', 401);
     }
 
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await getAuth().verifyIdToken(token);
     const uid = decodedToken.uid;
 
-    // フォームデータの取得
+    // フォームデータの取得と検証
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const validationResult = profileImageUploadSchema.safeParse({
+      file: formData.get('file'),
+    });
 
-    if (!file) {
-      return NextResponse.json({ error: 'ファイルが見つかりません' }, { status: 400 });
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+      return createErrorResponse(
+        'validation_failed',
+        '入力データに不備があります',
+        400,
+        errors
+      );
     }
 
-    // ファイル検証
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: '画像ファイルのみアップロード可能です' }, { status: 400 });
-    }
-
-    if (file.size > 5 * 1024 * 1024) { // 5MB制限
-      return NextResponse.json({ error: 'ファイルサイズは5MB以下にしてください' }, { status: 400 });
-    }
+    const { file } = validationResult.data;
 
     // ファイル名生成
     const fileExtension = file.name.split('.').pop();
@@ -75,17 +81,16 @@ export async function POST(request: NextRequest) {
       expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7日後
     });
 
-    return NextResponse.json({
-      success: true,
+    return createSuccessResponse({
       url: signedUrl,
       fileName,
     });
-
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json(
-      { error: 'アップロードに失敗しました' },
-      { status: 500 }
+    return createErrorResponse(
+      'server_error',
+      'アップロードに失敗しました',
+      500
     );
   }
 }

@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api/utils';
+import { refreshProfileImageUrlSchema } from '@/lib/schemas/uploadSchema';
 
 // Firebase Admin初期化
 if (!getApps().length) {
@@ -27,32 +29,43 @@ export async function POST(request: NextRequest) {
     // 認証チェック
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+      return createErrorResponse('unauthorized', '認証が必要です', 401);
     }
 
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await getAuth().verifyIdToken(token);
     const uid = decodedToken.uid;
 
-    // リクエストボディからファイル名を取得
-    const { fileName } = await request.json();
-    
-    if (!fileName) {
-      return NextResponse.json({ error: 'ファイル名が必要です' }, { status: 400 });
+    // リクエストボディの検証
+    const body = await request.json();
+    const validationResult = refreshProfileImageUrlSchema.safeParse(body);
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+      return createErrorResponse(
+        'validation_failed',
+        '入力データに不備があります',
+        400,
+        errors
+      );
     }
+
+    const { fileName } = validationResult.data;
 
     // ファイルが存在することを確認
     const gcsFile = bucket.file(fileName);
     const [exists] = await gcsFile.exists();
-    
+
     if (!exists) {
-      return NextResponse.json({ error: 'ファイルが見つかりません' }, { status: 404 });
+      return createErrorResponse('not_found', 'ファイルが見つかりません', 404);
     }
 
     // ファイルのメタデータを確認（アップロードしたユーザーかチェック）
     const [metadata] = await gcsFile.getMetadata();
     if (metadata.metadata?.uploadedBy !== uid) {
-      return NextResponse.json({ error: 'アクセス権限がありません' }, { status: 403 });
+      return createErrorResponse('forbidden', 'アクセス権限がありません', 403);
     }
 
     // 新しい署名付きURLを生成（7日間有効）
@@ -61,16 +74,13 @@ export async function POST(request: NextRequest) {
       expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7日後
     });
 
-    return NextResponse.json({
-      success: true,
-      url: signedUrl,
-    });
-
+    return createSuccessResponse({ url: signedUrl });
   } catch (error) {
     console.error('URL refresh error:', error);
-    return NextResponse.json(
-      { error: 'URL更新に失敗しました' },
-      { status: 500 }
+    return createErrorResponse(
+      'server_error',
+      'URL更新に失敗しました',
+      500
     );
   }
 }
