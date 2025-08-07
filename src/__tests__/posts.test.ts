@@ -48,6 +48,7 @@ vi.mock('@/lib/tags', () => ({
 }));
 
 const { validateGeminiUrl } = require('@/lib/validators/urlValidator');
+const { addDoc } = require('firebase/firestore');
 
 const baseBody = {
   formData: {
@@ -86,5 +87,22 @@ describe('posts API', () => {
     const res = await POST(req);
     const json = await res.json();
     expect(json.code).toBe('invalid_url');
+  });
+
+  it('sanitizes script tags from input', async () => {
+    const malicious = '<p>safe</p><script>alert(1)</script>';
+    const req = new NextRequest('http://localhost/api/posts', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...baseBody,
+        formData: { ...baseBody.formData, title: malicious, description: malicious }
+      }),
+      headers: { 'content-type': 'application/json' }
+    });
+
+    await POST(req);
+    const saved = addDoc.mock.calls[0][1];
+    expect(saved.title).toBe('<p>safe</p>');
+    expect(saved.description).toBe('<p>safe</p>');
   });
 });
