@@ -4,13 +4,26 @@ import { db } from '@/lib/firebase';
 import { postSchema } from '@/lib/schemas/postSchema';
 import { validateGeminiUrl } from '@/lib/validators/urlValidator';
 import { getUserProfile } from '@/lib/userProfile';
-import { 
-  createErrorResponse, 
-  createSuccessResponse, 
-  getClientIP, 
-  mapFirestoreError 
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  getClientIP,
+  mapFirestoreError
 } from '@/lib/api/utils';
 import { checkRateLimit } from '@/lib/api/rateLimiter';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+
+// Firebase Admin初期化
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
 
 
 
@@ -175,11 +188,27 @@ export async function POST(request: NextRequest) {
 
     const { formData, userInfo } = body;
 
+    // AuthorizationヘッダーからIDトークンを取得
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return createErrorResponse('unauthorized', 'ログインが必要です', 401);
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+
+    let uid: string;
+    try {
+      const decodedToken = await getAuth().verifyIdToken(idToken);
+      uid = decodedToken.uid;
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return createErrorResponse('unauthorized', '無効なトークンです', 401);
+    }
+
     // ユーザー情報の確認
-    if (!userInfo || !userInfo.uid) {
+    if (!userInfo || !userInfo.uid || userInfo.uid !== uid) {
       return createErrorResponse(
         'unauthorized',
-        'ログインが必要です',
+        'トークンのユーザーIDと一致しません',
         401
       );
     }
