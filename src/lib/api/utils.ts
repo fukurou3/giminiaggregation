@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
+// Determine allowed origin based on environment
+const allowedOrigin =
+  process.env.NODE_ENV === 'production'
+    ? process.env.CORS_ALLOWED_ORIGIN_PROD
+    : process.env.CORS_ALLOWED_ORIGIN_DEV;
+
 // CORS headers configuration
 export const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin ?? '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 } as const;

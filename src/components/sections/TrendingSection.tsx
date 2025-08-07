@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { TrendingUp, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BaseCard } from '@/components/ui/BaseCard';
+import { WorkCard } from '@/components/ui/WorkCard';
 import { Post } from '@/types/Post';
 import { useRef, useState, useEffect } from 'react';
 
