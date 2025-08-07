@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { env } from '@/lib/env';
 
 // Redis connection instance
 let redis: Redis | null = null;
@@ -7,10 +8,10 @@ let redis: Redis | null = null;
  * Redis connection configuration
  */
 const REDIS_CONFIG = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD || undefined,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
+  host: env.REDIS_HOST,
+  port: env.REDIS_PORT,
+  password: env.REDIS_PASSWORD || undefined,
+  db: env.REDIS_DB,
   connectTimeout: 2000,
   lazyConnect: true,
   maxRetriesPerRequest: 1,
@@ -24,7 +25,7 @@ const REDIS_CONFIG = {
  */
 export async function initRedis(): Promise<Redis | null> {
   // Skip Redis in development if not explicitly enabled
-  if (process.env.NODE_ENV === 'development' && !process.env.REDIS_ENABLED) {
+  if (env.NODE_ENV === 'development' && !env.REDIS_ENABLED) {
     console.log('Redis disabled in development environment');
     return null;
   }

@@ -14,6 +14,7 @@ import Image from "next/image";
 import type { Post } from "@/types/Post";
 import { formatDate } from '@/lib/utils/date';
 import { findCategoryById } from '@/lib/constants/categories';
+import { env } from '@/lib/env';
 
 declare global {
   interface Window {
@@ -85,12 +86,8 @@ export default function PostDetailPage() {
         });
       }
       
-      if (!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
-        throw new Error("reCAPTCHA site key not configured");
-      }
-      
       const token = await window.grecaptcha?.execute(
-        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+        env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
         { action: "favorite" }
       );
       

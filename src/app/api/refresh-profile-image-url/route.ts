@@ -2,25 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { env } from '@/lib/env';
 
 // Firebase Admin初期化
 if (!getApps().length) {
   initializeApp({
     credential: cert({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      projectId: env.GOOGLE_CLOUD_PROJECT_ID,
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      privateKey: env.FIREBASE_PRIVATE_KEY,
     }),
   });
 }
 
 // Google Cloud Storage初期化
 const storage = new Storage({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  projectId: env.GOOGLE_CLOUD_PROJECT_ID,
+  keyFilename: env.GOOGLE_APPLICATION_CREDENTIALS,
 });
 
-const bucket = storage.bucket(process.env.GOOGLE_CLOUD_STORAGE_BUCKET!);
+const bucket = storage.bucket(env.GOOGLE_CLOUD_STORAGE_BUCKET);
 
 export async function POST(request: NextRequest) {
   try {

@@ -13,14 +13,15 @@ import {
 import { checkRateLimit } from '@/lib/api/rateLimiter';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { env } from '@/lib/env';
 
 // Firebase Admin初期化
 if (!getApps().length) {
   initializeApp({
     credential: cert({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      projectId: env.GOOGLE_CLOUD_PROJECT_ID,
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      privateKey: env.FIREBASE_PRIVATE_KEY,
     }),
   });
 }
@@ -292,7 +293,7 @@ export async function POST(request: NextRequest) {
       const docRef = await addDoc(collection(db, 'posts'), postData);
 
       // 分散カウンター用のシャードを初期化
-      const SHARD_COUNT = parseInt(process.env.FAVORITE_SHARD_COUNT || '10', 10);
+      const SHARD_COUNT = env.FAVORITE_SHARD_COUNT;
       const shardPromises = Array.from({ length: SHARD_COUNT }).map((_, idx) =>
         setDoc(doc(db, `posts/${docRef.id}/favoriteShards/${idx}`), { count: 0 })
       );

@@ -2,9 +2,10 @@ import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { createErrorResponse, createSuccessResponse, getClientIP } from '@/lib/api/utils';
 import { checkRateLimit } from '@/lib/api/rateLimiter';
+import { env } from '@/lib/env';
 
 const RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify';
-const MIN_SCORE = parseFloat(process.env.RECAPTCHA_MIN_SCORE || '0.5');
+const MIN_SCORE = env.RECAPTCHA_MIN_SCORE;
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     console.log(`favorite verify: ipHash=${ipHash}, ua=${ua}`);
 
     const params = new URLSearchParams({
-      secret: process.env.RECAPTCHA_SECRET_KEY || '',
+      secret: env.RECAPTCHA_SECRET_KEY,
       response: token,
     });
     const verifyRes = await fetch(RECAPTCHA_ENDPOINT, {
