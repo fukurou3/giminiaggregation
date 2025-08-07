@@ -243,8 +243,10 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
                 <BaseCard
                   key={post.id}
                   post={post}
+                  size="medium"
                   layout="horizontal"
                   showViews={false}
+                  showCategory={false}
                 />
               ))}
             </div>

@@ -6,7 +6,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useRouter } from "next/navigation";
 import { Post } from "@/types/Post";
 import { Heart, FileText, Loader2 } from "lucide-react";
-import { WorkCard } from "@/components/ui/WorkCard";
+import { BaseCard } from "@/components/ui/BaseCard";
 
 export default function MyPage() {
   const { user } = useAuth();
@@ -168,7 +168,7 @@ export default function MyPage() {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {favorites.map((post) => (
-                          <WorkCard key={post.id} post={post} />
+                          <BaseCard key={post.id} post={post} />
                         ))}
                       </div>
                     )}
@@ -196,7 +196,7 @@ export default function MyPage() {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {myPosts.map((post) => (
-                          <WorkCard key={post.id} post={post} />
+                          <BaseCard key={post.id} post={post} />
                         ))}
                       </div>
                     )}

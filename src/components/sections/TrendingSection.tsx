@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { TrendingUp, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { WorkCard } from '@/components/ui/WorkCard';
+import { BaseCard } from '@/components/ui/BaseCard';
 import { Post } from '@/types/Post';
 import { useRef, useState, useEffect } from 'react';
 
@@ -165,7 +165,7 @@ export function TrendingSection({ posts, loading = false }: TrendingSectionProps
                     </div>
                   </div>
                   
-                  <WorkCard 
+                  <BaseCard 
                     post={post} 
                     size="medium"
                   />

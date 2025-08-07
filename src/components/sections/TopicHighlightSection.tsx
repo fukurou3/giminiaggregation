@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Tag, ArrowRight } from 'lucide-react';
-import { WorkCard } from '@/components/ui/WorkCard';
+import { BaseCard } from '@/components/ui/BaseCard';
 import { TopicHighlight } from '@/types/Topic';
 
 interface TopicHighlightSectionProps {
@@ -94,7 +94,7 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
             <div className="flex flex-wrap gap-4 justify-center">
               {topicHighlight.featuredPosts.map((post) => (
                 <div key={post.id} className="w-72">
-                  <WorkCard 
+                  <BaseCard 
                     post={post} 
                     size="medium"
                   />
