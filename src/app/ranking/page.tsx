@@ -46,7 +46,6 @@ export default function RankingPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">ランキング</h1>
-          <p className="text-muted-foreground">人気の作品をチェックしよう</p>
         </div>
       </div>
       
@@ -54,14 +53,14 @@ export default function RankingPage() {
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] z-50 relative"
+            className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] relative"
           >
             <span>{period === 'all' ? '全期間' : '今週投稿'}</span>
             <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
           
           {isDropdownOpen && (
-            <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[120px]">
+            <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
               <button
                 onClick={() => {
                   setPeriod('all');

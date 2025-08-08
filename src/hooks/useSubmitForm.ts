@@ -116,10 +116,14 @@ export function useSubmitForm(): UseSubmitFormReturn {
 
     setIsSubmitting(true);
     try {
+      // Firebase認証トークンを取得
+      const token = await user.getIdToken();
+      
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           formData: {

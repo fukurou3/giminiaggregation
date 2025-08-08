@@ -245,7 +245,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                         layout="grid"
                         responsive={true}
                         showViews={false}
-                        className="hidden min-[681px]:grid max-[680px]:space-y-3"
+                        showCategory={false}
                       />
                     </div>
                   );
@@ -259,6 +259,7 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                   layout="grid"
                   responsive={true}
                   showViews={false}
+                  showCategory={false}
                 />
               </>
             )}

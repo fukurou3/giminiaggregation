@@ -86,7 +86,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* サムネイル画像とカテゴリ */}
         <div className="w-44 flex-shrink-0 flex flex-col justify-center h-26">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-0 mt-0 shadow-md rounded-sm" style={{width: '155px', height: '93px'}}>
+          <div className="bg-muted relative overflow-hidden ml-2 mt-0 shadow-md rounded-sm" style={{width: '155px', height: '93px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
@@ -116,20 +116,33 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                 {post.title}
               </h3>
             </div>
-            
-            {/* 説明文 */}
-            {post.description && (
-              <p className="text-black line-clamp-2 text-xs mt-1 break-words">
-                {post.description}
-              </p>
-            )}
           </div>
 
-          {/* 下部：タグといいね数 */}
-          <div className="absolute bottom-2 -left-2 right-2 flex items-center text-xs">
-            {/* タグ */}
+          {/* 中段：タグ（第1段） */}
+          <div className="absolute bottom-8 -left-2 right-2 flex items-center text-xs">
+            {/* タグ（第1段） */}
             <div className="flex gap-1 overflow-hidden min-w-0 flex-1">
-              {post.tagIds && post.tagIds.map((tagId) => (
+              {post.tagIds && post.tagIds.slice(0, 3).map((tagId) => (
+                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block flex-shrink-0">
+                  <TagChip
+                    tag={{ 
+                      id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
+                      isOfficial: false, views: 0, favorites: 0, flagged: false,
+                      createdAt: new Date(), updatedAt: new Date()
+                    }}
+                    size="sm" variant="ghost"
+                    className="!bg-gray-100 hover:!bg-gray-200 hover:!text-muted-foreground"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 下部：タグ（第2段）といいね数 */}
+          <div className="absolute bottom-2 -left-2 right-2 flex items-center text-xs">
+            {/* タグ（第2段） */}
+            <div className="flex gap-1 overflow-hidden min-w-0 flex-1">
+              {post.tagIds && post.tagIds.slice(3, 6).map((tagId) => (
                 <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block flex-shrink-0">
                   <TagChip
                     tag={{ 
