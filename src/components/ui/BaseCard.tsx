@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
-import { TagChip } from './TagChip';
+import { HorizontalTagList } from './HorizontalTagList';
 import { findCategoryById } from '@/lib/constants/categories';
 
 const SIZE_STYLES = {
@@ -68,9 +68,6 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
     router.push(`/posts/${post.id}`);
   };
 
-  const handleTagClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
 
   if (layout === 'horizontal') {
     return (
@@ -101,64 +98,50 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
           )}
         </div>
 
-        {/* コンテンツ */}
-        <div className="flex-1 -ml-2 pr-2 py-2 flex flex-col min-w-0 h-26 relative z-10">
-          {/* 上部：タイトルと説明文 */}
-          <div className="flex-1 flex flex-col justify-start mt-0">
-            {/* タイトル */}
-            <div className="flex items-center gap-2">
-              {rank && (
-                <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
-                  {rank}.
-                </span>
-              )}
-              <h3 className="text-foreground line-clamp-1 hover:text-primary transition-colors text-sm font-bold">
-                {post.title}
-              </h3>
-            </div>
+        {/* コンテンツ - CSS Grid 3行2列構造 */}
+        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 h-26 relative z-10 grid grid-rows-[auto_auto_auto] grid-cols-[1fr_auto] gap-1">
+          {/* Row 1: タイトル（左右いっぱい） */}
+          <div className="col-span-2 flex items-center gap-2">
+            {rank && (
+              <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
+                {rank}.
+              </span>
+            )}
+            <h3 className="text-foreground line-clamp-1 hover:text-primary transition-colors text-sm font-bold">
+              {post.title}
+            </h3>
           </div>
 
-          {/* 中段：タグ（第1段） */}
-          <div className="absolute bottom-8 -left-2 right-2 flex items-center text-xs">
-            {/* タグ（第1段） */}
-            <div className="flex gap-1 overflow-hidden min-w-0 flex-1">
-              {post.tagIds && post.tagIds.slice(0, 3).map((tagId) => (
-                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block flex-shrink-0">
-                  <TagChip
-                    tag={{ 
-                      id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
-                      isOfficial: false, views: 0, favorites: 0, flagged: false,
-                      createdAt: new Date(), updatedAt: new Date()
-                    }}
-                    size="sm" variant="ghost"
-                    className="!bg-gray-100 hover:!bg-gray-200 hover:!text-muted-foreground"
-                  />
-                </div>
-              ))}
-            </div>
+          {/* Row 2-3 左: タグ表示（2行固定、overflow禁止） */}
+          <div className="row-span-2 min-w-0 overflow-hidden" style={{ maxHeight: '56px' }}>
+            {post.tagIds && post.tagIds.length > 0 && (
+              <HorizontalTagList
+                tags={post.tagIds.map(tagId => ({
+                  id: tagId, 
+                  name: tagId.replace(/_/g, ' '), 
+                  aliases: [], 
+                  count: 0, 
+                  isOfficial: false, 
+                  views: 0, 
+                  favorites: 0, 
+                  flagged: false,
+                  createdAt: new Date(), 
+                  updatedAt: new Date()
+                }))}
+                maxRows={2}
+                gap={4}
+                tagProps={{
+                  size: 'sm',
+                  variant: 'ghost'
+                }}
+                className="max-w-full"
+              />
+            )}
           </div>
-
-          {/* 下部：タグ（第2段）といいね数 */}
-          <div className="absolute bottom-2 -left-2 right-2 flex items-center text-xs">
-            {/* タグ（第2段） */}
-            <div className="flex gap-1 overflow-hidden min-w-0 flex-1">
-              {post.tagIds && post.tagIds.slice(3, 6).map((tagId) => (
-                <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block flex-shrink-0">
-                  <TagChip
-                    tag={{ 
-                      id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
-                      isOfficial: false, views: 0, favorites: 0, flagged: false,
-                      createdAt: new Date(), updatedAt: new Date()
-                    }}
-                    size="sm" variant="ghost"
-                    className="!bg-gray-100 hover:!bg-gray-200 hover:!text-muted-foreground"
-                  />
-                </div>
-              ))}
-            </div>
-            
-            {/* いいね数と閲覧数 */}
-            <div className="flex items-center space-x-3 text-muted-foreground ml-auto">
+          
+          {/* Row 3 右: いいね数と閲覧数（右下固定） */}
+          <div className="row-start-3 col-start-2 flex items-end justify-end">
+            <div className="flex items-center space-x-3 text-muted-foreground flex-shrink-0">
               <div className="flex items-center space-x-0.5">
                 <Heart size={14} className="flex-shrink-0" />
                 <span className="text-sm font-medium">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
@@ -217,20 +200,30 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
 
         {/* タグ */}
         <div className="h-12 flex items-start text-xs mb-2 relative">
-          <div className="flex gap-1 overflow-hidden min-w-0 flex-1 flex-wrap">
-            {post.tagIds && post.tagIds.map((tagId) => (
-              <div key={`tagid-wrapper-${tagId}`} onClick={handleTagClick} className="inline-block flex-shrink-0">
-                <TagChip
-                  tag={{ 
-                    id: tagId, name: tagId.replace(/_/g, ' '), aliases: [], count: 0, 
-                    isOfficial: false, views: 0, favorites: 0, flagged: false,
-                    createdAt: new Date(), updatedAt: new Date()
-                  }}
-                  size="sm" variant="ghost"
-                  className="!bg-gray-100 hover:!bg-gray-200 hover:!text-muted-foreground"
-                />
-              </div>
-            ))}
+          <div className="min-w-0 flex-1 pr-16"> {/* 右パディングでいいね部分のスペースを確保 */}
+            {post.tagIds && post.tagIds.length > 0 && (
+              <HorizontalTagList
+                tags={post.tagIds.map(tagId => ({
+                  id: tagId, 
+                  name: tagId.replace(/_/g, ' '), 
+                  aliases: [], 
+                  count: 0, 
+                  isOfficial: false, 
+                  views: 0, 
+                  favorites: 0, 
+                  flagged: false,
+                  createdAt: new Date(), 
+                  updatedAt: new Date()
+                }))}
+                maxRows={2}
+                gap={4}
+                tagProps={{
+                  size: 'sm',
+                  variant: 'ghost'
+                }}
+                className="max-w-full"
+              />
+            )}
           </div>
           
           {/* いいね数と閲覧数 */}

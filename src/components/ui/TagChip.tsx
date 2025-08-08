@@ -13,6 +13,9 @@ interface TagChipProps {
   showStats?: boolean;
   clickable?: boolean;
   className?: string;
+  title?: string;
+  onClick?: () => void;
+  maxWidth?: number; // コンテナ幅に基づく動的制限用
 }
 
 export function TagChip({
@@ -22,7 +25,10 @@ export function TagChip({
   showIcon = true,
   showStats = false,
   clickable = true,
-  className = ''
+  className = '',
+  title,
+  onClick,
+  maxWidth
 }: TagChipProps) {
   // 文字列の場合は基本的なタグオブジェクトを作成
   const tagObj: Tag = typeof tag === 'string' 
@@ -59,16 +65,31 @@ export function TagChip({
   };
 
   const chipContent = (
-    <span className={`
-      inline-flex items-center space-x-1 rounded-full font-medium transition-colors
-      ${sizeClasses[size]}
-      ${variantClasses[variant]}
-      ${clickable ? 'cursor-pointer' : 'cursor-default'}
-      ${className}
-    `}>
+    <span 
+      className={`
+        inline-flex items-center space-x-1 rounded-full font-medium transition-colors
+        ${sizeClasses[size]}
+        ${variantClasses[variant]}
+        ${clickable ? 'cursor-pointer' : 'cursor-default'}
+        ${className}
+      `}
+      title={title || tagObj.name}
+      onClick={onClick}
+    >
       {showIcon && <Hash className="flex-shrink-0" size={iconSize[size]} />}
       
-      <span className="truncate">{tagObj.name}</span>
+      <span 
+        className="truncate"
+        style={{
+          whiteSpace: 'nowrap',
+          wordBreak: 'keep-all', 
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: maxWidth ? `${Math.min(400, maxWidth * 0.7)}px` : '30ch' // ハイブリッド制限（緩和版）
+        }}
+      >
+        {tagObj.name}
+      </span>
       
       {tagObj.isOfficial && (
         <CheckCircle className="flex-shrink-0 text-blue-600" size={iconSize[size]} />
@@ -86,7 +107,7 @@ export function TagChip({
     </span>
   );
 
-  if (!clickable) {
+  if (!clickable || onClick) {
     return chipContent;
   }
 

@@ -179,7 +179,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
         >
           {/* ロゴ */}
           <Link href="/" className="text-base sm:text-lg font-bold text-foreground shrink-0">
-            Canvasアプリ研究所
+            AIアイデア＆試作フォーラム
           </Link>
 
           {/* 416px以下：右寄せのナビ＋検索アイコン */}
@@ -292,7 +292,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
           <div className="flex items-center justify-between h-13 px-2">
             {/* ロゴ */}
             <Link href="/" className="text-lg font-bold text-foreground shrink-0">
-              Canvasアプリ研究所
+              AIアイデア＆試作フォーラム
             </Link>
 
             {/* ユーザー操作 */}
