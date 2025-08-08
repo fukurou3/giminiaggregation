@@ -86,7 +86,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* サムネイル画像とカテゴリ */}
         <div className="w-32 flex-shrink-0 flex flex-col justify-center h-28">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-2 mt-0 shadow-md rounded-sm aspect-[4/3]" style={{width: '124px'}}>
+          <div className="bg-muted relative overflow-hidden ml-0 mt-0 shadow-md rounded-sm aspect-[4/3]" style={{width: '128px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
@@ -173,7 +173,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
     >
       {/* プレビュー画像 */}
-      <div className={`bg-muted relative overflow-hidden ${sizeStyles.image} mx-3 mt-1 rounded`}>
+      <div className={`bg-muted relative overflow-hidden ${sizeStyles.image} mx-1 mt-1 rounded`}>
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
           <span className="text-muted-foreground font-medium text-xs">Canvas</span>
         </div>
