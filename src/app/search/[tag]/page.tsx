@@ -2,11 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Hash, Flag, Eye, Heart, Users, ChevronDown } from 'lucide-react';
-import { BaseCard } from '@/components/ui/BaseCard';
+import { Hash, Flag, Heart, ChevronDown } from 'lucide-react';
+import { PostGrid } from '@/components/ui/PostGrid';
 import { useFetch } from '@/lib/api';
 import { TagSearchResult } from '@/types/Tag';
 import { Post } from '@/types/Post';
+import { sortPostsByLikes } from '@/lib/utils/postFilters';
 
 interface TagSearchResponse {
   data: TagSearchResult & { posts: Post[] };
@@ -35,13 +36,13 @@ export default function TagSearchPage() {
 
   // ソートされた投稿リスト
   const sortedPosts = useMemo(() => {
-    return [...posts].sort((a, b) => {
-      if (sortBy === 'favorites') {
-        return (b.favorites || 0) - (a.favorites || 0);
-      } else {
+    if (sortBy === 'favorites') {
+      return sortPostsByLikes(posts);
+    } else {
+      return [...posts].sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-    });
+      });
+    }
   }, [posts, sortBy]);
 
   // カテゴリ選択の変更
@@ -237,29 +238,13 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                         {stat.categoryName}
                       </h2>
                       
-                      {/* 大画面：グリッドカード */}
-                      <div className="hidden min-[681px]:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {categoryPosts.map((post) => (
-                          <BaseCard
-                            key={post.id}
-                            post={post}
-                            layout="vertical"
-                            showViews={false}
-                          />
-                        ))}
-                      </div>
-
-                      {/* 小画面：横長リスト */}
-                      <div className="max-[680px]:block hidden space-y-3">
-                        {categoryPosts.map((post) => (
-                          <BaseCard
-                      key={post.id}
-                      post={post}
-                      layout="horizontal"
-                      showViews={false}
-                          />
-                        ))}
-                      </div>
+                      <PostGrid
+                        posts={categoryPosts}
+                        layout="grid"
+                        responsive={true}
+                        showViews={false}
+                        className="hidden min-[681px]:grid max-[680px]:space-y-3"
+                      />
                     </div>
                   );
                 })}
@@ -267,29 +252,12 @@ className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
             ) : (
               // 選択されたカテゴリのみ表示
               <>
-                {/* 大画面：グリッドカード */}
-                <div className="hidden min-[680px]:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {sortedPosts.map((post) => (
-                    <BaseCard
-                      key={post.id}
-                      post={post}
-                      layout="vertical"
-                      showViews={false}
-                    />
-                  ))}
-                </div>
-
-                {/* 小画面：横長リスト */}
-                <div className="max-[679px]:block hidden space-y-3">
-                  {sortedPosts.map((post) => (
-                    <BaseCard
-                      key={post.id}
-                      post={post}
-                      layout="horizontal"
-                      showViews={false}
-                    />
-                  ))}
-                </div>
+                <PostGrid
+                  posts={sortedPosts}
+                  layout="grid"
+                  responsive={true}
+                  showViews={false}
+                />
               </>
             )}
           </>

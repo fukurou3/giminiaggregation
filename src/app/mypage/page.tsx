@@ -6,7 +6,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useRouter } from "next/navigation";
 import { Post } from "@/types/Post";
 import { Heart, FileText, Loader2 } from "lucide-react";
-import { BaseCard } from "@/components/ui/BaseCard";
+import { PostGrid } from "@/components/ui/PostGrid";
 
 export default function MyPage() {
   const { user } = useAuth();
@@ -166,11 +166,11 @@ export default function MyPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {favorites.map((post) => (
-                          <BaseCard key={post.id} post={post} />
-                        ))}
-                      </div>
+                      <PostGrid
+                        posts={favorites}
+                        layout="grid"
+                        gridCols={{ md: 2, lg: 3 }}
+                      />
                     )}
                   </div>
                 )}
@@ -194,11 +194,11 @@ export default function MyPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {myPosts.map((post) => (
-                          <BaseCard key={post.id} post={post} />
-                        ))}
-                      </div>
+                      <PostGrid
+                        posts={myPosts}
+                        layout="grid"
+                        gridCols={{ md: 2, lg: 3 }}
+                      />
                     )}
                   </div>
                 )}

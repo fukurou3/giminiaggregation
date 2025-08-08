@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Hash, ChevronDown } from 'lucide-react';
-import { BaseCard } from '@/components/ui/BaseCard';
+import { PostGrid } from '@/components/ui/PostGrid';
 import { Post, Category } from '@/types/Post';
 import { LayoutPhase } from '@/hooks/useResponsiveLayout';
+import { sortPostsByLikes } from '@/lib/utils/postFilters';
 
 interface CategoryContentProps {
   selectedCategory: string;
@@ -27,19 +28,16 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
 
   // ソートされた作品リスト
   const sortedPosts = useMemo(() => {
-    return [...selectedCategoryPosts].sort((a, b) => {
-      if (sortBy === 'favorites') {
-        // いいね数でソート（favoriteCount優先、なければlikes、両方なければ0）
-        const aLikes = a.favoriteCount ?? a.likes ?? 0;
-        const bLikes = b.favoriteCount ?? b.likes ?? 0;
-        return bLikes - aLikes;
-      } else {
-        // 投稿日でソート（新しい順）
+    if (sortBy === 'favorites') {
+      return sortPostsByLikes(selectedCategoryPosts);
+    } else {
+      // 投稿日でソート（新しい順）
+      return [...selectedCategoryPosts].sort((a, b) => {
         const aDate = new Date(a.createdAt).getTime();
         const bDate = new Date(b.createdAt).getTime();
         return bDate - aDate;
-      }
-    });
+      });
+    }
   }, [selectedCategoryPosts, sortBy]);
 
   return (
@@ -227,37 +225,14 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
 
       {/* Category Posts Grid */}
       {sortedPosts.length > 0 ? (
-        <>
-          {/* Desktop: Auto-fit Grid - Show in Phase 1, 2, 3, 5 */}
-          {(layoutPhase !== 'phase4') && (
-            <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', justifyContent: 'start' }}>
-              {sortedPosts.map((post) => (
-                <BaseCard
-                  key={post.id}
-                  post={post}
-                  layout="vertical"
-                  showViews={false}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Mobile: Horizontal Layout - Show in Phase 4 only */}
-          {layoutPhase === 'phase4' && (
-            <div className="space-y-3">
-              {sortedPosts.map((post) => (
-                <BaseCard
-                  key={post.id}
-                  post={post}
-                  size="medium"
-                  layout="horizontal"
-                  showViews={false}
-                  showCategory={false}
-                />
-              ))}
-            </div>
-          )}
-        </>
+        <PostGrid
+          posts={sortedPosts}
+          layout="grid"
+          responsive={layoutPhase === 'phase4'}
+          showViews={false}
+          showCategory={layoutPhase !== 'phase4'}
+          className={layoutPhase !== 'phase4' ? 'grid-cols-[repeat(auto-fill,minmax(280px,1fr))]' : ''}
+        />
       ) : (
         <div className="text-center py-16">
           <Hash className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

@@ -5,11 +5,10 @@ import { useFetch } from '@/lib/api';
 import { TrendingSection } from '@/components/sections/TrendingSection';
 import { ColumnSection } from '@/components/sections/ColumnSection';
 import { TopicHighlightSection } from '@/components/sections/TopicHighlightSection';
-
-
 import { getTopicHighlights } from '@/lib/api/home';
 import { TopicHighlight } from '@/types/Topic';
 import { Post } from '@/types/Post';
+import { createPostFilter } from '@/lib/utils/postFilters';
 
 
 export default function HomePage() {
@@ -22,19 +21,9 @@ export default function HomePage() {
 
   const posts = postsResponse?.data?.posts || [];
   
-  // TODO: リリース前に有効化する - いいね数0の投稿を非表示にする
-  // const trendingPosts = posts
-  //   .filter((post: Post) => {
-  //     // 公開されていて、いいね数が0より大きい投稿のみ表示
-  //     const likes = post.favoriteCount ?? post.likes ?? 0;
-  //     return post.isPublic !== false && likes > 0;
-  //   })
-  //   .slice(0, 4);
-  
-  // 一時的にフィルタを無効化（開発・テスト用） - 公開チェックのみ
-  const trendingPosts = posts
-    .filter((post: Post) => post.isPublic !== false)
-    .slice(0, 4);
+  // TODO: リリース前にincludeZeroLikes: falseに変更する
+  const postFilter = createPostFilter(true); // 一時的にいいね数0の投稿も表示
+  const trendingPosts = postFilter(posts).slice(0, 4);
 
   useEffect(() => {
     const loadTopicHighlights = async () => {

@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TrendingUp, ChevronDown } from 'lucide-react'
 import { Post } from '@/types/Post'
-import { BaseCard } from '@/components/ui/BaseCard'
+import { PostGrid } from '@/components/ui/PostGrid'
 import { useFetch } from '@/lib/api/useApi'
+import { createPostFilter } from '@/lib/utils/postFilters'
 
 
 
@@ -32,15 +33,9 @@ export default function RankingPage() {
     data?: { posts: Post[] }
   }>(apiEndpoint)
 
-  // TODO: リリース前に有効化する - いいね数0の投稿を非表示にする
-  // const posts = (postsResponse?.data?.posts || []).filter(post => {
-  //   // いいね数が0より大きい投稿のみ表示
-  //   const likes = post.favoriteCount ?? post.likes ?? 0;
-  //   return likes > 0;
-  // })
-  
-  // 一時的にフィルタを無効化（開発・テスト用）
-  const posts = postsResponse?.data?.posts || [];
+  // TODO: リリース前にincludeZeroLikes: falseに変更する
+  const postFilter = createPostFilter(true); // 一時的にいいね数0の投稿も表示
+  const posts = postFilter(postsResponse?.data?.posts || []);
 
   // ヘッダーコンポーネントを共通化
   const renderHeader = () => (
@@ -132,40 +127,15 @@ export default function RankingPage() {
 
 
           {/* Grid */}
-          {/* 大画面：グリッドカード */}
-          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {posts.slice(0, 20).map((post, index) => {
-              const rank = index + 1
-              return (
-                <BaseCard 
-                  key={post.id}
-                  post={post} 
-                  size="medium"
-                  showViews={false}
-                  showCategory={false}
-                  rank={rank}
-                />
-              )
-            })}
-          </div>
-
-          {/* 小画面：横長リスト */}
-          <div className="md:hidden space-y-3">
-            {posts.slice(0, 20).map((post, index) => {
-              const rank = index + 1
-              return (
-                <BaseCard 
-                  key={post.id}
-                  post={post} 
-                  size="medium"
-                  layout="horizontal"
-                  showViews={false}
-                  showCategory={false}
-                  rank={rank}
-                />
-              )
-            })}
-          </div>
+          <PostGrid
+            posts={posts.slice(0, 20)}
+            layout="grid"
+            responsive={true}
+            showRanking={true}
+            showViews={false}
+            showCategory={false}
+            size="medium"
+          />
 
           {/* Empty State */}
           {posts.length === 0 && (
