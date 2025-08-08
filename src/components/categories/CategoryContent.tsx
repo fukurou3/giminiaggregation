@@ -29,9 +29,15 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
   const sortedPosts = useMemo(() => {
     return [...selectedCategoryPosts].sort((a, b) => {
       if (sortBy === 'favorites') {
-        return (b.favorites || 0) - (a.favorites || 0);
+        // いいね数でソート（favoriteCount優先、なければlikes、両方なければ0）
+        const aLikes = a.favoriteCount ?? a.likes ?? 0;
+        const bLikes = b.favoriteCount ?? b.likes ?? 0;
+        return bLikes - aLikes;
       } else {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        // 投稿日でソート（新しい順）
+        const aDate = new Date(a.createdAt).getTime();
+        const bDate = new Date(b.createdAt).getTime();
+        return bDate - aDate;
       }
     });
   }, [selectedCategoryPosts, sortBy]);
@@ -68,14 +74,14 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               <div className="relative">
                 <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px]"
+                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] z-50 relative"
               >
                 <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[120px]">
                   <button
                     onClick={() => {
                       setSortBy('favorites');
@@ -121,14 +127,14 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               <div className="relative">
                 <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px]"
+                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] z-50 relative"
               >
                 <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[120px]">
                   <button
                     onClick={() => {
                       setSortBy('favorites');
@@ -174,14 +180,14 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               <div className="relative">
                 <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px]"
+                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] z-50 relative"
               >
                 <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[120px]">
                   <button
                     onClick={() => {
                       setSortBy('favorites');

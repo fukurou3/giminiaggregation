@@ -5,6 +5,8 @@ import {
   limit,
   where,
   getDocs,
+  doc,
+  getDoc,
   DocumentData,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -88,7 +90,86 @@ export async function getFeaturedColumns(limitCount: number = 5): Promise<Column
  */
 export async function getTopicHighlights(): Promise<TopicHighlight[]> {
   try {
-    // トピックを人気順に取得
+    // まず管理者設定を確認
+    try {
+      console.log('Checking for admin highlights...');
+      
+      // クライアントサイドでのみAPIを呼び出す
+      if (typeof window !== 'undefined') {
+        const response = await fetch('/api/admin/topic-highlights');
+        if (response.ok) {
+          const adminData = await response.json();
+          console.log('Admin highlights response:', adminData);
+          if (!adminData.useAutoHighlights && adminData.highlights.length > 0) {
+            console.log('Using admin highlights:', adminData.highlights);
+            return adminData.highlights;
+          }
+        } else {
+          console.log('Admin highlights API failed:', response.status);
+        }
+      } else {
+        // サーバーサイドでは直接Firestoreから取得
+        const configRef = collection(db, 'adminTopicHighlights');
+        const configQuery = query(
+          configRef, 
+          where('isActive', '==', true),
+          orderBy('order')
+        );
+        const configSnapshot = await getDocs(configQuery);
+        
+        if (!configSnapshot.empty) {
+          console.log('Found admin highlights on server side:', configSnapshot.docs.length);
+          
+          // 設定に基づいてハイライトを構築
+          const highlights: TopicHighlight[] = await Promise.all(
+            configSnapshot.docs.map(async (configDoc) => {
+              const config = {
+                id: configDoc.id,
+                ...configDoc.data()
+              };
+
+              // 指定された投稿IDから投稿を取得
+              const posts: Post[] = [];
+              for (const postId of config.postIds) {
+                try {
+                  const postRef = doc(db, 'posts', postId);
+                  const postDoc = await getDoc(postRef);
+                  if (postDoc.exists() && postDoc.data().isPublic !== false) {
+                    posts.push(docToPost(postDoc));
+                  }
+                } catch (error) {
+                  console.error(`Error fetching post ${postId}:`, error);
+                }
+              }
+
+              // TopicHighlight形式に変換
+              return {
+                topic: {
+                  id: config.id,
+                  name: config.title,
+                  type: 'genre',
+                  popularityScore: config.order,
+                  posts: posts.length,
+                  averageLikes: posts.reduce((sum, p) => sum + (p.favoriteCount || 0), 0) / Math.max(posts.length, 1)
+                },
+                featuredPosts: posts
+              };
+            })
+          );
+          
+          const validHighlights = highlights.filter(h => h.featuredPosts.length > 0);
+          if (validHighlights.length > 0) {
+            console.log('Returning admin highlights from server:', validHighlights);
+            return validHighlights;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Admin highlights error:', error);
+    }
+
+    console.log('Falling back to auto highlights');
+    // 従来の自動ハイライト機能
     const topicsRef = collection(db, 'topics');
     const topicsQuery = query(topicsRef, orderBy('popularityScore', 'desc'), limit(5));
     const topicSnapshot = await getDocs(topicsQuery);
@@ -98,7 +179,7 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
       topicSnapshot.docs.map(async (topicDoc) => {
         const topic = docToTopic(topicDoc);
 
-        // 各トピックに関連する投稿を最大3件取得
+        // 各トピックに関連する投稿を最新3件取得
         const postsRef = collection(db, 'posts');
         const postsQuery = query(
           postsRef,

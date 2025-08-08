@@ -86,7 +86,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* サムネイル画像とカテゴリ */}
         <div className="w-32 flex-shrink-0 flex flex-col justify-center h-28">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-2 shadow-md rounded-sm" style={{width: '124px', height: '93px'}}>
+          <div className="bg-muted relative overflow-hidden ml-2 mt-0 shadow-md rounded-sm" style={{width: '124px', height: '93px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
@@ -108,8 +108,8 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             {/* タイトル */}
             <div className="flex items-center gap-2">
               {rank && (
-                <span className="text-foreground font-bold text-sm flex-shrink-0">
-                  {rank}
+                <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
+                  {rank}.
                 </span>
               )}
               <h3 className="text-foreground line-clamp-1 hover:text-primary transition-colors text-sm font-bold">
@@ -184,8 +184,8 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* タイトル */}
         <div className="flex items-center gap-2 mb-1">
           {rank && (
-            <span className="text-foreground font-bold text-sm flex-shrink-0">
-              {rank}
+            <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
+              {rank}.
             </span>
           )}
           <h3 className="text-foreground line-clamp-1 hover:text-primary transition-colors text-sm font-bold">

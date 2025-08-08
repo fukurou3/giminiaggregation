@@ -8,6 +8,8 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { loginWithGoogle, logout } from '@/lib/auth';
+import { auth } from '@/lib/firebase';
+import { Settings } from 'lucide-react';
 
 interface NavbarProps {
   onProfileEdit?: () => void;
@@ -19,6 +21,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [shouldWrap, setShouldWrap] = useState(false);
   const [isVeryNarrow, setIsVeryNarrow] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +95,40 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
       clearTimeout(timer);
     };
   }, [isAuthenticated, userProfile]);
+
+  // 管理者権限チェック
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (auth.currentUser) {
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const response = await fetch('/api/admin/auth', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ idToken }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setIsAdmin(data.isAdmin || false);
+          }
+        } catch (error) {
+          console.error('Admin check error:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      checkAdminStatus();
+    } else {
+      setIsAdmin(false);
+    }
+  }, [isAuthenticated]);
 
   // クリック外しでメニューを閉じる
   useEffect(() => {
@@ -218,6 +255,16 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                         <Edit3 size={13} />
                         <span>プロフィール編集</span>
                       </button>
+                      {isAdmin && (
+                        <Link
+                          href="/secure-dashboard-a8f7k2x9"
+                          onClick={() => setShowUserMenu(false)}
+                          className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Settings size={13} />
+                          <span>管理画面</span>
+                        </Link>
+                      )}
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -304,6 +351,16 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                           <Edit3 size={13} />
                           <span>プロフィール編集</span>
                         </button>
+                        {isAdmin && (
+                          <Link
+                            href="/secure-dashboard-a8f7k2x9"
+                            onClick={() => setShowUserMenu(false)}
+                            className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          >
+                            <Settings size={13} />
+                            <span>管理画面</span>
+                          </Link>
+                        )}
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

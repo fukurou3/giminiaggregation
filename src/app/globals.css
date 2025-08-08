@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Hide scrollbars while keeping scroll functionality */
+.scrollbar-hide {
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
 :root {
   --background: #ffffff;
   --foreground: #1a1a1a;

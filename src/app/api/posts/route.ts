@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const featuredOnly = searchParams.get('featured') === 'true';
     const categoryFilter = searchParams.get('category');
     const sortBy = searchParams.get('sortBy') || 'createdAt'; // createdAt, trending, views, favorites
+    const period = searchParams.get('period') || 'all'; // all, week
     
     // クエリ制限値（デフォルト10、最大50）
     const queryLimit = limitParam ? Math.min(parseInt(limitParam, 10), 50) : 10;
@@ -109,6 +110,13 @@ export async function GET(request: NextRequest) {
     // カテゴリフィルターを適用
     if (categoryFilter && categoryFilter !== 'all') {
       posts = posts.filter(post => post.categoryId === categoryFilter);
+    }
+
+    // 期間フィルターを適用（今週のみ）
+    if (period === 'week') {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      posts = posts.filter(post => post.createdAt >= oneWeekAgo);
     }
 
     // ソートを適用

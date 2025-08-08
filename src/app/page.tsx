@@ -5,7 +5,7 @@ import { useFetch } from '@/lib/api';
 import { TrendingSection } from '@/components/sections/TrendingSection';
 import { ColumnSection } from '@/components/sections/ColumnSection';
 import { TopicHighlightSection } from '@/components/sections/TopicHighlightSection';
-import { PopularTags } from '@/components/ui/PopularTags';
+
 
 import { getTopicHighlights } from '@/lib/api/home';
 import { TopicHighlight } from '@/types/Topic';
@@ -24,13 +24,19 @@ export default function HomePage() {
   
   // Get trending posts (already sorted by API)
   const trendingPosts = posts
-    .filter((post: Post) => post.isPublic !== false)
+    .filter((post: Post) => {
+      // 公開されていて、いいね数が0より大きい投稿のみ表示
+      const likes = post.favoriteCount ?? post.likes ?? 0;
+      return post.isPublic !== false && likes > 0;
+    })
     .slice(0, 4);
 
   useEffect(() => {
     const loadTopicHighlights = async () => {
       try {
+        console.log('HomePage: Loading topic highlights...');
         const topics = await getTopicHighlights();
+        console.log('HomePage: Loaded topics:', topics);
         setTopicHighlights(topics);
       } catch (error) {
         console.error('Failed to load topic highlights:', error);
@@ -44,25 +50,11 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
-        {/* Trending Section */}
-        <div id="trending">
-          <TrendingSection 
-            posts={trendingPosts} 
-            loading={loading} 
-          />
-        </div>
-
-
-        {/* Popular Tags Section */}
-        <div className="bg-muted/30 rounded-2xl p-8">
-          <PopularTags 
-            title="人気のタグ"
-            limit={15}
-            sortBy="combined"
-            size="md"
-            showStats={true}
-          />
-        </div>
+        {/* Topic Highlights Section */}
+        <TopicHighlightSection 
+          topicHighlights={topicHighlights} 
+          loading={loading} 
+        />
 
         {/* Column Section */}
         <ColumnSection 
@@ -70,11 +62,13 @@ export default function HomePage() {
           limit={3}
         />
 
-        {/* Topic Highlights Section */}
-        <TopicHighlightSection 
-          topicHighlights={topicHighlights} 
-          loading={loading} 
-        />
+        {/* Trending Section */}
+        <div id="trending">
+          <TrendingSection 
+            posts={trendingPosts} 
+            loading={loading} 
+          />
+        </div>
 
         {/* Call to Action */}
         <section className="text-center py-12">

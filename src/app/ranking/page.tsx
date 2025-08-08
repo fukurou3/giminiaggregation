@@ -1,7 +1,9 @@
 'use client'
 
 
-import { TrendingUp } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { TrendingUp, ChevronDown } from 'lucide-react'
 import { Post } from '@/types/Post'
 import { BaseCard } from '@/components/ui/BaseCard'
 import { useFetch } from '@/lib/api/useApi'
@@ -9,38 +11,93 @@ import { useFetch } from '@/lib/api/useApi'
 
 
 export default function RankingPage() {
+  const searchParams = useSearchParams()
+  const [period, setPeriod] = useState<'all' | 'week'>('week')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  // URLクエリパラメータから初期期間を設定
+  useEffect(() => {
+    const periodParam = searchParams.get('period')
+    if (periodParam === 'all' || periodParam === 'week') {
+      setPeriod(periodParam)
+    }
+  }, [searchParams])
+
+  // 期間に応じてAPIパラメータを変更
+  const apiEndpoint = period === 'week' 
+    ? `/api/posts?limit=20&sortBy=favorites&period=week`
+    : `/api/posts?limit=20&sortBy=favorites`
 
   const { data: postsResponse, loading } = useFetch<{
     data?: { posts: Post[] }
-  }>(`/api/posts?limit=20&sortBy=favorites`)
+  }>(apiEndpoint)
 
-  const posts = postsResponse?.data?.posts || []
+  const posts = (postsResponse?.data?.posts || []).filter(post => {
+    // いいね数が0より大きい投稿のみ表示
+    const likes = post.favoriteCount ?? post.likes ?? 0;
+    return likes > 0;
+  })
 
-  const getRankingBadgeColor = (rank: number) => {
-    if (rank === 1) return 'bg-gradient-to-br from-yellow-400 to-yellow-600'
-    if (rank === 2) return 'bg-gradient-to-br from-gray-300 to-gray-500'
-    if (rank === 3) return 'bg-gradient-to-br from-orange-400 to-orange-600'
-    return 'bg-gradient-to-br from-blue-400 to-blue-600'
-  }
+  // ヘッダーコンポーネントを共通化
+  const renderHeader = () => (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
+          <TrendingUp className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">ランキング</h1>
+          <p className="text-muted-foreground">人気の作品をチェックしよう</p>
+        </div>
+      </div>
+      
+      {!loading && (
+        <div className="relative">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] z-50 relative"
+          >
+            <span>{period === 'all' ? '全期間' : '今週投稿'}</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-50 min-w-[120px]">
+              <button
+                onClick={() => {
+                  setPeriod('all');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
+                  period === 'all' ? 'text-primary font-medium' : 'text-foreground'
+                }`}
+              >
+                全期間
+              </button>
+              <button
+                onClick={() => {
+                  setPeriod('week');
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                  period === 'week' ? 'text-primary font-medium' : 'text-foreground'
+                }`}
+              >
+                今週投稿のみ
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">ランキング</h1>
-                  <p className="text-muted-foreground">人気の作品をチェックしよう</p>
-                </div>
-              </div>
-            </div>
-
-  
+            {renderHeader()}
 
             {/* Loading skeleton */}
             {/* 大画面：グリッドカード */}
@@ -66,17 +123,7 @@ export default function RankingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <section className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">ランキング</h1>
-                <p className="text-muted-foreground">人気の作品をチェックしよう</p>
-              </div>
-            </div>
-          </div>
+          {renderHeader()}
 
 
 
@@ -86,21 +133,14 @@ export default function RankingPage() {
             {posts.slice(0, 20).map((post, index) => {
               const rank = index + 1
               return (
-                <div key={post.id} className="relative">
-                  {/* Ranking Badge */}
-                  <div className="absolute -top-2 -left-2 z-10">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${getRankingBadgeColor(rank)}`}>
-                      {rank}
-                    </div>
-                  </div>
-                  
-                  <BaseCard 
-                    post={post} 
-                    size="medium"
-                    showViews={false}
-                    showCategory={false}
-                  />
-                </div>
+                <BaseCard 
+                  key={post.id}
+                  post={post} 
+                  size="medium"
+                  showViews={false}
+                  showCategory={false}
+                  rank={rank}
+                />
               )
             })}
           </div>
@@ -131,7 +171,7 @@ export default function RankingPage() {
                 ランキングデータがありません
               </h3>
               <p className="text-muted-foreground">
-                しばらく時間をおいてから再度お試しください
+                作品のいいね数が不足しています
               </p>
             </div>
           )}

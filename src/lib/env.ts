@@ -28,17 +28,18 @@ const serverSchema = z.object({
   GOOGLE_APPLICATION_CREDENTIALS: z.string(),
   GOOGLE_CLOUD_STORAGE_BUCKET: z.string(),
   FAVORITE_SHARD_COUNT: z.coerce.number().default(10),
+  ADMIN_EMAIL: z.string(),
 });
 
 const clientEnv = clientSchema.safeParse(process.env);
 if (!clientEnv.success) {
-  console.error('Invalid client environment variables:', clientEnv.error.flatten().fieldErrors);
-  console.error('Available env vars:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
+  console.warn('Client environment validation warnings:', clientEnv.error.flatten().fieldErrors);
   
   // In development, just warn and use fallback values instead of crashing
   if (process.env.NODE_ENV === 'development') {
     console.warn('Using fallback environment variables for development');
   } else {
+    console.error('Invalid client environment variables:', clientEnv.error.flatten().fieldErrors);
     throw new Error('Invalid client environment variables');
   }
 }
