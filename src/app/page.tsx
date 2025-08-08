@@ -22,13 +22,18 @@ export default function HomePage() {
 
   const posts = postsResponse?.data?.posts || [];
   
-  // Get trending posts (already sorted by API)
+  // TODO: リリース前に有効化する - いいね数0の投稿を非表示にする
+  // const trendingPosts = posts
+  //   .filter((post: Post) => {
+  //     // 公開されていて、いいね数が0より大きい投稿のみ表示
+  //     const likes = post.favoriteCount ?? post.likes ?? 0;
+  //     return post.isPublic !== false && likes > 0;
+  //   })
+  //   .slice(0, 4);
+  
+  // 一時的にフィルタを無効化（開発・テスト用） - 公開チェックのみ
   const trendingPosts = posts
-    .filter((post: Post) => {
-      // 公開されていて、いいね数が0より大きい投稿のみ表示
-      const likes = post.favoriteCount ?? post.likes ?? 0;
-      return post.isPublic !== false && likes > 0;
-    })
+    .filter((post: Post) => post.isPublic !== false)
     .slice(0, 4);
 
   useEffect(() => {
