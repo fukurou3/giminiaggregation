@@ -279,8 +279,8 @@ export async function POST(request: NextRequest) {
       description: sanitizedDescription,
       tagIds: tagIds, // タグID配列
       categoryId: categoryObj.id, // カテゴリID
-      ...(formData.category === 'その他' && formData.customCategory
-        ? { customCategory: formData.customCategory }
+      ...(formData.category === 'その他' && (formData as any).customCategory
+        ? { customCategory: (formData as any).customCategory }
         : {}),
       thumbnailUrl: formData.thumbnailUrl || '',
       isPublic: formData.isPublic,

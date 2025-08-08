@@ -130,7 +130,7 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
 
               // 指定された投稿IDから投稿を取得
               const posts: Post[] = [];
-              for (const postId of config.postIds) {
+              for (const postId of (config as any).postIds || []) {
                 try {
                   const postRef = doc(db, 'posts', postId);
                   const postDoc = await getDoc(postRef);
@@ -146,10 +146,11 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
               return {
                 topic: {
                   id: config.id,
-                  name: config.title,
+                  name: (config as any).title,
                   type: 'genre',
-                  popularityScore: config.order,
-                  posts: posts.length,
+                  popularityScore: (config as any).order,
+                  posts: posts,
+                  totalPosts: posts.length,
                   averageLikes: posts.reduce((sum, p) => sum + (p.favoriteCount || 0), 0) / Math.max(posts.length, 1)
                 },
                 featuredPosts: posts

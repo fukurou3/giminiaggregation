@@ -3,7 +3,7 @@ import { LayoutPhase } from './useResponsiveLayout';
 
 interface UseStickyHeaderReturn {
   isSidebarFixed: boolean;
-  sidebarContainerRef: React.RefObject<HTMLDivElement>;
+  sidebarContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 interface UseStickyHeaderProps {

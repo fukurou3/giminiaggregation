@@ -130,7 +130,7 @@ export async function setupUserProfile(uid: string, profileData: UserProfileForm
     }
     
     const docRef = doc(db, 'userProfiles', uid);
-    const updateData: Record<string, unknown> = {
+    const updateData: Record<string, any> = {
       publicId: profileData.publicId,
       username: profileData.username,
       updatedAt: serverTimestamp(),
@@ -258,7 +258,7 @@ export async function updateUserProfile(uid: string, profileData: UserProfileFor
     }
     
     const docRef = doc(db, 'userProfiles', uid);
-    const updateData: Record<string, unknown> = {
+    const updateData: Record<string, any> = {
       publicId: profileData.publicId,
       username: profileData.username,
       updatedAt: serverTimestamp(),

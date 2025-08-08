@@ -33,9 +33,9 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
     } else {
       // 投稿日でソート（新しい順）
       return [...selectedCategoryPosts].sort((a, b) => {
-        const aDate = new Date(a.createdAt).getTime();
-        const bDate = new Date(b.createdAt).getTime();
-        return bDate - aDate;
+        const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt as any);
+        const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt as any);
+        return bDate.getTime() - aDate.getTime();
       });
     }
   }, [selectedCategoryPosts, sortBy]);

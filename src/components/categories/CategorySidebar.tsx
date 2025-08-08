@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu } from 'lucide-react';
-import { Category } from '@/hooks/useCategoriesData';
+import { Category } from '@/types/Post';
 import { LayoutPhase } from '@/hooks/useResponsiveLayout';
 
 interface CategorySidebarProps {
@@ -10,7 +10,7 @@ interface CategorySidebarProps {
   layoutPhase: LayoutPhase;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
-  sidebarRef: React.RefObject<HTMLDivElement>;
+  sidebarRef: React.RefObject<HTMLDivElement | null>;
   isSidebarFixed: boolean;
 }
 

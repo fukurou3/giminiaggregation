@@ -25,7 +25,9 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
     return CATEGORY_MASTERS.map(cat => ({
       id: cat.id,
       name: cat.name,
-      description: cat.description
+      description: cat.description,
+      icon: cat.icon || '',
+      sortOrder: cat.sortOrder || 0
     }));
   }, []);
 

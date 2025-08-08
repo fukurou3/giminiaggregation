@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { headers: CORS_HEADERS });
 
   } catch (error) {
-    logError(error, { url });
+    logError(error);
     
     return NextResponse.json(
       {

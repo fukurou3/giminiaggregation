@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 
 export interface UseHorizontalScrollReturn {
-  scrollRef: React.RefObject<HTMLDivElement>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   canScrollLeft: boolean;
   canScrollRight: boolean;
   scrollLeft: () => void;

@@ -23,7 +23,7 @@ export const sortPosts = (posts: Post[], sortBy: SortBy): Post[] => {
     case 'trending': {
       // 30日以内の投稿でフィルタリング
       const recentPosts = sortedPosts.filter(post => {
-        const daysDiff = getDaysDifference(post.createdAt);
+        const daysDiff = getDaysDifference(toSafeDate(post.createdAt as any));
         return daysDiff <= 30;
       });
       
@@ -34,8 +34,8 @@ export const sortPosts = (posts: Post[], sortBy: SortBy): Post[] => {
     case 'newest':
     default: {
       return sortedPosts.sort((a, b) => {
-        const dateA = toSafeDate(a.createdAt);
-        const dateB = toSafeDate(b.createdAt);
+        const dateA = toSafeDate(a.createdAt as any);
+        const dateB = toSafeDate(b.createdAt as any);
         
         if (!dateA && !dateB) return 0;
         if (!dateA) return 1;

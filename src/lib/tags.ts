@@ -48,8 +48,8 @@ export async function createOrGetTag(tagName: string, isOfficial = false): Promi
     views: 0,
     favorites: 0,
     flagged: false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: serverTimestamp() as any,
+    updatedAt: serverTimestamp() as any,
   };
   
   await setDoc(tagRef, newTag);
@@ -67,8 +67,8 @@ export async function updateTagStats(tagId: string, updates: {
 }): Promise<void> {
   const tagRef = doc(db, 'tags', tagId);
   
-  const updateData: Record<string, unknown> = {
-    updatedAt: serverTimestamp(),
+  const updateData: Record<string, any> = {
+    updatedAt: serverTimestamp() as any,
   };
   
   if (updates.count !== undefined) {
@@ -145,14 +145,14 @@ export async function updateTagCategoryCount(
   if (countDoc.exists()) {
     await updateDoc(countRef, {
       count: increment(increment_count),
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp() as any,
     });
   } else {
     const newCount: Omit<TagCategoryCount, 'id'> = {
       tagId,
       categoryId,
       count: Math.max(0, increment_count),
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp() as any,
     };
     await setDoc(countRef, newCount);
   }
@@ -190,7 +190,7 @@ export async function reportTag(
     tagId,
     reason,
     userId,
-    createdAt: serverTimestamp(),
+    createdAt: serverTimestamp() as any,
   };
   
   await setDoc(reportRef, newReport);
@@ -213,7 +213,7 @@ async function checkAndFlagTag(tagId: string): Promise<void> {
       const tagRef = doc(db, 'tags', tagId);
       transaction.update(tagRef, {
         flagged: true,
-        updatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp() as any,
       });
     }
   });

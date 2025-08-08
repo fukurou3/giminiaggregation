@@ -4,7 +4,7 @@ import { LayoutPhase } from './useResponsiveLayout';
 interface UseMobileSidebarReturn {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
-  sidebarRef: React.RefObject<HTMLDivElement>;
+  sidebarRef: React.RefObject<HTMLDivElement | null>;
 }
 
 interface UseMobileSidebarProps {

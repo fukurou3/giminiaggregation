@@ -21,24 +21,18 @@ function docToPost(doc: DocumentData): Post {
     title: data.title || '',
     description: data.description || '',
     url: data.url || '',
-    imageUrl: data.imageUrl || '',
-    tags: data.tags || [],
-    category: data.category || '',
+    thumbnailUrl: data.thumbnailUrl || data.ogpImage || '',
+    tagIds: data.tagIds || [],
+    categoryId: data.categoryId || '',
     authorId: data.authorId || '',
-    authorName: data.authorName || '',
-    authorImageUrl: data.authorImageUrl || '',
+    authorUsername: data.authorUsername || '',
     createdAt: data.createdAt?.toDate() || new Date(),
     updatedAt: data.updatedAt?.toDate() || new Date(),
     views: data.views || 0,
     likes: data.likes || 0,
     favoriteCount: data.favoriteCount || 0,
     isPublic: data.isPublic !== false,
-    githubRepoUrl: data.githubRepoUrl || '',
-    demoUrl: data.demoUrl || '',
-    technologies: data.technologies || [],
-    difficulty: data.difficulty || 'beginner',
-    estimatedTime: data.estimatedTime || '',
-    language: data.language || 'ja'
+    featured: data.featured || false
   };
 }
 
@@ -103,8 +97,8 @@ export async function GET() {
             name: config.title,
             type: 'manual' as 'genre', // カスタムタイプ
             popularityScore: config.order,
-            posts: posts.length,
-            averageLikes: posts.reduce((sum, p) => sum + (p.favoriteCount || 0), 0) / Math.max(posts.length, 1)
+            posts: posts,
+            totalPosts: posts.length
           },
           featuredPosts: posts
         };

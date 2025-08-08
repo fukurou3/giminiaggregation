@@ -40,7 +40,9 @@ export default function TagSearchPage() {
       return sortPostsByLikes(posts);
     } else {
       return [...posts].sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt as any);
+        const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt as any);
+        return bDate.getTime() - aDate.getTime();
       });
     }
   }, [posts, sortBy]);

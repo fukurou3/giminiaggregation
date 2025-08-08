@@ -84,9 +84,9 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* 拡張枠 */}
         <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-0 rounded-lg" style={{backgroundColor: '#f4f7fb'}}></div>
         {/* サムネイル画像とカテゴリ */}
-        <div className="w-32 flex-shrink-0 flex flex-col justify-center h-28">
+        <div className="w-44 flex-shrink-0 flex flex-col justify-center h-26">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-0 mt-0 shadow-md rounded-sm aspect-[4/3]" style={{width: '128px'}}>
+          <div className="bg-muted relative overflow-hidden ml-0 mt-0 shadow-md rounded-sm" style={{width: '155px', height: '93px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
@@ -102,9 +102,9 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         </div>
 
         {/* コンテンツ */}
-        <div className="flex-1 pl-3 pr-2 py-2 flex flex-col min-w-0 h-28 relative z-10">
+        <div className="flex-1 -ml-2 pr-2 py-2 flex flex-col min-w-0 h-26 relative z-10">
           {/* 上部：タイトルと説明文 */}
-          <div className="flex-1 flex flex-col justify-start mt-1">
+          <div className="flex-1 flex flex-col justify-start mt-0">
             {/* タイトル */}
             <div className="flex items-center gap-2">
               {rank && (
@@ -126,7 +126,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
           </div>
 
           {/* 下部：タグといいね数 */}
-          <div className="absolute bottom-2 left-3 right-3 flex items-center text-xs">
+          <div className="absolute bottom-2 -left-2 right-2 flex items-center text-xs">
             {/* タグ */}
             <div className="flex gap-1 overflow-hidden min-w-0 flex-1">
               {post.tagIds && post.tagIds.map((tagId) => (
