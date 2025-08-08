@@ -32,11 +32,15 @@ export default function RankingPage() {
     data?: { posts: Post[] }
   }>(apiEndpoint)
 
-  const posts = (postsResponse?.data?.posts || []).filter(post => {
-    // いいね数が0より大きい投稿のみ表示
-    const likes = post.favoriteCount ?? post.likes ?? 0;
-    return likes > 0;
-  })
+  // TODO: リリース前に有効化する - いいね数0の投稿を非表示にする
+  // const posts = (postsResponse?.data?.posts || []).filter(post => {
+  //   // いいね数が0より大きい投稿のみ表示
+  //   const likes = post.favoriteCount ?? post.likes ?? 0;
+  //   return likes > 0;
+  // })
+  
+  // 一時的にフィルタを無効化（開発・テスト用）
+  const posts = postsResponse?.data?.posts || [];
 
   // ヘッダーコンポーネントを共通化
   const renderHeader = () => (

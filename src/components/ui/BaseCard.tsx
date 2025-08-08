@@ -10,19 +10,19 @@ import { findCategoryById } from '@/lib/constants/categories';
 const SIZE_STYLES = {
   small: {
     card: 'p-1.5',
-    image: 'aspect-[4/3]',
+    image: 'aspect-[5/3]',
     title: 'text-xs font-semibold',
     description: 'text-xs'
   },
   medium: {
     card: 'p-2',
-    image: 'aspect-[4/3]',
+    image: 'aspect-[5/3]',
     title: 'text-sm font-bold',
     description: 'text-xs'
   },
   large: {
     card: 'p-3',
-    image: 'aspect-[4/3]',
+    image: 'aspect-[5/3]',
     title: 'text-base font-bold',
     description: 'text-xs'
   }
@@ -86,7 +86,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* サムネイル画像とカテゴリ */}
         <div className="w-32 flex-shrink-0 flex flex-col justify-center h-28">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-2 mt-0 shadow-md rounded-sm" style={{width: '124px', height: '93px'}}>
+          <div className="bg-muted relative overflow-hidden ml-2 mt-0 shadow-md rounded-sm aspect-[4/3]" style={{width: '124px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
