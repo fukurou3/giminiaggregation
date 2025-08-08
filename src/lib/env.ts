@@ -33,7 +33,14 @@ const serverSchema = z.object({
 const clientEnv = clientSchema.safeParse(process.env);
 if (!clientEnv.success) {
   console.error('Invalid client environment variables:', clientEnv.error.flatten().fieldErrors);
-  throw new Error('Invalid client environment variables');
+  console.error('Available env vars:', Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')));
+  
+  // In development, just warn and use fallback values instead of crashing
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('Using fallback environment variables for development');
+  } else {
+    throw new Error('Invalid client environment variables');
+  }
 }
 
 let serverEnv: z.infer<typeof serverSchema> = {} as any;
@@ -46,4 +53,18 @@ if (typeof window === 'undefined') {
   serverEnv = parsed.data;
 }
 
-export const env = { ...clientEnv.data, ...serverEnv };
+// Create fallback env object for development when validation fails
+const fallbackClientEnv = {
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '',
+};
+
+export const env = { 
+  ...(clientEnv.success ? clientEnv.data : fallbackClientEnv), 
+  ...serverEnv 
+};

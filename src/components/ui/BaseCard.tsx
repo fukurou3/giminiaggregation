@@ -10,19 +10,19 @@ import { findCategoryById } from '@/lib/constants/categories';
 const SIZE_STYLES = {
   small: {
     card: 'p-1.5',
-    image: 'aspect-[5/3]',
+    image: 'aspect-[4/3]',
     title: 'text-xs font-semibold',
     description: 'text-xs'
   },
   medium: {
     card: 'p-2',
-    image: 'aspect-[5/3]',
+    image: 'aspect-[4/3]',
     title: 'text-sm font-bold',
     description: 'text-xs'
   },
   large: {
     card: 'p-3',
-    image: 'aspect-[5/3]',
+    image: 'aspect-[4/3]',
     title: 'text-base font-bold',
     description: 'text-xs'
   }
