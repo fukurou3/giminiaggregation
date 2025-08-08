@@ -2,7 +2,14 @@ import { NextRequest } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { createErrorResponse, createSuccessResponse } from '@/lib/api/utils';
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  getClientIP,
+  CORS_HEADERS,
+} from '@/lib/api/utils';
+import { checkRateLimit } from '@/lib/api/rateLimiter';
+import { logError } from '@/lib/logger';
 import { profileImageUploadSchema } from '@/lib/schemas/uploadSchema';
 import { env } from '@/lib/env';
 
@@ -27,6 +34,16 @@ const bucket = storage.bucket(env.GOOGLE_CLOUD_STORAGE_BUCKET!);
 
 export async function POST(request: NextRequest) {
   try {
+    // レート制限チェック
+    const ip = getClientIP(request);
+    if (!(await checkRateLimit(ip))) {
+      return createErrorResponse(
+        'rate_limited',
+        'リクエストが多すぎます。しばらく待ってからお試しください',
+        429
+      );
+    }
+
     // 認証チェック
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -87,11 +104,18 @@ export async function POST(request: NextRequest) {
       fileName,
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    logError(error, { action: 'upload-profile-image' });
     return createErrorResponse(
       'server_error',
       'アップロードに失敗しました',
       500
     );
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: CORS_HEADERS,
+  });
 }
