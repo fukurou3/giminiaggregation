@@ -58,8 +58,6 @@ export function AutoTagButton({
 
       const data: GenerateTagsResponse = await response.json();
       
-      console.log("API Response:", data); // デバッグ用
-      
       if (data.all && data.all.length > 0) {
         // Merge with current tags, avoiding duplicates
         const newTags = [...currentTags];
@@ -70,7 +68,6 @@ export function AutoTagButton({
         }
         onTagsGenerated(newTags);
       } else {
-        console.log("No tags found:", { all: data.all, picked: data.picked, fresh: data.fresh }); // デバッグ用
         setError("適切なタグが見つかりませんでした");
       }
     } catch (err) {
