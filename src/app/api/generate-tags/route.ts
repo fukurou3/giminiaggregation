@@ -10,45 +10,25 @@ import { logEvent, logError, PerformanceTimer } from "@/lib/observability";
 // Node.js ランタイム固定（Admin SDK 対応）
 export const runtime = "nodejs";
 
-// CORS 設定: 同一オリジンのみ許可
-const corsHeaders = {
-  "Access-Control-Allow-Origin": process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3000' 
-    : process.env.NEXT_PUBLIC_APP_URL || 'same-origin',
-  "Access-Control-Allow-Methods": "POST",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Content-Type": "application/json",
-  "X-API-Version": "1.0",
-};
+// 共通CORS設定を使用
+import { corsHeaders, handleOptions, handleMethodNotAllowed } from "../_middleware/cors";
 
 // OPTIONS リクエスト処理（CORS プリフライト）
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders,
-  });
+  return handleOptions();
 }
 
 // GET/PUT/DELETE メソッドを明示的に禁止
 export async function GET() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405, headers: { ...corsHeaders, "Allow": "POST" } }
-  );
+  return handleMethodNotAllowed();
 }
 
 export async function PUT() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405, headers: { ...corsHeaders, "Allow": "POST" } }
-  );
+  return handleMethodNotAllowed();
 }
 
 export async function DELETE() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405, headers: { ...corsHeaders, "Allow": "POST" } }
-  );
+  return handleMethodNotAllowed();
 }
 
 // 設定値の妥当性を起動時にチェック
@@ -252,7 +232,7 @@ export async function POST(req: NextRequest) {
     
     if (error instanceof z.ZodError) {
       status = 400;
-      message = `入力データが無効です: ${error.issues.map((e: any) => e.message).join(', ')}`;
+      message = `入力データが無効です: ${error.issues.map((e) => e.message).join(', ')}`;
     } else if (error instanceof Error) {
       if (error.message.includes("GOOGLE_GENAI_API_KEY")) {
         status = 500;

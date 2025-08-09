@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useUrlValidation, getValidationStyle } from "@/hooks/useUrlValidation";
 import { useSubmitForm } from "@/hooks/useSubmitForm";
 import { useAuth } from "@/hooks/useAuth";
 import { TagInput } from "@/components/ui/TagInput";
 import { AutoTagButton } from "@/components/AutoTagButton";
+import { FloatingCoachButton } from "@/components/FloatingCoachButton";
 import { CATEGORIES, findCategoryByValue } from "@/lib/constants/categories";
 import { Field } from "@/components/Field";
 import { AutosizeTextarea } from "@/components/AutosizeTextarea";
@@ -14,8 +16,28 @@ import { cx } from "@/lib/cx";
 
 
 
+interface CoachAdvice {
+  refinedOverview: string;
+  storeBlurb140: string;
+  headlineIdeas: string[];
+  valueBullets: string[];
+}
+
+interface CoachResponse {
+  version: string;
+  timestamp: string;
+  advice: CoachAdvice;
+  questionnaire: Array<{
+    field: "problem" | "background" | "scenes" | "users" | "differentiation" | "extensions";
+    question: string;
+    why: string;
+  }>;
+}
+
 export default function SubmitPage() {
   const { user } = useAuth();
+  const [coachAdvice, setCoachAdvice] = useState<CoachResponse | null>(null);
+  
   const {
     formData,
     customCategory,
@@ -110,21 +132,40 @@ export default function SubmitPage() {
               />
             </Field>
 
+            {/* AIアドバイス: ヘッドライン案 */}
+            {coachAdvice && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <h4 className="text-sm font-medium text-red-800 mb-2">💡 AIからのヘッドライン案</h4>
+                <ul className="space-y-1 text-sm text-red-700">
+                  {coachAdvice.advice.headlineIdeas.map((idea, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-red-500">{index + 1}.</span>
+                      <span>{idea}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* 画像 */}
-            <Field
-              id="submit-images"
-              label="画像"
-              required
-              help="必須／5:3に切り抜きされる／最大5枚"
-              error={errors.images}
-            >
+            <div>
+              <label className="block text-base font-medium text-foreground mb-2">
+                画像
+                <span className="text-error"> *</span>
+                <span className="text-sm font-normal text-muted-foreground ml-2">：必須／5:3に切り抜きされる／最大5枚</span>
+              </label>
               <ImageUploader
                 images={formData.images || []}
                 onImagesChange={(images) => handleInputChange("images", images)}
                 maxImages={5}
                 disabled={isSubmitting}
               />
-            </Field>
+              {errors.images && (
+                <p className="text-error text-sm mt-1">
+                  {errors.images}
+                </p>
+              )}
+            </div>
 
             {/* 作品概要 */}
             <Field
@@ -144,6 +185,35 @@ export default function SubmitPage() {
                 className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               />
             </Field>
+
+            {/* AIアドバイス: 推奨概要文・紹介文 */}
+            {coachAdvice && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-3">
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 mb-2">💡 AIからの推奨概要文</h4>
+                  <p className="text-sm text-red-700 bg-white p-2 rounded border">
+                    {coachAdvice.advice.refinedOverview}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 mb-2">📝 一覧向け紹介文（140文字）</h4>
+                  <p className="text-sm text-red-700 bg-white p-2 rounded border">
+                    {coachAdvice.advice.storeBlurb140}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-red-800 mb-2">🎯 便益ポイント</h4>
+                  <ul className="space-y-1 text-sm text-red-700">
+                    {coachAdvice.advice.valueBullets.map((bullet, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-red-500">•</span>
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
 
             {/* カテゴリー */}
             <Field
@@ -197,13 +267,12 @@ export default function SubmitPage() {
             </Field>
 
             {/* タグ */}
-            <Field
-              id="tags-section"
-              label="タグ"
-              required
-              help="作品の特徴や用途を表すタグの追加を推奨します（最大5個、各20文字以内）"
-              error={errors.tags}
-            >
+            <div>
+              <label className="block text-base font-medium text-foreground mb-2">
+                タグ
+                <span className="text-error"> *</span>
+                <span className="text-sm font-normal text-muted-foreground ml-2">：作品の特徴や用途を表すタグの追加を推奨します（最大5個、各20文字以内）</span>
+              </label>
               <div>
                 <TagInput
                   tags={formData.tags || []}
@@ -221,7 +290,12 @@ export default function SubmitPage() {
                   />
                 </div>
               </div>
-            </Field>
+              {errors.tags && (
+                <p className="text-error text-sm mt-1">
+                  {errors.tags}
+                </p>
+              )}
+            </div>
             </div>
 
             {/* ② コンセプト詳細 */}
@@ -303,15 +377,27 @@ export default function SubmitPage() {
                 className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               />
             </Field>
+            
+            {/* AIアドバイス: 追加質問 */}
+            {coachAdvice && coachAdvice.questionnaire.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <h4 className="text-sm font-medium text-red-800 mb-3">❓ AIからのさらに改善するための質問</h4>
+                <div className="space-y-2">
+                  {coachAdvice.questionnaire.map((q, index) => (
+                    <div key={index} className="bg-white p-3 rounded border">
+                      <p className="text-sm font-medium text-red-800 mb-1">{q.question}</p>
+                      <p className="text-xs text-red-600">{q.why}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             </div>
 
             {/* 運営取材の受け入れ */}
-            <Field
-              id="submit-accept-interview"
-              label="運営取材"
-            >
+            <div>
               <div className="space-y-2">
-                <label htmlFor="submit-accept-interview" className="flex items-center">
+                <label htmlFor="submit-accept-interview" className="flex items-center text-base font-medium text-foreground mb-2">
                   <input
                     id="submit-accept-interview"
                     type="checkbox"
@@ -326,7 +412,7 @@ export default function SubmitPage() {
                   プロフィールに連絡可能なSNSが記載されている方に対して、運営から作品に対して取材のご連絡をさせていただく場合があります
                 </p>
               </div>
-            </Field>
+            </div>
 
             {/* 投稿ボタン */}
             <div className="pt-4">
@@ -346,6 +432,24 @@ export default function SubmitPage() {
             </div>
           </form>
         </div>
+        
+        {/* 画面右下固定のAIアドバイスボタン */}
+        <FloatingCoachButton
+          title={formData.title || ""}
+          category={formData.category || ""}
+          tags={formData.tags || []}
+          overview={formData.description || ""}
+          optional={{
+            problem: formData.problemBackground,
+            background: formData.problemBackground,
+            scenes: formData.useCase,
+            users: formData.useCase,
+            differentiation: formData.uniquePoints,
+            extensions: formData.futureIdeas,
+          }}
+          appUrl={formData.url}
+          onAdviceGenerated={setCoachAdvice}
+        />
       </div>
     </div>
   );

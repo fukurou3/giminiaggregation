@@ -1,4 +1,5 @@
 import { createAIClient } from './client';
+import { BaseAIService } from './base';
 import { buildTagGenerationPrompt, type TagGenerationInput } from './prompt';
 import { parseTagResponse, sanitizeStringArray } from './parser';
 import { TagRepository } from '@/lib/tags/repository';
@@ -55,7 +56,7 @@ if (process.env.NODE_ENV === 'production') {
  * AI を使ったタグ生成のユースケースを実装
  * リトライ機能、キャッシュ、ログ機能付き
  */
-export class TagGenerationService {
+export class TagGenerationService extends BaseAIService {
   /**
    * キャッシュキーを生成
    */
@@ -92,64 +93,6 @@ export class TagGenerationService {
       const toDelete = entries.slice(0, cache.size - CONFIG.CACHE_MAX_SIZE);
       toDelete.forEach(([key]) => cache.delete(key));
     }
-  }
-
-  /**
-   * タイムアウト付き実行
-   */
-  private static async withTimeout<T>(
-    fn: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error(`AI request timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-      
-      fn()
-        .then(result => {
-          clearTimeout(timer);
-          resolve(result);
-        })
-        .catch(error => {
-          clearTimeout(timer);
-          reject(error);
-        });
-    });
-  }
-
-  /**
-   * 指数バックオフによるリトライ処理
-   */
-  private static async withRetry<T>(
-    fn: () => Promise<T>,
-    maxAttempts: number = CONFIG.MAX_RETRY_ATTEMPTS
-  ): Promise<T> {
-    let lastError: Error;
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        return await fn();
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (attempt === maxAttempts) {
-          break;
-        }
-        
-        // 指数バックオフ: 1秒、2秒、4秒...
-        const delay = CONFIG.RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        logEvent('ai_request_retry', {
-          attempt,
-          delay_ms: delay,
-          error_message: lastError.message,
-        });
-      }
-    }
-    
-    throw lastError!;
   }
 
   /**
@@ -197,30 +140,36 @@ export class TagGenerationService {
         return cached.value;
       }
       
-      // AI クライアントを作成
+      // AI クライアントを作成してプロンプトを実行
       const aiClient = createAIClient();
       const prompt = buildTagGenerationPrompt(promptInput);
       
-      // リトライ付きでAI呼び出し（サーバー側タイムアウト付き）
-      const rawResponse = await this.withRetry(async () => {
-        const aiStartTime = Date.now();
-        const response = await this.withTimeout(
-          () => aiClient.generateText(prompt),
-          CONFIG.AI_TIMEOUT_MS
-        );
-        const aiDuration = Date.now() - aiStartTime;
+      // AI実行（統一されたタイムアウトとエラーハンドリングを使用）
+      const aiStartTime = Date.now();
+      const rawResponse = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("AI request timed out")), CONFIG.AI_TIMEOUT_MS);
         
-        // AI APIの使用ログ
-        logAIRequest(
-          CONFIG.MODEL_ID,
-          prompt.length, // 簡易的な入力トークン数
-          response.length, // 簡易的な出力トークン数
-          aiDuration,
-          true
-        );
-        
-        return response;
+        aiClient.generateText(prompt)
+          .then(response => {
+            clearTimeout(timeout);
+            resolve(response);
+          })
+          .catch(error => {
+            clearTimeout(timeout);
+            reject(error);
+          });
       });
+      
+      const aiDuration = Date.now() - aiStartTime;
+      
+      // AI APIの使用ログ
+      logAIRequest(
+        CONFIG.MODEL_ID,
+        prompt.length, // 簡易的な入力トークン数
+        rawResponse.length, // 簡易的な出力トークン数
+        aiDuration,
+        true
+      );
       
       // レスポンスを解析
       const parsedResponse = parseTagResponse(rawResponse);
@@ -284,6 +233,134 @@ export class TagGenerationService {
       );
       
       throw new Error("タグ生成に失敗しました");
+    }
+  }
+}
+
+/**
+ * コーチングアドバイス結果の型
+ */
+export interface CoachResult {
+  advice: {
+    refinedOverview: string;
+    storeBlurb140: string;
+    headlineIdeas: string[];
+    valueBullets: string[];
+  };
+  questionnaire: Array<{
+    field: "problem" | "background" | "scenes" | "users" | "differentiation" | "extensions";
+    question: string;
+    why: string;
+  }>;
+}
+
+/**
+ * コーチングリクエストの型
+ */
+export interface GenerateCoachRequest {
+  title: string;
+  category: string;
+  tags: string[];
+  overview: string;
+  optional: {
+    problem?: string;
+    background?: string;
+    scenes?: string;
+    users?: string;
+    differentiation?: string;
+    extensions?: string;
+  };
+  appUrl?: string;
+  locale?: "ja" | "en";
+}
+
+/**
+ * AIコーチングサービス
+ * AI を使った作品概要改善アドバイスのユースケースを実装
+ */
+export class CoachService extends BaseAIService {
+  /**
+   * 作品概要からコーチングアドバイスを生成
+   */
+  static async generateCoachAdvice(request: GenerateCoachRequest): Promise<CoachResult> {
+    const startTime = Date.now();
+    
+    try {
+      // プロンプト入力を構築
+      const { buildCoachPrompt, CoachInput } = await import('./prompt');
+      const promptInput: CoachInput = {
+        title: request.title.trim(),
+        category: request.category,
+        tags: request.tags,
+        overview: request.overview.trim(),
+        optional: request.optional,
+        appUrl: request.appUrl,
+        locale: request.locale || "ja"
+      };
+      
+      // AI クライアントを作成してプロンプトを実行
+      const aiClient = createAIClient();
+      const prompt = buildCoachPrompt(promptInput);
+      
+      // AI実行（統一されたタイムアウトとエラーハンドリングを使用）
+      const aiStartTime = Date.now();
+      const rawResponse = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("AI request timed out")), CONFIG.AI_TIMEOUT_MS);
+        
+        aiClient.generateText(prompt, { maxOutputTokens: 1024 }) // コーチング用に出力量を増加
+          .then(response => {
+            clearTimeout(timeout);
+            resolve(response);
+          })
+          .catch(error => {
+            clearTimeout(timeout);
+            reject(error);
+          });
+      });
+      
+      const aiDuration = Date.now() - aiStartTime;
+      
+      // AI APIの使用ログ
+      logAIRequest(
+        CONFIG.MODEL_ID,
+        prompt.length,
+        rawResponse.length,
+        aiDuration,
+        true
+      );
+      
+      // レスポンスを解析
+      const { parseCoachResponse } = await import('./parser');
+      const parsedResponse = parseCoachResponse(rawResponse);
+      
+      // 成功ログ
+      logEvent('coach_advice_generated', {
+        duration_ms: Date.now() - startTime,
+        ai_duration_ms: aiDuration,
+        title_length: request.title.length,
+        overview_length: request.overview.length,
+        questionnaire_count: parsedResponse.questionnaire.length,
+      });
+      
+      return parsedResponse;
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      logError(error, {}, {
+        operation: 'generateCoachAdvice',
+        title_length: request.title.length,
+        overview_length: request.overview.length,
+        duration_ms: duration,
+      });
+      
+      // AI API エラーのログ
+      logAIRequest(
+        CONFIG.MODEL_ID,
+        0, 0, duration, false
+      );
+      
+      throw new Error("AIコーチング機能でエラーが発生しました");
     }
   }
 }

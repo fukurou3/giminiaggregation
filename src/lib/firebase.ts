@@ -17,21 +17,22 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // App Check を初期化（reCAPTCHA v3プロバイダーを使用）
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
   try {
-    // 開発環境でのデバッグトークン設定
-    if (process.env.NODE_ENV === 'development') {
-      (window as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    if (env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY !== 'YOUR_RECAPTCHA_SITE_KEY_HERE') {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+        isTokenAutoRefreshEnabled: true,
+      });
+      console.log('App Check initialized successfully');
+    } else {
+      console.log('ReCAPTCHA key not configured, skipping App Check');
     }
-    
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
-      isTokenAutoRefreshEnabled: true,
-    });
-    console.log('App Check initialized successfully');
   } catch (error) {
     console.warn('App Check initialization failed:', error);
   }
+} else if (typeof window !== 'undefined') {
+  console.log('Development mode: App Check disabled');
 }
 
 export const auth = getAuth(app);

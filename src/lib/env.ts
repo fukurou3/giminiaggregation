@@ -29,6 +29,7 @@ const serverSchema = z.object({
   GOOGLE_CLOUD_STORAGE_BUCKET: z.string(),
   FAVORITE_SHARD_COUNT: z.coerce.number().default(10),
   ADMIN_EMAIL: z.string(),
+  GOOGLE_GENAI_API_KEY: z.string(),
 });
 
 const clientEnv = clientSchema.safeParse(process.env);
