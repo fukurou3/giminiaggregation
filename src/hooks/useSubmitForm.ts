@@ -52,7 +52,13 @@ export function useSubmitForm(): UseSubmitFormReturn {
     field: keyof PostFormData,
     value: string | boolean | string[]
   ) => {
-    const processedValue = typeof value === "string" ? value.trim() : value;
+    // Fields that should preserve newlines (textarea fields)
+    const multilineFields = ['description', 'challenge', 'useCase', 'differentiator', 'futureIdeas'];
+    
+    const processedValue = typeof value === "string" && !multilineFields.includes(field) 
+      ? value.trim() 
+      : value;
+    
     setFormData(prev => ({ ...prev, [field]: processedValue }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));

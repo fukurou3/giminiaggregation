@@ -142,19 +142,27 @@ export function AutoTagButton({
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={handleGenerateTags}
-        disabled={!canGenerate || isLoading}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Sparkles className="h-4 w-4" />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleGenerateTags}
+          disabled={!canGenerate || isLoading}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {isLoading ? "生成中..." : "AIによるタグ生成"}
+        </button>
+        
+        {!canGenerate && !isLoading && !title.trim() && (
+          <p className="text-xs text-muted-foreground">
+            タイトルと説明文を入力してください
+          </p>
         )}
-        {isLoading ? "生成中..." : "AIによるタグ生成"}
-      </button>
+      </div>
       
       {error && (
         <div className="text-sm">
@@ -175,12 +183,6 @@ export function AutoTagButton({
         <div className="text-sm text-warning">
           <p>レート制限中: {retryAfter}秒後に再試行可能</p>
         </div>
-      )}
-      
-      {!canGenerate && !isLoading && !title.trim() && (
-        <p className="text-xs text-muted-foreground">
-          タイトルを入力してください
-        </p>
       )}
     </div>
   );

@@ -120,10 +120,10 @@ export default function SubmitPage() {
               {errors.url && <p className="text-error text-sm mt-1">{errors.url}</p>}
             </div>
 
-            {/* タイトル */}
+            {/* 作品タイトル */}
             <div>
               <label htmlFor="submit-title" className="block text-sm font-medium text-foreground mb-2">
-                タイトル <span className="text-error">*</span>
+                作品タイトル <span className="text-error">*</span>
               </label>
               <input
                 id="submit-title"
@@ -137,6 +137,37 @@ export default function SubmitPage() {
               {errors.title && <p className="text-error text-sm mt-1">{errors.title}</p>}
             </div>
 
+            {/* サムネイル画像 */}
+            <div>
+              <label htmlFor="submit-thumbnail-url" className="block text-sm font-medium text-foreground mb-2">
+                サムネイル画像 <span className="text-error">*</span>
+              </label>
+              <p className="text-sm text-muted-foreground mb-2">
+                実行画面や成果物のイメージ（4:3比率推奨）
+              </p>
+              <textarea
+                id="submit-thumbnail-url"
+                name="thumbnailUrl"
+                value={formData.thumbnailUrl || ""}
+                onChange={(e) => {
+                  handleInputChange("thumbnailUrl", e.target.value);
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '42px';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="https://example.com/image.jpg"
+                rows={1}
+                style={{ minHeight: '42px', resize: 'none', overflow: 'hidden' }}
+                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+              />
+              {errors.thumbnailUrl && <p className="text-error text-sm mt-1">{errors.thumbnailUrl}</p>}
+            </div>
+
             {/* 説明 */}
             <div>
               <label htmlFor="submit-description" className="block text-sm font-medium text-foreground mb-2">
@@ -146,9 +177,20 @@ export default function SubmitPage() {
                 id="submit-description"
                 name="description"
                 value={formData.description || ""}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                onChange={(e) => {
+                  handleInputChange("description", e.target.value);
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '96px';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
                 placeholder="作品の内容や使い方、特徴など"
                 rows={4}
+                style={{ minHeight: '96px', resize: 'none', overflow: 'hidden' }}
                 className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               />
               {errors.description && <p className="text-error text-sm mt-1">{errors.description}</p>}
@@ -213,13 +255,24 @@ export default function SubmitPage() {
                   <label htmlFor="submit-custom-category" className="block text-sm font-medium text-foreground mb-2">
                     追加希望カテゴリ
                   </label>
-                  <input
+                  <textarea
                     id="submit-custom-category"
                     name="customCategory"
-                    type="text"
                     value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
+                    onChange={(e) => {
+                      setCustomCategory(e.target.value);
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = '42px';
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder="新しいカテゴリ名を入力"
+                    rows={1}
+                    style={{ minHeight: '42px', resize: 'none', overflow: 'hidden' }}
                     className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
@@ -229,21 +282,128 @@ export default function SubmitPage() {
               )}
             </div>
 
-            {/* サムネイル画像URL */}
+            {/* 課題・背景 */}
             <div>
-              <label htmlFor="submit-thumbnail-url" className="block text-sm font-medium text-foreground mb-2">
-                サムネイル画像URL（任意）
+              <label htmlFor="submit-challenge" className="block text-sm font-medium text-foreground mb-2">
+                課題・背景
               </label>
-              <input
-                id="submit-thumbnail-url"
-                name="thumbnailUrl"
-                type="url"
-                value={formData.thumbnailUrl || ""}
-                onChange={(e) => handleInputChange("thumbnailUrl", e.target.value)}
-                placeholder="https://example.com/image.jpg"
+              <p className="text-sm text-muted-foreground mb-2">
+                どんな課題やニーズを解決したいか
+              </p>
+              <textarea
+                id="submit-challenge"
+                name="challenge"
+                value={formData.challenge || ""}
+                onChange={(e) => {
+                  handleInputChange("challenge", e.target.value);
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '72px';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="解決したい課題や背景について説明してください"
+                rows={3}
+                style={{ minHeight: '72px', resize: 'none', overflow: 'hidden' }}
                 className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               />
-              {errors.thumbnailUrl && <p className="text-error text-sm mt-1">{errors.thumbnailUrl}</p>}
+              {errors.challenge && <p className="text-error text-sm mt-1">{errors.challenge}</p>}
+            </div>
+
+            {/* 利用シナリオ */}
+            <div>
+              <label htmlFor="submit-use-case" className="block text-sm font-medium text-foreground mb-2">
+                利用シナリオ
+              </label>
+              <p className="text-sm text-muted-foreground mb-2">
+                実際の使用例、ターゲット層
+              </p>
+              <textarea
+                id="submit-use-case"
+                name="useCase"
+                value={formData.useCase || ""}
+                onChange={(e) => {
+                  handleInputChange("useCase", e.target.value);
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '72px';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="どのような場面で、誰がどのように使うかを説明してください"
+                rows={3}
+                style={{ minHeight: '72px', resize: 'none', overflow: 'hidden' }}
+                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+              />
+              {errors.useCase && <p className="text-error text-sm mt-1">{errors.useCase}</p>}
+            </div>
+
+            {/* 差別化ポイント */}
+            <div>
+              <label htmlFor="submit-differentiator" className="block text-sm font-medium text-foreground mb-2">
+                差別化ポイント
+              </label>
+              <p className="text-sm text-muted-foreground mb-2">
+                他と違う工夫・独自性（UI/UX、アルゴリズム、連携方法など）
+              </p>
+              <textarea
+                id="submit-differentiator"
+                name="differentiator"
+                value={formData.differentiator || ""}
+                onChange={(e) => {
+                  handleInputChange("differentiator", e.target.value);
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '72px';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="他の作品と比べてどこが独自性があるかを説明してください"
+                rows={3}
+                style={{ minHeight: '72px', resize: 'none', overflow: 'hidden' }}
+                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+              />
+              {errors.differentiator && <p className="text-error text-sm mt-1">{errors.differentiator}</p>}
+            </div>
+
+            {/* 発展アイデア */}
+            <div>
+              <label htmlFor="submit-future-ideas" className="block text-sm font-medium text-foreground mb-2">
+                発展アイデア
+              </label>
+              <p className="text-sm text-muted-foreground mb-2">
+                今後の改良案や応用の方向性
+              </p>
+              <textarea
+                id="submit-future-ideas"
+                name="futureIdeas"
+                value={formData.futureIdeas || ""}
+                onChange={(e) => {
+                  handleInputChange("futureIdeas", e.target.value);
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '72px';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="将来的な機能追加や改善のアイデアを説明してください"
+                rows={3}
+                style={{ minHeight: '72px', resize: 'none', overflow: 'hidden' }}
+                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+              />
+              {errors.futureIdeas && <p className="text-error text-sm mt-1">{errors.futureIdeas}</p>}
             </div>
 
             {/* 公開設定 */}
@@ -274,6 +434,29 @@ export default function SubmitPage() {
                   />
                   非公開
                 </label>
+              </div>
+            </div>
+
+            {/* 運営取材の受け入れ */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                運営取材
+              </label>
+              <div className="space-y-2">
+                <label htmlFor="submit-accept-interview" className="flex items-center">
+                  <input
+                    id="submit-accept-interview"
+                    type="checkbox"
+                    name="acceptInterview"
+                    checked={formData.acceptInterview || false}
+                    onChange={(e) => handleInputChange("acceptInterview", e.target.checked)}
+                    className="mr-2"
+                  />
+                  運営からの取材を受け入れる
+                </label>
+                <p className="text-sm text-muted-foreground ml-6">
+                  プロフィールに連絡可能なSNSが記載されている方に対して、運営から作品に対しての取材のご連絡をする場合があります
+                </p>
               </div>
             </div>
 
