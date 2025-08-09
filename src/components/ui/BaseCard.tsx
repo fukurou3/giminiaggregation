@@ -81,16 +81,16 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* 拡張枠 */}
         <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-0 rounded-lg" style={{backgroundColor: '#f4f7fb'}}></div>
         {/* サムネイル画像とカテゴリ */}
-        <div className="w-44 flex-shrink-0 flex flex-col justify-center h-26">
+        <div className="w-44 flex-shrink-0 flex flex-col">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-1.5 mt-0 rounded-sm" style={{width: '155px', height: '93px'}}>
+          <div className="bg-muted relative overflow-hidden ml-1.5 mt-1.5 rounded-sm" style={{width: '155px', height: '93px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
           </div>
           {/* カテゴリ表示 */}
           {showCategory && (
-            <div className="mt-1">
+            <div className="mt-1 ml-1.5">
               <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
                 {categoryName}
               </span>
@@ -98,10 +98,10 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
           )}
         </div>
 
-        {/* コンテンツ - CSS Grid 3行2列構造 */}
-        <div className="flex-1 -ml-2 pr-2 py-1.5 min-w-0 h-26 relative z-5 grid grid-rows-[auto_minmax(0,20px)_minmax(0,36px)] grid-cols-[1fr_auto] gap-1">
-          {/* Row 1: タイトル（左右いっぱい） */}
-          <div className="col-span-2 flex items-center gap-2">
+        {/* コンテンツ - 横長レイアウト用に調整 */}
+        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 relative z-10">
+          {/* タイトル */}
+          <div className="flex items-center gap-2 mb-2">
             {rank && (
               <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
                 {rank}.
@@ -111,38 +111,49 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
               {post.title}
             </h3>
           </div>
-
-          {/* Row 2-3 左: タグ表示（2行固定、overflow禁止） */}
-          <div className="row-span-2 min-w-0 overflow-hidden h-full">
-            {post.tagIds && post.tagIds.length > 0 && (
-              <HorizontalTagList
-                tags={post.tagIds.map(tagId => ({
-                  id: tagId, 
-                  name: tagId.replace(/_/g, ' '), 
-                  aliases: [], 
-                  count: 0, 
-                  isOfficial: false, 
-                  views: 0, 
-                  favorites: 0, 
-                  flagged: false,
-                  createdAt: new Date(), 
-                  updatedAt: new Date()
-                }))}
-                postTitle={post.title}
-                maxRows={2}
-                gap={4}
-                tagProps={{
-                  size: 'sm',
-                  variant: 'default'
-                }}
-                className="max-w-full h-full"
-                fillHeight={true}
-              />
+          
+          {/* 説明文（2行許可） */}
+          <div className="mb-3">
+            {post.description && (
+              <p className="text-black line-clamp-2 text-xs break-words font-normal leading-relaxed">
+                {post.description}
+              </p>
             )}
           </div>
-          
-          {/* Row 3 右: いいね数と閲覧数（右下固定） */}
-          <div className="row-start-3 col-start-2 flex items-end justify-end">
+
+          {/* タグエリアといいね数 */}
+          <div className="flex items-end justify-between">
+            {/* タグ表示エリア（一番左から表示） */}
+            <div className="flex-1 min-w-0 pr-4">
+              {post.tagIds && post.tagIds.length > 0 && (
+                <HorizontalTagList
+                  tags={post.tagIds
+                    .map(tagId => ({
+                      id: tagId, 
+                      name: tagId.replace(/_/g, ' '), 
+                      aliases: [], 
+                      count: 0, 
+                      isOfficial: false, 
+                      views: 0, 
+                      favorites: 0, 
+                      flagged: false,
+                      createdAt: new Date(), 
+                      updatedAt: new Date()
+                    }))
+                    .sort((a, b) => a.name.length - b.name.length)} // 文字数が少ないものから表示
+                  postTitle={post.title}
+                  maxRows={1}
+                  gap={2} // 余白を詰める
+                  tagProps={{
+                    size: 'sm',
+                    variant: 'outlined'
+                  }}
+                  className="max-w-full"
+                />
+              )}
+            </div>
+            
+            {/* いいね数と閲覧数 */}
             <div className="flex items-center space-x-3 text-muted-foreground flex-shrink-0">
               <div className="flex items-center space-x-0.5">
                 <Heart size={14} className="flex-shrink-0" />
@@ -194,37 +205,68 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* 説明文 */}
         <div className="h-10 mb-2">
           {post.description && (
-            <p className="text-black line-clamp-2 text-xs mt-1 break-words font-normal">
+            <p className="text-black line-clamp-3 text-xs mt-1 break-words font-normal">
               {post.description}
             </p>
           )}
         </div>
 
-        {/* タグ */}
+        {/* 拡張説明文エリア */}
+        {/* 
+          注意: 以下のタグ表示ロジックは保持されています。必要に応じて拡張説明文と入れ替えできます。
+          タブ表示ロジック（使用中止、削除禁止）:
+          {post.tagIds && post.tagIds.length > 0 && (
+            <HorizontalTagList
+              tags={post.tagIds.map(tagId => ({
+                id: tagId, 
+                name: tagId.replace(/_/g, ' '), 
+                aliases: [], 
+                count: 0, 
+                isOfficial: false, 
+                views: 0, 
+                favorites: 0, 
+                flagged: false,
+                createdAt: new Date(), 
+                updatedAt: new Date()
+              }))}
+              postTitle={post.title}
+              maxRows={2}
+              gap={4}
+              tagProps={{
+                size: 'sm',
+                variant: 'default'
+              }}
+              className="max-w-full"
+            />
+          )}
+        */}
         <div className="h-12 flex items-start text-xs mb-1 relative">
-          <div className="min-w-0 flex-1 pr-16"> {/* 右パディングでいいね部分のスペースを確保 */}
+          {/* いいね数と閲覧数の高さに合わせたタグ表示エリア */}
+          <div className="flex-1 h-full flex flex-col justify-end">
             {post.tagIds && post.tagIds.length > 0 && (
               <HorizontalTagList
-                tags={post.tagIds.map(tagId => ({
-                  id: tagId, 
-                  name: tagId.replace(/_/g, ' '), 
-                  aliases: [], 
-                  count: 0, 
-                  isOfficial: false, 
-                  views: 0, 
-                  favorites: 0, 
-                  flagged: false,
-                  createdAt: new Date(), 
-                  updatedAt: new Date()
-                }))}
+                tags={post.tagIds
+                  .map(tagId => ({
+                    id: tagId, 
+                    name: tagId.replace(/_/g, ' '), 
+                    aliases: [], 
+                    count: 0, 
+                    isOfficial: false, 
+                    views: 0, 
+                    favorites: 0, 
+                    flagged: false,
+                    createdAt: new Date(), 
+                    updatedAt: new Date()
+                  }))
+                  .sort((a, b) => a.name.length - b.name.length)} // 文字数が少ないものから表示
                 postTitle={post.title}
-                maxRows={2}
-                gap={4}
+                maxRows={1}
+                gap={2} // 余白を詰める
                 tagProps={{
                   size: 'sm',
-                  variant: 'default'
+                  variant: 'outlined'
                 }}
-                className="max-w-full"
+                className="max-w-full pr-20" // いいね数分の右余白確保
               />
             )}
           </div>

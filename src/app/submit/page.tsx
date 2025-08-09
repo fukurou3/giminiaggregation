@@ -121,31 +121,51 @@ export default function SubmitPage() {
               required
               error={errors.title}
             >
-              <input
-                id="submit-title"
-                name="title"
-                type="text"
-                value={formData.title || ""}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                placeholder="12文字以下推奨"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-              />
-            </Field>
-
-            {/* AIアドバイス: ヘッドライン案 */}
-            {coachAdvice && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                <h4 className="text-sm font-medium text-red-800 mb-2">💡 AIからのヘッドライン案</h4>
-                <ul className="space-y-1 text-sm text-red-700">
-                  {coachAdvice.advice.headlineIdeas.map((idea, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-red-500">{index + 1}.</span>
-                      <span>{idea}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                <input
+                  id="submit-title"
+                  name="title"
+                  type="text"
+                  value={formData.title || ""}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  placeholder="12文字以下推奨"
+                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                />
+                
+                {/* AIアドバイス: ヘッドライン案 */}
+                {coachAdvice && coachAdvice.advice.headlineIdeas.length > 0 && (
+                  <div className="px-3 py-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-xs font-medium text-red-600">💡 AIからのヘッドライン案</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoachAdvice({
+                            ...coachAdvice,
+                            advice: {
+                              ...coachAdvice.advice,
+                              headlineIdeas: []
+                            }
+                          });
+                        }}
+                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                        title="すべて削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {coachAdvice.advice.headlineIdeas.map((idea, index) => (
+                        <li key={index} className="flex items-start gap-1">
+                          <span className="text-gray-600 text-xs">•</span>
+                          <span className="flex-1 text-xs">{idea}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            )}
+            </Field>
 
             {/* 画像 */}
             <div>
@@ -167,53 +187,111 @@ export default function SubmitPage() {
               )}
             </div>
 
-            {/* 作品概要 */}
+                        {/* 作品概要 */}
             <Field
               id="submit-description"
               label="作品概要"
               required
               error={errors.description}
             >
-              <AutosizeTextarea
-                id="submit-description"
-                name="description"
-                value={formData.description || ""}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder=""
-                rows={4}
-                minHeight="96px"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-              />
-            </Field>
+              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                <AutosizeTextarea
+                  id="submit-description"
+                  name="description"
+                  value={formData.description || ""}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  placeholder=""
+                  rows={4}
+                  minHeight="96px"
+                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                />
+                
+                {/* AIアドバイス: 推奨概要文 */}
+                {coachAdvice && coachAdvice.advice.refinedOverview && (
+                  <div className="px-3 py-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-xs font-medium text-red-600">💡 AIからの推奨概要文</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoachAdvice({
+                            ...coachAdvice,
+                            advice: {
+                              ...coachAdvice.advice,
+                              refinedOverview: ""
+                            }
+                          });
+                        }}
+                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                        title="削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <p className="text-xs">{coachAdvice.advice.refinedOverview}</p>
+                  </div>
+                )}
 
-            {/* AIアドバイス: 推奨概要文・紹介文 */}
-            {coachAdvice && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3 space-y-3">
-                <div>
-                  <h4 className="text-sm font-medium text-red-800 mb-2">💡 AIからの推奨概要文</h4>
-                  <p className="text-sm text-red-700 bg-white p-2 rounded border">
-                    {coachAdvice.advice.refinedOverview}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-red-800 mb-2">📝 一覧向け紹介文（140文字）</h4>
-                  <p className="text-sm text-red-700 bg-white p-2 rounded border">
-                    {coachAdvice.advice.storeBlurb140}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-red-800 mb-2">🎯 便益ポイント</h4>
-                  <ul className="space-y-1 text-sm text-red-700">
-                    {coachAdvice.advice.valueBullets.map((bullet, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-red-500">•</span>
-                        <span>{bullet}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* AIアドバイス: 一覧向け紹介文 */}
+                {coachAdvice && coachAdvice.advice.storeBlurb140 && (
+                  <div className="px-3 py-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-xs font-medium text-red-600">💡 AIからの一覧向け紹介文（140文字）</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoachAdvice({
+                            ...coachAdvice,
+                            advice: {
+                              ...coachAdvice.advice,
+                              storeBlurb140: ""
+                            }
+                          });
+                        }}
+                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                        title="削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <p className="text-xs">{coachAdvice.advice.storeBlurb140}</p>
+                  </div>
+                )}
+
+                {/* AIアドバイス: 便益ポイント */}
+                {coachAdvice && coachAdvice.advice.valueBullets.length > 0 && (
+                  <div className="px-3 py-2">
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="text-xs font-medium text-red-600">💡 AIからの便益ポイント</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoachAdvice({
+                            ...coachAdvice,
+                            advice: {
+                              ...coachAdvice.advice,
+                              valueBullets: []
+                            }
+                          });
+                        }}
+                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                        title="削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {coachAdvice.advice.valueBullets.map((bullet, index) => (
+                        <li key={index} className="flex items-start gap-1">
+                          <span className="text-gray-600 text-xs">•</span>
+                          <span className="flex-1 text-xs">{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            )}
+            </Field>
 
             {/* カテゴリー */}
             <Field
@@ -227,7 +305,7 @@ export default function SubmitPage() {
                 name="category"
                 value={formData.category || ""}
                 onChange={(e) => handleInputChange("category", e.target.value)}
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+                className="w-full px-3 py-2 bg-input border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               >
                 <option value="">カテゴリを選択</option>
                 {CATEGORIES.map(category => (
@@ -256,7 +334,7 @@ export default function SubmitPage() {
                       placeholder="新しいカテゴリ名を入力"
                       rows={1}
                       minHeight="42px"
-                      className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+                      className="w-full px-3 py-2 bg-input border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
                     />
                   </Field>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -309,16 +387,47 @@ export default function SubmitPage() {
               help="何を解決したかったか、どうして作ろうと思ったか"
               error={errors.problemBackground}
             >
-              <AutosizeTextarea
-                id="submit-problem-background"
-                name="problemBackground"
-                value={formData.problemBackground || ""}
-                onChange={(e) => handleInputChange("problemBackground", e.target.value)}
-                placeholder=""
-                rows={3}
-                minHeight="72px"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-              />
+              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                <AutosizeTextarea
+                  id="submit-problem-background"
+                  name="problemBackground"
+                  value={formData.problemBackground || ""}
+                  onChange={(e) => handleInputChange("problemBackground", e.target.value)}
+                  placeholder=""
+                  rows={3}
+                  minHeight="72px"
+                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                />
+              
+                
+                {/* AIアドバイス: 課題・背景に関する質問 */}
+                {coachAdvice && coachAdvice.questionnaire
+                  .filter(q => q.field === "problem" || q.field === "background")
+                  .map((q, index) => (
+                    <div key={index} className="px-3 py-2">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
+                            setCoachAdvice({
+                              ...coachAdvice,
+                              questionnaire: updatedQuestionnaire
+                            });
+                          }}
+                          className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
+                      <div className="text-xs text-gray-600">{q.why}</div>
+                    </div>
+                  ))
+                }
+              </div>
             </Field>
 
             {/* 想定シーン・利用者 */}
@@ -328,16 +437,47 @@ export default function SubmitPage() {
               help="誰がどんな場面で使うと便利か"
               error={errors.useCase}
             >
-              <AutosizeTextarea
-                id="submit-use-case"
-                name="useCase"
-                value={formData.useCase || ""}
-                onChange={(e) => handleInputChange("useCase", e.target.value)}
-                placeholder=""
-                rows={3}
-                minHeight="72px"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-              />
+              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                <AutosizeTextarea
+                  id="submit-use-case"
+                  name="useCase"
+                  value={formData.useCase || ""}
+                  onChange={(e) => handleInputChange("useCase", e.target.value)}
+                  placeholder=""
+                  rows={3}
+                  minHeight="72px"
+                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                />
+              
+                
+                {/* AIアドバイス: 想定シーン・利用者に関する質問 */}
+                {coachAdvice && coachAdvice.questionnaire
+                  .filter(q => q.field === "scenes" || q.field === "users")
+                  .map((q, index) => (
+                    <div key={index} className="px-3 py-2">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
+                            setCoachAdvice({
+                              ...coachAdvice,
+                              questionnaire: updatedQuestionnaire
+                            });
+                          }}
+                          className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
+                      <div className="text-xs text-gray-600">{q.why}</div>
+                    </div>
+                  ))
+                }
+              </div>
             </Field>
 
             {/* 差別化ポイント */}
@@ -347,16 +487,47 @@ export default function SubmitPage() {
               help="他と違う工夫・独自性（UI/UX、使い方の発想、組み合わせ方など）"
               error={errors.uniquePoints}
             >
-              <AutosizeTextarea
-                id="submit-unique-points"
-                name="uniquePoints"
-                value={formData.uniquePoints || ""}
-                onChange={(e) => handleInputChange("uniquePoints", e.target.value)}
-                placeholder=""
-                rows={3}
-                minHeight="72px"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-              />
+              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                <AutosizeTextarea
+                  id="submit-unique-points"
+                  name="uniquePoints"
+                  value={formData.uniquePoints || ""}
+                  onChange={(e) => handleInputChange("uniquePoints", e.target.value)}
+                  placeholder=""
+                  rows={3}
+                  minHeight="72px"
+                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                />
+              
+                
+                {/* AIアドバイス: 差別化ポイントに関する質問 */}
+                {coachAdvice && coachAdvice.questionnaire
+                  .filter(q => q.field === "differentiation")
+                  .map((q, index) => (
+                    <div key={index} className="px-3 py-2">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
+                            setCoachAdvice({
+                              ...coachAdvice,
+                              questionnaire: updatedQuestionnaire
+                            });
+                          }}
+                          className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
+                      <div className="text-xs text-gray-600">{q.why}</div>
+                    </div>
+                  ))
+                }
+              </div>
             </Field>
 
             {/* 応用・発展アイデア */}
@@ -366,32 +537,49 @@ export default function SubmitPage() {
               help="今後の改良案や応用の方向性"
               error={errors.futureIdeas}
             >
-              <AutosizeTextarea
-                id="submit-future-ideas"
-                name="futureIdeas"
-                value={formData.futureIdeas || ""}
-                onChange={(e) => handleInputChange("futureIdeas", e.target.value)}
-                placeholder=""
-                rows={3}
-                minHeight="72px"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-              />
-            </Field>
-            
-            {/* AIアドバイス: 追加質問 */}
-            {coachAdvice && coachAdvice.questionnaire.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                <h4 className="text-sm font-medium text-red-800 mb-3">❓ AIからのさらに改善するための質問</h4>
-                <div className="space-y-2">
-                  {coachAdvice.questionnaire.map((q, index) => (
-                    <div key={index} className="bg-white p-3 rounded border">
-                      <p className="text-sm font-medium text-red-800 mb-1">{q.question}</p>
-                      <p className="text-xs text-red-600">{q.why}</p>
+              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                <AutosizeTextarea
+                  id="submit-future-ideas"
+                  name="futureIdeas"
+                  value={formData.futureIdeas || ""}
+                  onChange={(e) => handleInputChange("futureIdeas", e.target.value)}
+                  placeholder=""
+                  rows={3}
+                  minHeight="72px"
+                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                />
+              
+                
+                {/* AIアドバイス: 応用・発展アイデアに関する質問 */}
+                {coachAdvice && coachAdvice.questionnaire
+                  .filter(q => q.field === "extensions")
+                  .map((q, index) => (
+                    <div key={index} className="px-3 py-2">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
+                            setCoachAdvice({
+                              ...coachAdvice,
+                              questionnaire: updatedQuestionnaire
+                            });
+                          }}
+                          className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
+                      <div className="text-xs text-gray-600">{q.why}</div>
                     </div>
-                  ))}
-                </div>
+                  ))
+                }
               </div>
-            )}
+            </Field>
+
             </div>
 
             {/* 運営取材の受け入れ */}

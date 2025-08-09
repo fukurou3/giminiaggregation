@@ -49,7 +49,7 @@ export function TagInput({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <div className="flex flex-wrap gap-2 p-3 bg-input border border-input-border rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-ring">
+      <div className="flex flex-wrap gap-2 p-3 bg-input border border-black rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-ring">
         {tags.map((tag, index) => (
           <span
             key={index}

@@ -78,6 +78,7 @@ export function FloatingCoachButton(props: FloatingCoachButtonProps) {
   const hasInputChanged = currentInputHash !== lastGeneratedInput;
   
   const canGenerate = props.title.trim().length > 0 && 
+                     props.category.trim().length > 0 &&
                      props.overview.trim().length >= 5 && 
                      isValidContent(props.overview) &&
                      hasInputChanged;
@@ -215,6 +216,7 @@ export function FloatingCoachButton(props: FloatingCoachButtonProps) {
     
     if (!canGenerate) {
       const baseCondition = props.title.trim().length === 0 || 
+                           props.category.trim().length === 0 ||
                            props.overview.trim().length < 5 || 
                            !isValidContent(props.overview);
       
@@ -261,8 +263,8 @@ export function FloatingCoachButton(props: FloatingCoachButtonProps) {
       className={`fixed bottom-6 right-6 px-4 py-3 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 z-50 border ${buttonState.className}`}
       title={
         !canGenerate ? (
-          props.title.trim().length === 0 || props.overview.trim().length < 5 || !isValidContent(props.overview)
-            ? "タイトルと作品概要（5文字以上）を入力してください"
+          props.title.trim().length === 0 || props.category.trim().length === 0 || props.overview.trim().length < 5 || !isValidContent(props.overview)
+            ? "タイトル、カテゴリ、作品概要（5文字以上）を入力してください"
             : "入力内容に変化がないため無効"
         ) :
         authError ? "クリックして再ログイン" :

@@ -129,7 +129,7 @@ export function getValidationStyle(status: ValidationState['status']) {
       };
     default:
       return {
-        borderColor: 'border-input-border',
+        borderColor: 'border-black',
         iconColor: 'text-muted-foreground',
         bgColor: 'bg-input'
       };

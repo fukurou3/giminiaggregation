@@ -49,14 +49,14 @@ export function TagChip({
     : tag;
 
   const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5 font-normal',
-    md: 'text-sm px-3 py-1 font-normal',
-    lg: 'text-base px-4 py-1.5 font-normal'
+    sm: 'text-xs px-2 py-1 font-normal',
+    md: 'text-sm px-3 py-1.5 font-normal',
+    lg: 'text-base px-4 py-2 font-normal'
   };
 
   const variantClasses = {
     default: 'text-black border-0 hover:bg-gray-200' + ' bg-[#f4f7fb]',
-    outlined: 'bg-transparent text-foreground border border-border hover:bg-muted',
+    outlined: 'bg-transparent text-foreground border-0 hover:bg-gray-200',
     ghost: 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
   };
 
