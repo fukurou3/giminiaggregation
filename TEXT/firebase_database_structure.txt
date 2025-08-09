@@ -1,0 +1,327 @@
+# Firebaseデータベース構造詳細説明書
+新人開発者向けの完全ガイド
+
+## 概要
+このアプリケーションでは、Firebase Firestoreをメインデータベースとして使用しています。
+以下の5つの主要コレクションで構成されています：
+
+1. **posts** - 作品投稿データ
+2. **columns** - コラム記事データ
+3. **tags** - タグ管理データ
+4. **userProfiles** - ユーザープロフィールデータ
+5. **tagCategoryCount** - タグ×カテゴリ統計データ
+
+また、管理者用の追加コレクションも存在します。
+
+---
+
+## 1. postsコレクション
+**概要**: ユーザーが投稿する作品データを格納
+
+### ドキュメント構造
+```typescript
+interface Post {
+  id: string;                    // ドキュメントID（自動生成）
+  title: string;                 // 作品タイトル
+  url: string;                   // 作品URL
+  description: string;           // 作品説明
+  tagIds: string[];              // タグID配列（tagsコレクションと関連）
+  categoryId: string;            // カテゴリID
+  customCategory?: string;       // カスタムカテゴリ名（"その他"選択時）
+  authorId: string;              // 作者のFirebase Auth UID
+  authorUsername: string;        // 作者の公開ハンドル名
+  thumbnailUrl?: string;         // サムネイル画像URL
+  ogpTitle?: string;             // OGPタイトル
+  ogpDescription?: string;       // OGP説明文
+  ogpImage?: string;             // OGP画像URL
+  isPublic: boolean;             // 公開状態
+  createdAt: Timestamp;          // 作成日時
+  updatedAt: Timestamp;          // 更新日時
+  likes: number;                 // いいね数（旧形式）
+  favoriteCount: number;         // お気に入り数（新形式）
+  views: number;                 // 閲覧数
+  featured: boolean;             // おすすめフラグ
+  // コンセプト詳細フィールド（任意項目）
+  problemBackground?: string;    // 課題・背景（最大1000文字）
+  useCase?: string;              // 想定シーン・利用者（最大1000文字）
+  uniquePoints?: string;         // 差別化ポイント（最大1000文字）
+  futureIdeas?: string;          // 応用・発展アイデア（最大1000文字）
+  acceptInterview?: boolean;     // 運営取材の受け入れ（デフォルト: false）
+}
+```
+
+### サブコレクション
+#### favoriteShards
+**パス**: `posts/{postId}/favoriteShards/{shardId}`
+**用途**: 大量のお気に入りを効率的に管理するためのシャード
+
+```typescript
+interface FavoriteShard {
+  count: number;               // このシャードのカウント
+  users: string[];             // お気に入りしたユーザーID配列
+}
+```
+
+### インデックス設定
+- `isPublic` + `views` (desc) + `favoriteCount` (desc)
+- `isPublic` + `categoryId` + `createdAt` (desc)
+- `isPublic` + `authorId` + `createdAt` (desc)
+
+### 使用場面
+- 作品一覧表示
+- 検索・フィルタリング
+- ランキング表示
+- ユーザー投稿履歴
+
+---
+
+## 2. columnsコレクション
+**概要**: コラム記事データを格納
+
+### ドキュメント構造
+```typescript
+interface ColumnSummary {
+  id: string;                  // ドキュメントID
+  title: string;               // コラムタイトル
+  slug: string;                // URL用スラッグ（一意）
+  author: string;              // 著者名
+  excerpt: string;             // 要約・抜粋
+  coverImage?: string;         // カバー画像URL
+  category: string;            // カテゴリ
+  createdAt: Date;             // 作成日時
+  updatedAt?: Date;            // 更新日時
+  views: number;               // 閲覧数
+  likes: number;               // いいね数
+  isPublished: boolean;        // 公開状態
+  featured?: boolean;          // 注目記事フラグ
+}
+```
+
+### インデックス設定
+- `isPublished` + `featured` + `createdAt` (desc)
+- `isPublished` + `category` + `createdAt` (desc)
+- `slug` (unique)
+
+### 使用場面
+- コラム一覧表示
+- 注目記事の抽出
+- SEO対応（slug使用）
+
+---
+
+## 3. tagsコレクション
+**概要**: タグの管理とメタデータ
+
+### ドキュメント構造
+```typescript
+interface Tag {
+  id: string;                  // タグID（generateTagId関数で生成）
+  name: string;                // タグの表示名
+  aliases: string[];           // エイリアス（検索用）
+  count: number;               // 使用回数
+  isOfficial: boolean;         // 公式タグかどうか
+  views: number;               // 閲覧数
+  favorites: number;           // お気に入り数
+  flagged: boolean;            // 通報フラグ
+  createdAt: Timestamp;        // 作成日時
+  updatedAt: Timestamp;        // 更新日時
+}
+```
+
+### サブコレクション
+#### reports
+**パス**: `tags/{tagId}/reports/{reportId}`
+**用途**: タグの通報管理
+
+```typescript
+interface TagReport {
+  id: string;                  // 通報ID
+  tagId: string;               // 対象タグID
+  reason: string;              // 通報理由
+  userId: string;              // 通報者ID
+  createdAt: Timestamp;        // 通報日時
+}
+```
+
+### タグID生成ルール
+```typescript
+function generateTagId(tagName: string): string {
+  return tagName
+    .toLowerCase()
+    .replace(/[・\s]+/g, '_')          // 中点・スペースをアンダースコアに
+    .replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF_-]/g, '') // 日本語・英数字以外削除
+    .trim();
+}
+```
+
+### 使用場面
+- タグ検索・候補表示
+- 人気タグランキング
+- 投稿時のタグ付け
+- 通報システム
+
+---
+
+## 4. userProfilesコレクション
+**概要**: ユーザーの公開プロフィール情報
+
+### ドキュメント構造
+```typescript
+interface UserProfile {
+  uid: string;                 // Firebase Auth UID（ドキュメントID）
+  publicId: string;            // 英数字6-10桁のランダムID（公開用）
+  username: string;            // 日本語10文字までの公開ハンドル
+  photoURL?: string;           // プロフィール画像URL
+  photoFileName?: string;      // 画像ファイル名（GCS用）
+  createdAt: Date;             // 作成日時
+  updatedAt: Date;             // 更新日時
+  isSetupComplete: boolean;    // プロフィール設定完了フラグ
+}
+```
+
+### バリデーションルール
+- `publicId`: 6-10文字の英数字、一意性チェック必要
+- `username`: 10文字以内の日本語
+- プロフィール画像: Google Cloud Storageに保存
+
+### インデックス設定
+- `publicId` (unique)
+
+### 使用場面
+- ユーザープロフィール表示
+- 投稿者情報の表示
+- アカウント設定
+
+---
+
+## 5. tagCategoryCountコレクション
+**概要**: タグとカテゴリの組み合わせ統計
+
+### ドキュメント構造
+```typescript
+interface TagCategoryCount {
+  id: string;                  // `${tagId}_${categoryId}` 形式
+  tagId: string;               // 対象タグID
+  categoryId: string;          // 対象カテゴリID
+  count: number;               // この組み合わせの投稿数
+  updatedAt: Timestamp;        // 更新日時
+}
+```
+
+### 更新タイミング
+- 投稿作成時: カウント+1
+- 投稿削除時: カウント-1
+- 投稿のタグ・カテゴリ変更時: 該当カウント調整
+
+### 使用場面
+- タグ検索時のカテゴリ別フィルタリング
+- タグページでのカテゴリ別統計表示
+
+---
+
+## 管理者用コレクション
+
+### adminTopicHighlightsコレクション
+**概要**: トピックハイライトの手動設定
+
+```typescript
+interface AdminTopicHighlightConfig {
+  id: string;                  // 設定ID
+  title: string;               // ハイライトタイトル
+  postIds: string[];           // 注目投稿ID配列
+  order: number;               // 表示順序
+  isActive: boolean;           // 有効フラグ
+  updatedAt: Date;             // 更新日時
+}
+```
+
+### 使用場面
+- ホームページのトピックハイライト
+- 管理者による手動キュレーション
+
+---
+
+## データの関連性
+
+### 1. Post ↔ Tags関係
+- `posts.tagIds[]` → `tags.id`
+- 多対多の関係
+- タグ削除時は関連投稿からtagId除去が必要
+
+### 2. Post ↔ UserProfile関係
+- `posts.authorId` → `userProfiles.uid`
+- 一対多の関係
+- ユーザー削除時は投稿の処理検討が必要
+
+### 3. Tag ↔ TagCategoryCount関係
+- `tags.id` → `tagCategoryCount.tagId`
+- 一対多の関係
+- 集計データの整合性管理が重要
+
+### 4. Posts ↔ FavoriteShards関係
+- `posts/{id}/favoriteShards/*`
+- 親子関係（サブコレクション）
+- 分散カウンターパターンを使用
+
+---
+
+## セキュリティルール概要
+
+### 読み取り権限
+- `posts`: 公開投稿は全員、非公開は作者のみ
+- `columns`: 公開記事は全員
+- `tags`: 公開情報は全員
+- `userProfiles`: 基本情報は全員、詳細は本人のみ
+- `tagCategoryCount`: 統計情報は全員
+
+### 書き込み権限
+- `posts`: 認証済みユーザー（作者のみ編集可）
+- `tags`: 自動作成は許可、手動変更は制限
+- `userProfiles`: 本人のみ
+- 管理者用コレクション: 管理者のみ
+
+---
+
+## パフォーマンス最適化
+
+### 1. インデックス戦略
+- 複合インデックスを適切に設定
+- ソート条件を含むクエリに対応
+- 不要なインデックスは削除
+
+### 2. データ取得最適化
+- 必要な分だけlimitを設定
+- ページネーション実装
+- キャッシュ活用
+
+### 3. 書き込み最適化
+- バッチ処理の活用
+- トランザクション使用
+- 分散カウンター（お気に入り機能）
+
+---
+
+## 注意点・ベストプラクティス
+
+### 1. データ整合性
+- 関連データの削除時は依存関係をチェック
+- カウンター更新は原子性を保証
+- 定期的なデータクリーンアップ
+
+### 2. スケーラビリティ
+- ホットスポット回避
+- 適切なドキュメント設計
+- サブコレクション活用
+
+### 3. セキュリティ
+- 個人情報の適切な管理
+- 入力値検証
+- 権限チェック
+
+### 4. 監視・ログ
+- エラーログの記録
+- パフォーマンス監視
+- 使用量追跡
+
+この構造を理解して、適切にデータの読み書きを行ってください。
+不明点があれば、コード内のコメントやType定義も参照してください。

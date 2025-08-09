@@ -104,6 +104,12 @@ export async function GET(request: NextRequest) {
         ogpTitle: data.ogpTitle || null,
         ogpDescription: data.ogpDescription || null,
         ogpImage: data.ogpImage || null,
+        // コンセプト詳細フィールド
+        problemBackground: data.problemBackground || undefined,
+        useCase: data.useCase || undefined,
+        uniquePoints: data.uniquePoints || undefined,
+        futureIdeas: data.futureIdeas || undefined,
+        acceptInterview: data.acceptInterview || false,
       };
     });
 
@@ -273,6 +279,11 @@ export async function POST(request: NextRequest) {
     // 投稿データの準備
     const sanitizedTitle = sanitizeHtml(formData.title);
     const sanitizedDescription = sanitizeHtml(formData.description);
+    const sanitizedProblemBackground = formData.problemBackground ? sanitizeHtml(formData.problemBackground) : undefined;
+    const sanitizedUseCase = formData.useCase ? sanitizeHtml(formData.useCase) : undefined;
+    const sanitizedUniquePoints = formData.uniquePoints ? sanitizeHtml(formData.uniquePoints) : undefined;
+    const sanitizedFutureIdeas = formData.futureIdeas ? sanitizeHtml(formData.futureIdeas) : undefined;
+    
     const postData = {
       title: sanitizedTitle,
       url: formData.url,
@@ -284,6 +295,13 @@ export async function POST(request: NextRequest) {
         : {}),
       thumbnailUrl: formData.thumbnailUrl || '',
       isPublic: formData.isPublic,
+      
+      // コンセプト詳細フィールド
+      ...(sanitizedProblemBackground ? { problemBackground: sanitizedProblemBackground } : {}),
+      ...(sanitizedUseCase ? { useCase: sanitizedUseCase } : {}),
+      ...(sanitizedUniquePoints ? { uniquePoints: sanitizedUniquePoints } : {}),
+      ...(sanitizedFutureIdeas ? { futureIdeas: sanitizedFutureIdeas } : {}),
+      acceptInterview: formData.acceptInterview || false,
       
       // システム自動設定項目
       authorId: userInfo.uid,

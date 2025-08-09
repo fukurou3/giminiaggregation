@@ -9,7 +9,7 @@ import { toggleFavorite, isFavorited as checkIsFavorited } from "@/lib/favorites
 import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import { TagChip } from "@/components/ui/TagChip";
-import { ExternalLink, Heart, Eye, Calendar, User, ArrowLeft } from "lucide-react";
+import { ExternalLink, Heart, Calendar, User, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import type { Post } from "@/types/Post";
 import { formatDate } from '@/lib/utils/date';
@@ -201,12 +201,8 @@ export default function PostDetailPage() {
                     </div>
                   </div>
 
-                  {/* いいね・ビューカウント */}
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1 text-muted-foreground">
-                      <Eye size={16} />
-                      <span>{post.views}</span>
-                    </div>
+                  {/* いいねボタン */}
+                  <div className="flex items-center">
                     <button
                       onClick={handleFavorite}
                       disabled={!user}

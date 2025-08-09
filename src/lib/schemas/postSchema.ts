@@ -10,6 +10,13 @@ export const postSchema = z.object({
   category: z.string().min(1, "カテゴリは必須です"),
   thumbnailUrl: z.string().url().optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   isPublic: z.boolean().default(true),
+  // コンセプト詳細フィールド（任意項目）
+  problemBackground: z.string().max(1000, "課題・背景は1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  useCase: z.string().max(1000, "想定シーン・利用者は1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  uniquePoints: z.string().max(1000, "差別化ポイントは1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  futureIdeas: z.string().max(1000, "応用・発展アイデアは1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  // その他のフィールド
+  acceptInterview: z.boolean().optional().default(false),
 });
 
 export const categorySchema = z.object({

@@ -22,6 +22,12 @@ export type Post = {
   favoriteCount: number;
   views: number;
   featured: boolean;
+  // コンセプト詳細フィールド（任意項目）
+  problemBackground?: string; // 課題・背景
+  useCase?: string;           // 想定シーン・利用者
+  uniquePoints?: string;      // 差別化ポイント
+  futureIdeas?: string;       // 応用・発展アイデア
+  acceptInterview?: boolean;  // 運営取材の受け入れ
 };
 
 export type Category = {

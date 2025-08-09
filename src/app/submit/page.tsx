@@ -233,16 +233,16 @@ export default function SubmitPage() {
 
             {/* 課題・背景 */}
             <Field
-              id="submit-challenge"
+              id="submit-problem-background"
               label="課題・背景"
               help="何を解決したかったか、どうして作ろうと思ったか"
-              error={errors.challenge}
+              error={errors.problemBackground}
             >
               <AutosizeTextarea
-                id="submit-challenge"
-                name="challenge"
-                value={formData.challenge || ""}
-                onChange={(e) => handleInputChange("challenge", e.target.value)}
+                id="submit-problem-background"
+                name="problemBackground"
+                value={formData.problemBackground || ""}
+                onChange={(e) => handleInputChange("problemBackground", e.target.value)}
                 placeholder=""
                 rows={3}
                 minHeight="72px"
@@ -271,16 +271,16 @@ export default function SubmitPage() {
 
             {/* 差別化ポイント */}
             <Field
-              id="submit-differentiator"
+              id="submit-unique-points"
               label="差別化ポイント"
               help="他と違う工夫・独自性（UI/UX、使い方の発想、組み合わせ方など）"
-              error={errors.differentiator}
+              error={errors.uniquePoints}
             >
               <AutosizeTextarea
-                id="submit-differentiator"
-                name="differentiator"
-                value={formData.differentiator || ""}
-                onChange={(e) => handleInputChange("differentiator", e.target.value)}
+                id="submit-unique-points"
+                name="uniquePoints"
+                value={formData.uniquePoints || ""}
+                onChange={(e) => handleInputChange("uniquePoints", e.target.value)}
                 placeholder=""
                 rows={3}
                 minHeight="72px"
