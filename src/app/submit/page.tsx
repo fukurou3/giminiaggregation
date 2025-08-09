@@ -130,7 +130,7 @@ export default function SubmitPage() {
                 type="text"
                 value={formData.title || ""}
                 onChange={(e) => handleInputChange("title", e.target.value)}
-                placeholder="サイト名・作品名"
+                placeholder="作品名 12文字程度推奨"
                 className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               />
               {errors.title && <p className="text-error text-sm mt-1">{errors.title}</p>}
