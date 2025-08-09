@@ -1,7 +1,10 @@
 /**
  * ログ・監視ユーティリティ
  * 構造化ログ出力と将来のSentry/DataDog連携準備
+ * プライバシー配慮済み（個人情報のハッシュ化・除外）
  */
+
+import { createHash } from 'crypto';
 
 export interface LogContext {
   userId?: string;
@@ -18,16 +21,67 @@ export interface LogPayload extends Record<string, any> {
 }
 
 /**
- * 構造化ログイベントの出力
+ * プライバシー配慮のためのハッシュ化
+ */
+function hashSensitiveData(data: string): string {
+  return createHash('sha256').update(data).digest('hex').substring(0, 12);
+}
+
+/**
+ * 個人情報を含む可能性のあるデータをサニタイズ
+ */
+function sanitizeLogData(data: any): any {
+  if (typeof data !== 'object' || data === null) {
+    return data;
+  }
+
+  const sanitized = { ...data };
+  
+  // タイトルや説明文は記録しない（プライバシー保護）
+  if ('title' in sanitized) {
+    delete sanitized.title;
+  }
+  if ('description' in sanitized) {
+    delete sanitized.description;
+  }
+  
+  // IPアドレスはハッシュ化
+  if ('client_ip' in sanitized && typeof sanitized.client_ip === 'string') {
+    sanitized.client_ip_hash = hashSensitiveData(sanitized.client_ip);
+    delete sanitized.client_ip;
+  }
+  if ('ip' in sanitized && typeof sanitized.ip === 'string') {
+    sanitized.ip_hash = hashSensitiveData(sanitized.ip);
+    delete sanitized.ip;
+  }
+  
+  // ユーザーエージェントは部分的に記録
+  if ('user_agent' in sanitized && typeof sanitized.user_agent === 'string') {
+    sanitized.user_agent_family = sanitized.user_agent.split(' ')[0] || 'unknown';
+    delete sanitized.user_agent;
+  }
+  if ('userAgent' in sanitized && typeof sanitized.userAgent === 'string') {
+    sanitized.user_agent_family = sanitized.userAgent.split(' ')[0] || 'unknown';
+    delete sanitized.userAgent;
+  }
+  
+  return sanitized;
+}
+
+/**
+ * 構造化ログイベントの出力（プライバシー配慮済み）
  */
 export function logEvent(name: string, payload: LogPayload = {}): void {
   try {
-    const logData = {
+    const rawLogData = {
       name,
       timestamp: Date.now(),
       level: 'info',
       ...payload,
     };
+    
+    // プライバシー配慮のためのデータサニタイズ
+    const logData = sanitizeLogData(rawLogData);
     
     // 本番環境では外部ログサービスに送信
     if (process.env.NODE_ENV === 'production') {
@@ -75,7 +129,7 @@ export class PerformanceTimer {
 }
 
 /**
- * エラーログの出力
+ * エラーログの出力（プライバシー配慮済み）
  */
 export function logError(error: Error | unknown, context: LogContext = {}, additionalData: Record<string, any> = {}): void {
   const errorData: Record<string, any> = {
@@ -85,11 +139,21 @@ export function logError(error: Error | unknown, context: LogContext = {}, addit
   };
 
   if (error instanceof Error) {
-    errorData.error_message = error.message;
-    errorData.error_stack = error.stack;
+    // エラーメッセージから個人情報を除外
+    const sanitizedMessage = error.message
+      .replace(/title:\s*[^,\n]+/gi, 'title: [REDACTED]')
+      .replace(/description:\s*[^,\n]+/gi, 'description: [REDACTED]')
+      .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP_REDACTED]');
+    
+    errorData.error_message = sanitizedMessage;
     errorData.error_name = error.name;
+    
+    // スタックトレースは本番環境では記録しない（内部実装の漏洩防止）
+    if (process.env.NODE_ENV !== 'production') {
+      errorData.error_stack = error.stack;
+    }
   } else {
-    errorData.error_message = String(error);
+    errorData.error_message = '[NON_ERROR_OBJECT]';
   }
 
   logEvent('error_occurred', errorData);

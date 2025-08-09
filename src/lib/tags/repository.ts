@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase';
 import { 
   collection, 
   doc, 
+  getDoc,
   getDocs, 
   query, 
   where, 
@@ -51,38 +52,41 @@ export class TagRepository {
 
       if (!wanted.length) return;
 
-      // 既存タグを効率的に検索（IN句10件制限対応）
-      const existing = new Map<string, string>(); // slug -> docId
-      const chunks = this.chunk(wanted, CONFIG.FIRESTORE_BATCH_SIZE);
+      // 既存タグをslug ID で効率的に検索（document ID として slug を使用）
+      const existing = new Set<string>(); // 存在するslugのセット
+      
+      // 並列でドキュメント存在チェック
+      const existsChecks = wanted.map(async ({ slug }) => {
+        try {
+          // slug を document ID として直接参照（最高効率）
+          const docRef = doc(db, TAGS_COLLECTION, slug);
+          const docSnap = await getDoc(docRef);
+          return docSnap.exists() ? slug : null;
+        } catch {
+          // slug が無効な document ID の場合（特殊文字など）
+          return null;
+        }
+      });
+      
+      const results = await Promise.all(existsChecks);
+      results.forEach(slug => {
+        if (slug) existing.add(slug);
+      });
 
-      for (const chunk of chunks) {
-        const slugs = chunk.map(w => w.slug);
-        const snapshot = await getDocs(
-          query(collection(db, TAGS_COLLECTION), where('slug', 'in', slugs))
-        );
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.slug) {
-            existing.set(data.slug, doc.id);
-          }
-        });
-      }
-
-      // 並列でupdate/create処理
+      // 並列でupdate/create処理（slug を document ID として使用）
       const operations = wanted.map(async ({ label, slug }) => {
-        const existingId = existing.get(slug);
+        const docRef = doc(db, TAGS_COLLECTION, slug);
         
-        if (existingId) {
+        if (existing.has(slug)) {
           // 既存タグの更新
-          await updateDoc(doc(db, TAGS_COLLECTION, existingId), {
+          await updateDoc(docRef, {
             usageCount: increment(1),
             lastUsedAt: serverTimestamp(),
             label, // より良い表記があれば更新
           });
         } else {
-          // 新規タグの作成
-          const newDocRef = doc(collection(db, TAGS_COLLECTION));
-          await setDoc(newDocRef, {
+          // 新規タグの作成（slug を document ID として使用）
+          await setDoc(docRef, {
             label,
             slug,
             usageCount: 1,

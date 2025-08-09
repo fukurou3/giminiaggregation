@@ -26,6 +26,9 @@ export const CONFIG = {
   
   // Batch Processing Settings
   FIRESTORE_BATCH_SIZE: Number(process.env.FIRESTORE_BATCH_SIZE ?? 10), // Firestore IN句制限対応
+  
+  // AI Timeout Settings
+  AI_TIMEOUT_MS: Number(process.env.AI_TIMEOUT_MS ?? 12000), // AI呼び出しタイムアウト（ms）
 } as const;
 
 /**
@@ -52,6 +55,10 @@ export function validateConfig(): void {
   
   if (CONFIG.CACHE_TTL_MS < 1000 || CONFIG.CACHE_TTL_MS > 3600000) {
     errors.push("CACHE_TTL_MS must be between 1000 and 3600000");
+  }
+  
+  if (CONFIG.AI_TIMEOUT_MS < 5000 || CONFIG.AI_TIMEOUT_MS > 30000) {
+    errors.push("AI_TIMEOUT_MS must be between 5000 and 30000");
   }
   
   if (errors.length > 0) {

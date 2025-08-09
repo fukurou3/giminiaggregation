@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
+import { getAuth } from "firebase/auth";
 import { TagRepository } from "@/lib/tags/repository";
 
 interface AutoTagButtonProps {
@@ -36,12 +37,25 @@ export function AutoTagButton({
     setIsLoading(true);
     setError(null);
 
+    // タイムアウト制御
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 15000); // 15秒
+
     try {
+      // Firebase Auth トークン取得
+      const auth = getAuth();
+      const idToken = await auth.currentUser?.getIdToken?.();
+      
+      if (!idToken) {
+        throw new Error("ログインが必要です");
+      }
+
       // Generate tags using AI
       const response = await fetch("/api/generate-tags", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           title: title.trim(),
@@ -50,19 +64,32 @@ export function AutoTagButton({
           locale: "ja",
           // existingTags will be fetched by the service
         }),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error("アクセスが集中しています。少し待って再試行してください。");
+        } else if (response.status === 401) {
+          throw new Error("認証エラー：再ログインしてください。");
+        }
         throw new Error("タグ生成に失敗しました");
       }
 
       const data: GenerateTagsResponse = await response.json();
       
       if (data.all && data.all.length > 0) {
-        // Merge with current tags, avoiding duplicates
+        // 正規化関数（クライアント側での軽量重複防止）
+        const normalize = (s: string) =>
+          s.normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
+
+        // Merge with current tags, avoiding duplicates with normalization
         const newTags = [...currentTags];
         for (const tag of data.all) {
-          if (!newTags.includes(tag) && newTags.length < maxTags) {
+          const normalizedTag = normalize(tag);
+          const isDuplicate = newTags.some(t => normalize(t) === normalizedTag);
+          
+          if (!isDuplicate && newTags.length < maxTags) {
             newTags.push(tag);
           }
         }
@@ -72,8 +99,14 @@ export function AutoTagButton({
       }
     } catch (err) {
       console.error("Tag generation error:", err);
-      setError(err instanceof Error ? err.message : "タグ生成中にエラーが発生しました");
+      
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError("リクエストがタイムアウトしました。再度お試しください。");
+      } else {
+        setError(err instanceof Error ? err.message : "タグ生成中にエラーが発生しました");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };

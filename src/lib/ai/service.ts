@@ -36,8 +36,19 @@ interface CacheEntry {
 
 /**
  * インメモリキャッシュ（同一リクエスト連打の吸収）
+ * 注意：サーバーレス環境では各インスタンスで独立したキャッシュを持つ
+ * 本格的なキャッシュが必要な場合は Redis 等の外部ストレージを検討
  */
 const cache = new Map<string, CacheEntry>();
+
+// サーバーレス環境での起動時ログ
+if (process.env.NODE_ENV === 'production') {
+  logEvent('cache_instance_init', {
+    instance_id: process.env.VERCEL_DEPLOYMENT_ID || 'unknown',
+    cache_type: 'in_memory',
+    warning: 'Each serverless instance has its own cache',
+  });
+}
 
 /**
  * タグ生成サービス
@@ -81,6 +92,30 @@ export class TagGenerationService {
       const toDelete = entries.slice(0, cache.size - CONFIG.CACHE_MAX_SIZE);
       toDelete.forEach(([key]) => cache.delete(key));
     }
+  }
+
+  /**
+   * タイムアウト付き実行
+   */
+  private static async withTimeout<T>(
+    fn: () => Promise<T>,
+    timeoutMs: number
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`AI request timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      
+      fn()
+        .then(result => {
+          clearTimeout(timer);
+          resolve(result);
+        })
+        .catch(error => {
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
   }
 
   /**
@@ -128,7 +163,16 @@ export class TagGenerationService {
     
     try {
       // 既存タグを取得（引数で指定されたものまたはFirestoreから取得）
-      const existingTags = request.existingTags || await TagRepository.fetchExistingTags();
+      let existingTags = request.existingTags || await TagRepository.fetchExistingTags();
+      
+      // コスト制御：既存タグを最大400件に制限（最終防衛）
+      if (existingTags.length > 400) {
+        existingTags = existingTags.slice(0, 400);
+        logEvent('existing_tags_limited', {
+          original_count: request.existingTags?.length || 'fetched',
+          limited_count: 400,
+        });
+      }
       
       // プロンプト入力を構築
       const promptInput: TagGenerationInput = {
@@ -147,6 +191,8 @@ export class TagGenerationService {
         logEvent('tag_generation_cache_hit', {
           duration_ms: Date.now() - startTime,
           cache_age_ms: Date.now() - cached.timestamp,
+          instance_id: process.env.VERCEL_DEPLOYMENT_ID || 'unknown',
+          cache_size: cache.size,
         });
         return cached.value;
       }
@@ -155,10 +201,13 @@ export class TagGenerationService {
       const aiClient = createAIClient();
       const prompt = buildTagGenerationPrompt(promptInput);
       
-      // リトライ付きでAI呼び出し
+      // リトライ付きでAI呼び出し（サーバー側タイムアウト付き）
       const rawResponse = await this.withRetry(async () => {
         const aiStartTime = Date.now();
-        const response = await aiClient.generateText(prompt);
+        const response = await this.withTimeout(
+          () => aiClient.generateText(prompt),
+          CONFIG.AI_TIMEOUT_MS
+        );
         const aiDuration = Date.now() - aiStartTime;
         
         // AI APIの使用ログ
@@ -224,7 +273,7 @@ export class TagGenerationService {
       
       logError(error, {}, {
         operation: 'generateTags',
-        title: title.substring(0, 100), // タイトルの一部をログ
+        title_length: title.length, // タイトルの長さのみ記録（プライバシー配慮）
         duration_ms: duration,
       });
       

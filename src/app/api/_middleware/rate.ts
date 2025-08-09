@@ -12,6 +12,8 @@ interface RateLimitBucket {
 }
 
 // メモリベースのレート制限バケット
+// 注意：サーバーレス環境では各インスタンスで独立したレート制限を管理
+// グローバルなレート制限が必要な場合は Redis 等の外部ストレージを検討
 const buckets = new Map<string, RateLimitBucket>();
 
 /**
@@ -110,11 +112,24 @@ export function getClientIP(request: Request): string {
 }
 
 /**
+ * 認証ユーザー用のレート制限キーを生成
+ * ユーザーIDを優先し、未認証の場合はIPアドレスを使用
+ */
+export function getRateLimitKey(uid?: string, fallbackIP?: string): string {
+  if (uid) {
+    return `user:${uid}`;
+  }
+  return `ip:${fallbackIP || 'unknown'}`;
+}
+
+/**
  * レート制限情報をヘッダーに設定するためのヘルパー
+ * 429 レスポンス時の Retry-After ヘッダー対応
  */
 export function createRateLimitHeaders(
   key: string, 
-  limit: number = CONFIG.RATE_LIMIT_MAX
+  limit: number = CONFIG.RATE_LIMIT_MAX,
+  isRateLimited: boolean = false
 ): Record<string, string> {
   const remaining = getRemainingRequests(key, limit);
   const resetTime = getResetTime(key);
@@ -126,6 +141,12 @@ export function createRateLimitHeaders(
   
   if (resetTime) {
     headers['X-RateLimit-Reset'] = Math.ceil(resetTime / 1000).toString(); // Unix timestamp
+    
+    // 429レスポンス時のみ Retry-After ヘッダーを追加
+    if (isRateLimited) {
+      const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
+      headers['Retry-After'] = Math.max(1, retryAfterSeconds).toString(); // 最低1秒
+    }
   }
   
   return headers;
