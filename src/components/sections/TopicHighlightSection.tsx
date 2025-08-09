@@ -2,6 +2,7 @@
 
 import { Tag } from 'lucide-react';
 import { BaseCard } from '@/components/ui/BaseCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HorizontalScrollContainer } from '@/components/ui/HorizontalScrollContainer';
 import { TopicHighlight } from '@/types/Topic';
 
@@ -14,23 +15,21 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
   // すべての投稿を1つの配列にまとめる
   const allPosts = topicHighlights.flatMap(highlight => highlight.featuredPosts);
 
-  // ヘッダーコンポーネントを共通化
-  const renderHeader = () => (
-    <div className="flex items-center space-x-3">
-      <div className="p-2 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl">
-        <Tag className="w-6 h-6 text-white" />
-      </div>
-      <div>
-        <h2 className={`${loading ? 'text-xl' : 'text-2xl'} font-bold text-foreground`}>今週のおすすめ</h2>
-        {loading && <p className="text-muted-foreground">注目のジャンル・タグ</p>}
-      </div>
-    </div>
+  const sectionHeader = (
+    <SectionHeader
+      icon={Tag}
+      iconGradient={{ from: 'green-500', to: 'blue-500' }}
+      title="今週のおすすめ"
+      titleSize="lg"
+      description="注目のジャンル・タグ"
+      loading={loading}
+    />
   );
 
   if (loading) {
     return (
       <section className="space-y-6">
-        {renderHeader()}
+        {sectionHeader}
 
         {/* Loading skeleton */}
         <div className="overflow-x-auto">
@@ -47,7 +46,7 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
   if (allPosts.length === 0) {
     return (
       <section className="space-y-6">
-        {renderHeader()}
+        {sectionHeader}
         
         {/* Empty State */}
         <div className="text-center py-12">
@@ -62,7 +61,7 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
   return (
     <section className="space-y-6">
       {/* Header */}
-      {renderHeader()}
+      {sectionHeader}
 
       {/* 横スクロールカード - デスクトップのみ */}
       <HorizontalScrollContainer dependencies={[allPosts]}>

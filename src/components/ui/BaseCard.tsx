@@ -99,7 +99,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         </div>
 
         {/* コンテンツ - CSS Grid 3行2列構造 */}
-        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 h-26 relative z-10 grid grid-rows-[auto_auto_auto] grid-cols-[1fr_auto] gap-1">
+        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 h-26 relative z-5 grid grid-rows-[auto_auto_auto] grid-cols-[1fr_auto] gap-1">
           {/* Row 1: タイトル（左右いっぱい） */}
           <div className="col-span-2 flex items-center gap-2">
             {rank && (

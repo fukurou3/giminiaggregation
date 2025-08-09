@@ -8,8 +8,7 @@ import { Post } from '@/types/Post'
 import { PostGrid } from '@/components/ui/PostGrid'
 import { useFetch } from '@/lib/api/useApi'
 import { createPostFilter } from '@/lib/utils/postFilters'
-
-
+import { SectionHeader } from '@/components/ui/SectionHeader'
 
 export default function RankingPage() {
   const searchParams = useSearchParams()
@@ -37,54 +36,40 @@ export default function RankingPage() {
   const postFilter = createPostFilter(true); // 一時的にいいね数0の投稿も表示
   const posts = postFilter(postsResponse?.data?.posts || []);
 
-  // ヘッダーコンポーネントを共通化
-  const renderHeader = () => (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
-          <TrendingUp className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">ランキング</h1>
-        </div>
-      </div>
+  const dropdownElement = (
+    <div className="relative">
+      <button
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] relative"
+      >
+        <span>{period === 'all' ? '全期間' : '今週投稿'}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
       
-      {!loading && (
-        <div className="relative">
+      {isDropdownOpen && (
+        <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-20 min-w-[120px]">
           <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] relative"
+            onClick={() => {
+              setPeriod('all');
+              setIsDropdownOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
+              period === 'all' ? 'text-primary font-medium' : 'text-foreground'
+            }`}
           >
-            <span>{period === 'all' ? '全期間' : '今週投稿'}</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            全期間
           </button>
-          
-          {isDropdownOpen && (
-            <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
-              <button
-                onClick={() => {
-                  setPeriod('all');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
-                  period === 'all' ? 'text-primary font-medium' : 'text-foreground'
-                }`}
-              >
-                全期間
-              </button>
-              <button
-                onClick={() => {
-                  setPeriod('week');
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
-                  period === 'week' ? 'text-primary font-medium' : 'text-foreground'
-                }`}
-              >
-                今週投稿のみ
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => {
+              setPeriod('week');
+              setIsDropdownOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+              period === 'week' ? 'text-primary font-medium' : 'text-foreground'
+            }`}
+          >
+            今週投稿のみ
+          </button>
         </div>
       )}
     </div>
@@ -95,7 +80,14 @@ export default function RankingPage() {
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <section className="space-y-6">
-            {renderHeader()}
+            <SectionHeader
+            icon={TrendingUp}
+            iconGradient={{ from: 'orange-500', to: 'red-500' }}
+            title="ランキング"
+            titleSize="lg"
+            rightElement={dropdownElement}
+            loading={loading}
+          />
 
             {/* Loading skeleton */}
             {/* 大画面：グリッドカード */}
@@ -121,9 +113,14 @@ export default function RankingPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <section className="space-y-6">
           {/* Header */}
-          {renderHeader()}
-
-
+          <SectionHeader
+            icon={TrendingUp}
+            iconGradient={{ from: 'orange-500', to: 'red-500' }}
+            title="ランキング"
+            titleSize="lg"
+            rightElement={dropdownElement}
+            loading={loading}
+          />
 
           {/* Grid */}
           <PostGrid

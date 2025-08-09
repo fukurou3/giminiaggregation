@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { TrendingUp, ArrowRight } from 'lucide-react';
 import { BaseCard } from '@/components/ui/BaseCard';
 import { HorizontalScrollContainer } from '@/components/ui/HorizontalScrollContainer';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Post } from '@/types/Post';
 
 interface TrendingSectionProps {
@@ -13,37 +14,28 @@ interface TrendingSectionProps {
 
 export function TrendingSection({ posts, loading = false }: TrendingSectionProps) {
 
-  // ヘッダーコンポーネントを共通化
-  const renderHeader = () => (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
-          <TrendingUp className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">今週の人気作品</h2>
-          <p className="text-muted-foreground">今週投稿の作品ランキング</p>
-        </div>
-      </div>
-      
-      {!loading && (
-        <Link 
-          href="/ranking?period=week"
-          className="flex items-center space-x-2 text-primary hover:text-primary/80 font-medium transition-colors group"
-        >
-          <span>さらに見る</span>
-          <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
-        </Link>
-      )}
-      
-      {loading && <div className="w-20 h-6 bg-muted animate-pulse rounded"></div>}
-    </div>
+  const rightElement = (
+    <Link 
+      href="/ranking?period=week"
+      className="flex items-center space-x-2 text-primary hover:text-primary/80 font-medium transition-colors group"
+    >
+      <span>さらに見る</span>
+      <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+    </Link>
   );
 
   if (loading) {
     return (
       <section className="space-y-6">
-        {renderHeader()}
+        <SectionHeader
+          icon={TrendingUp}
+          iconGradient={{ from: 'orange-500', to: 'red-500' }}
+          title="今週の人気作品"
+          titleSize="lg"
+          description="今週投稿の作品ランキング"
+          rightElement={rightElement}
+          loading={loading}
+        />
 
         {/* Loading skeleton */}
         <div className="overflow-x-auto">
@@ -62,7 +54,15 @@ export function TrendingSection({ posts, loading = false }: TrendingSectionProps
   return (
     <section className="space-y-6">
       {/* Header */}
-      {renderHeader()}
+      <SectionHeader
+          icon={TrendingUp}
+          iconGradient={{ from: 'orange-500', to: 'red-500' }}
+          title="今週の人気作品"
+          titleSize="lg"
+          description="今週投稿の作品ランキング"
+          rightElement={rightElement}
+          loading={loading}
+        />
 
       {/* Grid */}
       {/* 大画面：矢印ボタン付きスクロールカード */}

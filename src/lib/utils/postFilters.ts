@@ -39,6 +39,15 @@ export const sortPostsByLikes = (posts: Post[], order: 'desc' | 'asc' = 'desc'):
   return [...posts].sort((a, b) => {
     const aLikes = a.favoriteCount ?? a.likes ?? 0;
     const bLikes = b.favoriteCount ?? b.likes ?? 0;
-    return order === 'desc' ? bLikes - aLikes : aLikes - bLikes;
+    
+    // いいね数が異なる場合はいいね数でソート
+    if (aLikes !== bLikes) {
+      return order === 'desc' ? bLikes - aLikes : aLikes - bLikes;
+    }
+    
+    // いいね数が同じ場合は閲覧数でソート
+    const aViews = a.views ?? 0;
+    const bViews = b.views ?? 0;
+    return order === 'desc' ? bViews - aViews : aViews - bViews;
   });
-};
+};;

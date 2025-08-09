@@ -79,7 +79,7 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-20 min-w-[120px]">
                   <button
                     onClick={() => {
                       setSortBy('favorites');
@@ -132,7 +132,7 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-20 min-w-[120px]">
                   <button
                     onClick={() => {
                       setSortBy('favorites');
@@ -185,7 +185,7 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-20 min-w-[120px]">
                   <button
                     onClick={() => {
                       setSortBy('favorites');
