@@ -15,7 +15,7 @@ export function TagInput({
   tags,
   onTagsChange,
   maxTags = 5,
-  placeholder = "タグを入力してEnterキーで追加",
+  placeholder = "タグを入力して追加",
   className = "",
 }: TagInputProps) {
   const [inputValue, setInputValue] = useState("");
@@ -53,15 +53,15 @@ export function TagInput({
         {tags.map((tag, index) => (
           <span
             key={index}
-            className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+            className="inline-flex items-center gap-1 px-3 py-2 bg-background border border-border rounded-lg text-muted-foreground font-medium text-sm hover:bg-muted/50 transition-colors"
           >
             {tag}
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="text-primary/70 hover:text-primary transition-colors"
+              className="text-muted-foreground/70 hover:text-foreground transition-colors"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </button>
           </span>
         ))}
@@ -78,21 +78,6 @@ export function TagInput({
           />
         )}
       </div>
-      
-      <div className="flex justify-between text-sm text-muted-foreground">
-        <span>タグ: {tags.length}/{maxTags}</span>
-        {inputValue.length > 0 && (
-          <span className={inputValue.length > 20 ? "text-error" : ""}>
-            {inputValue.length}/20文字
-          </span>
-        )}
-      </div>
-      
-      {tags.length >= maxTags && (
-        <p className="text-sm text-muted-foreground">
-          最大{maxTags}個までのタグを追加できます
-        </p>
-      )}
     </div>
   );
 }

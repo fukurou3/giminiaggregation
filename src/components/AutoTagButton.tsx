@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
-import { getAuth } from "firebase/auth";
+import { Sparkles, Loader2, LogIn } from "lucide-react";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { TagRepository } from "@/lib/tags/repository";
 
 interface AutoTagButtonProps {
@@ -18,6 +18,7 @@ interface GenerateTagsResponse {
   picked: string[];
   fresh: string[];
   all: string[];
+  retryAfter?: number; // 429エラー時の待ち時間（秒）
 }
 
 export function AutoTagButton({
@@ -30,12 +31,30 @@ export function AutoTagButton({
 }: AutoTagButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+
+  // 再ログイン処理
+  const handleReLogin = async () => {
+    try {
+      const auth = getAuth();
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      setAuthError(false);
+      setError(null);
+    } catch (error) {
+      console.error("Re-login failed:", error instanceof Error ? error.constructor.name : 'UnknownError');
+      setError("ログインに失敗しました。再度お試しください。");
+    }
+  };
 
   const handleGenerateTags = async () => {
     if (!title.trim() || isLoading || disabled) return;
 
     setIsLoading(true);
     setError(null);
+    setAuthError(false);
+    setRetryAfter(null);
 
     // タイムアウト制御
     const abortController = new AbortController();
@@ -47,6 +66,7 @@ export function AutoTagButton({
       const idToken = await auth.currentUser?.getIdToken?.();
       
       if (!idToken) {
+        setAuthError(true);
         throw new Error("ログインが必要です");
       }
 
@@ -69,8 +89,12 @@ export function AutoTagButton({
 
       if (!response.ok) {
         if (response.status === 429) {
-          throw new Error("アクセスが集中しています。少し待って再試行してください。");
+          const errorData = await response.json().catch(() => ({}));
+          const waitTime = errorData.retryAfter || 60;
+          setRetryAfter(waitTime);
+          throw new Error(`アクセスが集中しています。${waitTime}秒後に再試行してください。`);
         } else if (response.status === 401) {
+          setAuthError(true);
           throw new Error("認証エラー：再ログインしてください。");
         }
         throw new Error("タグ生成に失敗しました");
@@ -98,7 +122,10 @@ export function AutoTagButton({
         setError("適切なタグが見つかりませんでした");
       }
     } catch (err) {
-      console.error("Tag generation error:", err);
+      // プライバシー配慮：エラー種別のみをログ出力（個人情報除外）
+      const errorType = err instanceof DOMException ? err.name : 
+                       err instanceof Error ? err.constructor.name : 'UnknownError';
+      console.error("Tag generation error type:", errorType);
       
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError("リクエストがタイムアウトしました。再度お試しください。");
@@ -126,20 +153,33 @@ export function AutoTagButton({
         ) : (
           <Sparkles className="h-4 w-4" />
         )}
-        {isLoading ? "生成中..." : "タイトルからタグ生成"}
+        {isLoading ? "生成中..." : "AIによるタグ生成"}
       </button>
       
       {error && (
-        <p className="text-sm text-error">{error}</p>
+        <div className="text-sm">
+          <p className="text-error">{error}</p>
+          {authError && (
+            <button
+              onClick={handleReLogin}
+              className="mt-2 inline-flex items-center gap-1 text-primary hover:text-primary/80 underline"
+            >
+              <LogIn className="h-3 w-3" />
+              再ログイン
+            </button>
+          )}
+        </div>
       )}
       
-      {!canGenerate && !isLoading && (
+      {retryAfter && !error && (
+        <div className="text-sm text-warning">
+          <p>レート制限中: {retryAfter}秒後に再試行可能</p>
+        </div>
+      )}
+      
+      {!canGenerate && !isLoading && !title.trim() && (
         <p className="text-xs text-muted-foreground">
-          {!title.trim() 
-            ? "タイトルを入力してください" 
-            : currentTags.length >= maxTags 
-            ? "タグの上限に達しています"
-            : ""}
+          タイトルを入力してください
         </p>
       )}
     </div>

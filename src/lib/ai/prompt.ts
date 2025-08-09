@@ -20,23 +20,20 @@ export function buildTagGenerationPrompt(input: TagGenerationInput): string {
     .slice(0, 400);
 
   const systemPrompt = `
-あなたは投稿タイトルからタグを作るアシスタントです。
+あなたに与えたタイトルと説明文は、ユーザーの作品概要です。
+まずタイトルと説明文から重要なキーワードを抽出してください。
+既存タグの中から、抽出したキーワードに最も関連性が高いタグを選びます。
+既存タグに該当がなければ、新しいタグを短く作成してください。
+タグは、ユーザーの作品が検索に引っかかりやすく、かつ乱立を防ぐために簡潔で汎用的なものにしてください。
 
-重要：出力は必ずJSON形式のみ。説明文や余計なテキストは一切出力しないでください。
-
-タスク:
-1) existingTags から関連性の高いものを最大 ${maxTags} 個選びます（厳守）。
-2) 足りない概念のみ "new" に最小限の新規タグを提案します。
-
-必須出力形式（この形式以外は禁止）:
-{"picked": ["tag1", "tag2"], "new": ["newtag1", "newtag2"]}
-
+出力は次のJSONのみ:
+{"picked": string[], "new": string[]}
 制約:
-- "picked": existingTags に含まれる文字列のみ（完全一致）
-- "new": existingTags に無い短い名詞句（#や絵文字なし、1〜5語）
-- 同義語の重複禁止。一般語より具体語を優先。
-- 言語: ${locale}
-- 必ずJSONのみ出力、余計な文章は禁止
+- "picked" は existingTags に含まれる文字列のみ
+- "new" は existingTags に無い短い名詞句（#や絵文字なし、1〜5語）
+- 同義語の重複は禁止。一般語より具体語を優先
+- 言語は入力に合わせて自然な日本語で
+- 公序良俗に反する単語やNSFW（性的・暴力的・差別的）なタグは生成しない
 `.trim();
 
   const existingList = uniqExisting.length 

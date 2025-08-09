@@ -157,16 +157,13 @@ export default function SubmitPage() {
             {/* タグ */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                タグ（任意）
+                タグ
               </label>
-              <TagInput
-                tags={formData.tags || []}
-                onTagsChange={(tags) => handleInputChange("tags", tags)}
-                maxTags={5}
-                placeholder="タグを入力してEnterキーで追加（例: 便利ツール、生産性向上）"
-              />
+              <p className="text-sm text-muted-foreground mb-2">
+                作品の特徴や用途を表すタグの追加を推奨します（最大5個、各20文字以内）
+              </p>
               
-              <div className="mt-2">
+              <div className="mb-2">
                 <AutoTagButton
                   title={formData.title || ""}
                   description={formData.description || ""}
@@ -176,10 +173,13 @@ export default function SubmitPage() {
                 />
               </div>
               
+              <TagInput
+                tags={formData.tags || []}
+                onTagsChange={(tags) => handleInputChange("tags", tags)}
+                maxTags={5}
+              />
+              
               {errors.tags && <p className="text-error text-sm mt-1">{errors.tags}</p>}
-              <p className="text-sm text-muted-foreground mt-1">
-                作品の特徴や用途を表すタグを追加できます（最大5個、各20文字以内）
-              </p>
             </div>
 
             {/* カテゴリー */}
@@ -285,10 +285,10 @@ export default function SubmitPage() {
                 className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               >
                 {submitSuccess ? "✅ 投稿完了！リダイレクト中..." :
-                 isSubmitting ? "📤 投稿中..." : 
+                 isSubmitting ? "投稿中..." : 
                  urlValidation.isValidating ? "🔍 URLを確認中..." :
                  formData.url && formData.url.trim() && urlValidation.isValid === false ? "❌ 有効なURLを入力してください" :
-                 "🚀 投稿する"}
+                 "投稿する"}
               </button>
               
               {urlValidation.isValid === false && formData.url && formData.url.trim() && (
