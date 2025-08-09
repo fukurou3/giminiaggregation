@@ -27,8 +27,30 @@ export function TagModal({
   postTitle,
   tagProps = {}
 }: TagModalProps) {
+  // すべてのHooksを最初に呼び出し（条件分岐の前）
   const router = useRouter();
   
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (document.body.style.overflow === 'hidden') {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [isOpen, onClose]);
+
+  // 条件分岐とearly returnは全てのHooksの後
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -52,26 +74,6 @@ export function TagModal({
     // タグページに遷移（URLエンコードして安全に）
     router.push(`/search/${encodeURIComponent(tagName)}`);
   };
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      if (document.body.style.overflow === 'hidden') {
-        document.body.style.overflow = '';
-      }
-    };
-  }, [isOpen, onClose]);
 
   return (
     <div 
