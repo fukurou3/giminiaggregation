@@ -83,7 +83,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         {/* サムネイル画像とカテゴリ */}
         <div className="w-44 flex-shrink-0 flex flex-col justify-center h-26">
           {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-2 mt-0 shadow-md rounded-sm" style={{width: '155px', height: '93px'}}>
+          <div className="bg-muted relative overflow-hidden ml-1.5 mt-0 rounded-sm" style={{width: '155px', height: '93px'}}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
@@ -99,7 +99,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         </div>
 
         {/* コンテンツ - CSS Grid 3行2列構造 */}
-        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 h-26 relative z-5 grid grid-rows-[auto_minmax(0,20px)_minmax(0,36px)] grid-cols-[1fr_auto] gap-1">
+        <div className="flex-1 -ml-2 pr-2 py-1.5 min-w-0 h-26 relative z-5 grid grid-rows-[auto_minmax(0,20px)_minmax(0,36px)] grid-cols-[1fr_auto] gap-1">
           {/* Row 1: タイトル（左右いっぱい） */}
           <div className="col-span-2 flex items-center gap-2">
             {rank && (
@@ -201,7 +201,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         </div>
 
         {/* タグ */}
-        <div className="h-12 flex items-start text-xs mb-2 relative">
+        <div className="h-12 flex items-start text-xs mb-1 relative">
           <div className="min-w-0 flex-1 pr-16"> {/* 右パディングでいいね部分のスペースを確保 */}
             {post.tagIds && post.tagIds.length > 0 && (
               <HorizontalTagList

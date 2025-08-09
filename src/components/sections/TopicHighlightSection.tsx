@@ -80,18 +80,7 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
   );
 
   if (allPosts.length === 0) {
-    return (
-      <section className="space-y-6">
-        {sectionHeader}
-        
-        {/* Empty State */}
-        <div className="text-center py-12">
-          <Tag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">まだおすすめがありません</h3>
-          <p className="text-muted-foreground">管理者によるおすすめ作品の設定をお待ちください。</p>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   return (
