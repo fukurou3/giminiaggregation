@@ -9,6 +9,7 @@ import { CATEGORIES, findCategoryByValue } from "@/lib/constants/categories";
 import { Field } from "@/components/Field";
 import { AutosizeTextarea } from "@/components/AutosizeTextarea";
 import { ValidationStatus } from "@/components/ValidationStatus";
+import { ImageUploader } from "@/components/ui/ImageUploader";
 import { cx } from "@/lib/cx";
 
 
@@ -109,23 +110,19 @@ export default function SubmitPage() {
               />
             </Field>
 
-            {/* サムネイル画像 */}
+            {/* 画像 */}
             <Field
-              id="submit-thumbnail-url"
-              label="サムネイル画像"
+              id="submit-images"
+              label="画像"
               required
-              help="必須／5:3に切り抜きされる"
-              error={errors.thumbnailUrl}
+              help="必須／5:3に切り抜きされる／最大5枚"
+              error={errors.images}
             >
-              <AutosizeTextarea
-                id="submit-thumbnail-url"
-                name="thumbnailUrl"
-                value={formData.thumbnailUrl || ""}
-                onChange={(e) => handleInputChange("thumbnailUrl", e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                rows={1}
-                minHeight="42px"
-                className="w-full px-3 py-2 bg-input border border-input-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+              <ImageUploader
+                images={formData.images || []}
+                onImagesChange={(images) => handleInputChange("images", images)}
+                maxImages={5}
+                disabled={isSubmitting}
               />
             </Field>
 

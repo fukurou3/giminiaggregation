@@ -293,7 +293,9 @@ export async function POST(request: NextRequest) {
       ...(formData.category === 'その他' && (formData as any).customCategory
         ? { customCategory: (formData as any).customCategory }
         : {}),
-      thumbnailUrl: formData.thumbnailUrl || '',
+      thumbnailUrl: formData.thumbnailUrl || formData.images?.[0] || '', // 後方互換性のため最初の画像をthumbnailUrlに設定
+      images: formData.images || [],
+      imageOrder: formData.images?.map((_, index) => index) || [],
       isPublic: formData.isPublic,
       
       // コンセプト詳細フィールド

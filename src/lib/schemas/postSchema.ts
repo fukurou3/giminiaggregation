@@ -9,6 +9,7 @@ export const postSchema = z.object({
   tags: z.array(z.string().min(1).max(20)).max(5, "タグは5個まで追加できます").optional().default([]),
   category: z.string().min(1, "カテゴリは必須です"),
   thumbnailUrl: z.string().url().optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  images: z.array(z.string().url()).min(1, "少なくとも1枚の画像をアップロードしてください").max(5, "画像は5枚まで追加できます"),
   isPublic: z.boolean().default(true),
   // コンセプト詳細フィールド（任意項目）
   problemBackground: z.string().max(1000, "課題・背景は1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),

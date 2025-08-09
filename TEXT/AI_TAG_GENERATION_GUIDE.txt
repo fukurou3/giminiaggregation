@@ -1,0 +1,265 @@
+===========================================
+AIによるタグ生成機能 - 新人開発者向けガイド
+===========================================
+
+目次:
+1. システム概要
+2. フロントエンド実装
+3. バックエンド実装
+4. AI処理部分
+5. 設定とセキュリティ
+6. 使用方法とデバッグ
+7. 関連ファイル一覧
+
+===========================================
+1. システム概要
+===========================================
+
+本機能は、投稿画面でユーザーが入力したタイトル・説明文を元に、Google Gemini APIを利用してタグを自動生成する機能です。
+
+処理フロー:
+1. ユーザーが投稿画面でタイトル・説明文を入力
+2. 「AIによるタグ生成」ボタンをクリック
+3. フロントエンドからFirebase AuthトークンでAPI呼び出し
+4. バックエンドでAI APIを呼び出してタグを生成
+5. 既存タグとの重複を避けながら最適なタグを返す
+
+===========================================
+2. フロントエンド実装
+===========================================
+
+■ メインコンポーネント: AutoTagButton.tsx
+場所: src/components/AutoTagButton.tsx
+
+主な機能:
+- AIタグ生成ボタンUI
+- Firebase Auth認証処理
+- API呼び出しとエラーハンドリング
+- レート制限・タイムアウト処理
+- 重複タグの除去
+
+重要な処理:
+```typescript
+// Firebase Authトークン取得
+const auth = getAuth();
+const idToken = await auth.currentUser?.getIdToken?.();
+
+// API呼び出し
+const response = await fetch("/api/generate-tags", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${idToken}`,
+  },
+  body: JSON.stringify({
+    title: title.trim(),
+    description: description.trim(),
+    max: Math.max(1, maxTags - currentTags.length),
+    locale: "ja",
+  }),
+  signal: abortController.signal, // タイムアウト制御
+});
+```
+
+■ 使用箇所: src/app/submit/page.tsx
+投稿画面のタグ入力セクションで以下のように使用:
+
+```tsx
+<AutoTagButton
+  title={formData.title || ""}
+  description={formData.description || ""}
+  currentTags={formData.tags || []}
+  onTagsGenerated={(tags) => handleInputChange("tags", tags)}
+  maxTags={5}
+/>
+```
+
+===========================================
+3. バックエンド実装
+===========================================
+
+■ メインAPI: src/app/api/generate-tags/route.ts
+- POST /api/generate-tags
+
+主な機能:
+- Firebase Auth認証チェック
+- レート制限チェック (IPアドレス + UID別)
+- リクエスト検証 (Zodスキーマ)
+- AI APIを呼び出してタグ生成
+- レスポンス正規化・重複除去
+- エラーログ・メトリクス収集
+
+重要なセキュリティ対策:
+- CORS設定: 同一オリジンのみ許可
+- リクエストサイズ制限: 100KB
+- レート制限: ユーザー別
+- 入力データサニタイゼーション
+
+レスポンス形式:
+```json
+{
+  "version": "1.0",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "picked": ["既存タグから選択"],
+  "fresh": ["新しく生成されたタグ"],
+  "all": ["すべてのタグ"],
+  "meta": {
+    "total_count": 3,
+    "picked_count": 1,
+    "fresh_count": 2,
+    "request_id": "uuid"
+  }
+}
+```
+
+===========================================
+4. AI処理部分
+===========================================
+
+■ AIサービス: src/lib/ai/service.ts
+クラス: TagGenerationService
+
+主な機能:
+- 既存タグの取得（Firestore）
+- AIクライアントの初期化
+- プロンプト生成
+- レスポンス解析
+- キャッシュ処理（インメモリ）
+- リトライ処理（指数バックオフ）
+
+■ AIクライアント: src/lib/ai/client.ts
+Google Gemini API (gemma-3n-e4b-it) を使用:
+
+```typescript
+const model = this.genai.getGenerativeModel({ 
+  model: this.modelName,
+  generationConfig: {
+    maxOutputTokens: 256,      // コスト制御
+    temperature: 0.3,          // 一貫性重視
+    topP: 0.8,                 
+    topK: 40,                  
+  },
+});
+```
+
+■ プロンプト生成: src/lib/ai/prompt.ts
+既存タグリストを含むプロンプトを構築:
+
+```text
+あなたに与えたタイトルと説明文は、ユーザーの作品概要です。
+まずタイトルと説明文から重要なキーワードを抽出してください。
+既存タグの中から、抽出したキーワードに最も関連性が高いタグを選びます。
+既存タグに該当がなければ、新しいタグを短く作成してください。
+
+出力は次のJSONのみ:
+{"picked": string[], "new": string[]}
+```
+
+■ レスポンス解析: src/lib/ai/parser.ts
+AIの生テキストからJSONを抽出・検証:
+
+```typescript
+// マークダウンコードブロック除去
+if (jsonStr.startsWith('```json\n') && jsonStr.endsWith('\n```')) {
+  jsonStr = jsonStr.slice(8, -4).trim();
+}
+
+// JSON部分抽出
+const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+const extractedJson = jsonMatch?.[0] ?? jsonStr;
+```
+
+===========================================
+5. 設定とセキュリティ
+===========================================
+
+■ 環境変数
+- GOOGLE_GENAI_API_KEY: Google Gemini API キー
+
+■ レート制限 (src/app/api/_middleware/rate.ts)
+- IPアドレス + UID 別に制限
+- デフォルト: 30回/時間
+
+■ 認証 (src/app/api/_middleware/auth.ts)
+- Firebase Auth必須
+- Bearerトークンによる認証
+
+■ 入力検証 (Zodスキーマ)
+```typescript
+const bodySchema = z.object({
+  title: z.string()
+    .min(1, "タイトルは必須です")
+    .max(120, "タイトルは120文字以内で入力してください"),
+  description: z.string()
+    .max(500, "説明は500文字以内で入力してください")
+    .optional(),
+  max: z.number().int().min(1).max(5).optional().default(5),
+  locale: z.enum(["ja", "en"]).optional().default("ja"),
+});
+```
+
+===========================================
+6. 使用方法とデバッグ
+===========================================
+
+■ 開発環境での動作確認
+1. Google Gemini API キーを環境変数に設定
+2. Firebase Auth でログイン
+3. 投稿画面でタイトル・説明文を入力
+4. 「AIによるタグ生成」ボタンをクリック
+
+■ デバッグ方法
+- ブラウザのDevToolsでAPI通信を確認
+- サーバーログでAI API呼び出し状況を確認
+- Firebase Authトークンの有効性を確認
+
+■ よくあるエラー
+1. "認証エラー": Firebase Authトークンが無効
+   → 再ログインボタンで解決
+
+2. "レート制限": アクセスが集中している
+   → 指定された秒数後に再試行
+
+3. "AI API エラー": Gemini APIの問題
+   → APIキー・クォータを確認
+
+===========================================
+7. 関連ファイル一覧
+===========================================
+
+■ フロントエンド
+- src/components/AutoTagButton.tsx: メインUI コンポーネント
+- src/app/submit/page.tsx: 投稿画面（ボタン使用箇所）
+
+■ バックエンド API
+- src/app/api/generate-tags/route.ts: メインAPI エンドポイント
+- src/app/api/_middleware/auth.ts: Firebase Auth 認証
+- src/app/api/_middleware/rate.ts: レート制限処理
+
+■ AI 処理
+- src/lib/ai/service.ts: タグ生成サービス
+- src/lib/ai/client.ts: Google Gemini クライアント
+- src/lib/ai/prompt.ts: プロンプト生成
+- src/lib/ai/parser.ts: AI レスポンス解析
+
+■ 設定・共通
+- src/lib/config.ts: アプリケーション設定
+- src/lib/observability.ts: ログ・メトリクス
+- src/lib/tags/repository.ts: タグ管理
+- src/lib/tags/normalize.ts: タグ正規化
+
+■ 型定義
+- src/types/Tag.ts: タグ関連の型定義
+
+===========================================
+実装ノート
+===========================================
+
+1. AIによるタグ生成は既存タグを優先し、足りない分を新規作成
+2. 重複タグは正規化処理で除去（NFKC正規化 + slug化）
+3. キャッシュはサーバーレス環境を考慮してインメモリ実装
+4. エラーハンドリングは段階的で分かりやすいメッセージを表示
+5. セキュリティ対策を多層化（認証・レート制限・入力検証）
+
+開発時はコスト制限（maxOutputTokens: 256）に注意。
+本番環境ではCloudflare等のCDNでさらなる保護を推奨。

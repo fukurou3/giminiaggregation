@@ -39,7 +39,7 @@ export function useSubmitForm(): UseSubmitFormReturn {
     description: "",
     tags: [],
     category: "",
-    thumbnailUrl: "",
+    images: [],
     isPublic: true,
   });
   
