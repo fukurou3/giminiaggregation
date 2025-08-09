@@ -1,49 +1,26 @@
 rules_version = '2';
-
 service firebase.storage {
   match /b/{bucket}/o {
-    // 画像ファイルかどうかをチェック
     function isImage() {
       return request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
-    
-    // ユーザーが自分のパスを操作しているかチェック
-    function userOwnsPath(uid) {
-      return request.auth != null && request.auth.uid == uid;
-    }
-    
-    // ファイルサイズをチェック（2MB以下）
-    function isValidSize() {
+    function under2MB() {
       return request.resource.size < 2 * 1024 * 1024;
     }
-    
-    // 投稿用画像のルール
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // /post-images/{uid}/{imageId}
     match /post-images/{uid}/{imageId} {
-      // 読み取り：公開（認証不要）
+      // 読み取り：公開ギャラリーなら true（限定公開にしたいなら条件化）
       allow read: if true;
-      
-      // 書き込み：自分のディレクトリのみ、画像ファイルのみ、2MB以下
-      allow write: if userOwnsPath(uid)
-                   && isImage()
-                   && isValidSize();
-      
-      // 削除：自分のディレクトリのみ
-      allow delete: if userOwnsPath(uid);
-    }
-    
-    // プロフィール画像のルール
-    match /profile-images/{imageId} {
-      allow read: if true; // 全ての人がプロフィール画像を読み取り可能
-      allow write: if request.auth != null 
-                   && request.auth.uid != null
-                   && resource == null; // 新規アップロードのみ
-      allow delete: if request.auth != null 
-                    && request.auth.uid != null;
-    }
-    
-    // その他のファイル：デフォルト拒否
-    match /{allPaths=**} {
-      allow read, write: if false; // セキュアなデフォルト
+
+      // 書き込み：本人のみ & 2MB未満 & 画像のみ & App Check
+      allow write: if isOwner(uid) 
+                   && isImage() 
+                   && under2MB()
+                   && request.auth.token.firebase.app_check_token != null;
     }
   }
 }

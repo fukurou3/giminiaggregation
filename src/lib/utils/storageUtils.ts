@@ -28,6 +28,10 @@ export const uploadImageToStorage = async (
       const metadata = {
         cacheControl: 'public, max-age=31536000, immutable',
         contentType: file.type,
+        customMetadata: {
+          uploadedBy: userId,
+          uploadedAt: new Date().toISOString(),
+        }
       };
       
       const snapshot = await uploadBytes(storageRef, file, metadata);
