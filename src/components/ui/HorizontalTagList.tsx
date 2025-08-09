@@ -238,7 +238,7 @@ export function HorizontalTagList({
         // より正確なアイコンサイズを模擬（Lucide Reactアイコンのサイズ）
         content += `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0" style="width: ${iconSize}px; height: ${iconSize}px;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg>`;
       }
-      content += `<span class="truncate" style="white-space: nowrap; word-break: keep-all; overflow: hidden; text-overflow: ellipsis; max-width: ${Math.min(400, Math.floor(containerWidth * 0.7))}px;">${tagName}</span>`;
+      content += `<span class="truncate" style="white-space: nowrap; word-break: keep-all; overflow: hidden; text-overflow: ellipsis; max-width: 9999px;">${tagName}</span>`;
       
       tempTagElement.innerHTML = content;
       
@@ -567,8 +567,45 @@ export function HorizontalTagList({
               className="flex flex-wrap items-center"
               style={{ gap: `${gap}px`, marginBottom: rowIndex < packedResult.rows.length - 1 ? '4px' : '0' }}
             >
-              {row.map((tag) => {
+              {row.map((tag, tagIndex) => {
                 const isPlusNTag = tag.id.startsWith('__plus-n-');
+                
+                // 行の余白計算
+                let usedWidth = 0;
+                let lastNormalIndex = -1;
+                
+                // 各タグの実測幅を合計
+                for (let i = 0; i < row.length; i++) {
+                  const currentTag = row[i];
+                  const currentIsPlusN = currentTag.id.startsWith('__plus-n-');
+                  
+                  if (!currentIsPlusN) {
+                    lastNormalIndex = i; // 最後の通常タグのインデックス
+                  }
+                  
+                  if (currentIsPlusN) {
+                    // +Nタグの幅
+                    usedWidth += (i > 0 ? gap : 0) + plusNWidth;
+                  } else {
+                    // 通常タグの実測幅
+                    const measurement = measurements.find(m => m.tag.id === currentTag.id);
+                    const tagWidth = measurement ? measurement.width : 60; // フォールバック
+                    usedWidth += (i > 0 ? gap : 0) + tagWidth;
+                  }
+                }
+                
+                // 余白計算
+                const leftover = Math.max(0, containerWidth - usedWidth);
+                const isLastNormal = tagIndex === lastNormalIndex;
+                
+                // 最後の通常タグにだけ余白を配分
+                let textMaxWidthPx: number | undefined;
+                if (isLastNormal && leftover > 0) {
+                  const measurement = measurements.find(m => m.tag.id === tag.id);
+                  const baseWidth = measurement ? measurement.width : 60;
+                  textMaxWidthPx = baseWidth + leftover;
+                }
+                
                 return (
                   <div key={tag.id} className="flex-shrink-0">
                     <TagChip
@@ -577,7 +614,8 @@ export function HorizontalTagList({
                       variant={isPlusNTag ? "ghost" : tagProps.variant}
                       showIcon={isPlusNTag ? false : tagProps.showIcon}
                       showStats={tagProps.showStats}
-                      maxWidth={containerWidth}
+                      maxWidth={!textMaxWidthPx ? containerWidth : undefined} // 新版使用時は従来版無効
+                      textMaxWidthPx={textMaxWidthPx}
                       clickable={!isPlusNTag}
                       onClick={isPlusNTag ? handlePlusNClick : undefined}
                       className={`whitespace-nowrap ${isPlusNTag ? 'cursor-pointer' : ''}`}

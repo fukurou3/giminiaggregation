@@ -15,7 +15,8 @@ interface TagChipProps {
   className?: string;
   title?: string;
   onClick?: () => void;
-  maxWidth?: number; // コンテナ幅に基づく動的制限用
+  maxWidth?: number; // コンテナ幅に基づく動的制限用（従来版）
+  textMaxWidthPx?: number; // 直接ピクセル指定での最大幅（新版）
 }
 
 export function TagChip({
@@ -28,7 +29,8 @@ export function TagChip({
   className = '',
   title,
   onClick,
-  maxWidth
+  maxWidth,
+  textMaxWidthPx
 }: TagChipProps) {
   // 文字列の場合は基本的なタグオブジェクトを作成
   const tagObj: Tag = typeof tag === 'string' 
@@ -85,7 +87,11 @@ export function TagChip({
           wordBreak: 'keep-all', 
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          maxWidth: maxWidth ? `${Math.min(400, maxWidth * 0.7)}px` : '30ch' // ハイブリッド制限（緩和版）
+          maxWidth: textMaxWidthPx 
+            ? `${textMaxWidthPx}px`
+            : maxWidth 
+              ? `${Math.min(400, maxWidth * 0.7)}px` 
+              : '56ch' // デフォルトを拡張
         }}
       >
         {tagObj.name}
