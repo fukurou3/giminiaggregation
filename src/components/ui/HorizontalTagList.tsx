@@ -92,6 +92,7 @@ interface HorizontalTagListProps {
     showStats?: boolean;
   };
   onPlusNClick?: (hiddenTags: (Tag | string)[]) => void;
+  fillHeight?: boolean;
 }
 
 export function HorizontalTagList({
@@ -101,7 +102,8 @@ export function HorizontalTagList({
   className = '',
   postTitle,
   tagProps = {},
-  onPlusNClick
+  onPlusNClick,
+  fillHeight = false
 }: HorizontalTagListProps) {
   // 文字列タグを事前にID化（安定キー確保）
   const normalizedTags = useMemo(() => {
@@ -561,10 +563,12 @@ export function HorizontalTagList({
       {/* 実際のタグ表示 - 行ごとに分離 */}
       <div 
         ref={containerRef}
-        className="flex flex-col"
+        className={`flex flex-col ${fillHeight ? 'h-full justify-end' : ''}`}
         style={{ 
           visibility: isInitialMeasuring ? 'hidden' : 'visible',
-          height: isInitialMeasuring ? `${maxRows * 28}px` : 'auto' // 行数 × sm行高(28px)で固定プレースホルダ
+          height: isInitialMeasuring 
+            ? `${maxRows * 28}px` 
+            : (fillHeight ? '100%' : 'auto')
         }}
       >
         {packedResult.rows.map((row, rowIndex) => {
@@ -572,7 +576,7 @@ export function HorizontalTagList({
             <div 
               key={`row-${rowIndex}`} 
               className="flex flex-wrap items-center"
-              style={{ gap: `${gap}px`, marginBottom: rowIndex < packedResult.rows.length - 1 ? '4px' : '0' }}
+              style={{ gap: `${gap}px`, marginBottom: rowIndex < packedResult.rows.length - 1 ? '2px' : '0' }}
             >
               {row.map((tag, tagIndex) => {
                 const isPlusNTag = tag.id.startsWith('__plus-n-');

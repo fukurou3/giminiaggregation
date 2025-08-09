@@ -99,7 +99,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         </div>
 
         {/* コンテンツ - CSS Grid 3行2列構造 */}
-        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 h-26 relative z-5 grid grid-rows-[auto_auto_auto] grid-cols-[1fr_auto] gap-1">
+        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 h-26 relative z-5 grid grid-rows-[auto_minmax(0,28px)_minmax(0,28px)] grid-cols-[1fr_auto] gap-1">
           {/* Row 1: タイトル（左右いっぱい） */}
           <div className="col-span-2 flex items-center gap-2">
             {rank && (
@@ -113,7 +113,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
           </div>
 
           {/* Row 2-3 左: タグ表示（2行固定、overflow禁止） */}
-          <div className="row-span-2 min-w-0 overflow-hidden" style={{ maxHeight: '56px' }}>
+          <div className="row-span-2 min-w-0 overflow-hidden h-full">
             {post.tagIds && post.tagIds.length > 0 && (
               <HorizontalTagList
                 tags={post.tagIds.map(tagId => ({
@@ -135,7 +135,8 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                   size: 'sm',
                   variant: 'ghost'
                 }}
-                className="max-w-full"
+                className="max-w-full h-full"
+                fillHeight={true}
               />
             )}
           </div>
