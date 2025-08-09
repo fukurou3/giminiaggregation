@@ -49,13 +49,13 @@ export function TagChip({
     : tag;
 
   const sizeClasses = {
-    sm: 'text-xs px-2 py-1',
-    md: 'text-sm px-3 py-1.5',
-    lg: 'text-base px-4 py-2'
+    sm: 'text-xs px-2 py-0.5 font-normal',
+    md: 'text-sm px-3 py-1 font-normal',
+    lg: 'text-base px-4 py-1.5 font-normal'
   };
 
   const variantClasses = {
-    default: 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20',
+    default: 'text-black border-0 hover:bg-gray-200' + ' bg-[#f4f7fb]',
     outlined: 'bg-transparent text-foreground border border-border hover:bg-muted',
     ghost: 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
   };
@@ -69,7 +69,7 @@ export function TagChip({
   const chipContent = (
     <span 
       className={`
-        inline-flex items-center space-x-1 rounded-full font-medium transition-colors
+        inline-flex items-center space-x-1 rounded-full transition-colors
         ${sizeClasses[size]}
         ${variantClasses[variant]}
         ${clickable ? 'cursor-pointer' : 'cursor-default'}

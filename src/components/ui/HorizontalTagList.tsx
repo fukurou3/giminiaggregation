@@ -563,7 +563,7 @@ export function HorizontalTagList({
       {/* 実際のタグ表示 - 行ごとに分離 */}
       <div 
         ref={containerRef}
-        className={`flex flex-col ${fillHeight ? 'h-full justify-end' : ''}`}
+        className={`flex flex-col ${fillHeight ? 'h-full justify-start' : ''}`}
         style={{ 
           visibility: isInitialMeasuring ? 'hidden' : 'visible',
           height: isInitialMeasuring 
@@ -572,11 +572,17 @@ export function HorizontalTagList({
         }}
       >
         {packedResult.rows.map((row, rowIndex) => {
+          const rowCount = packedResult.rows.length;
+          const isLast = rowIndex === rowCount - 1;
+          const twoRows = rowCount >= 2;
+
           return (
             <div 
               key={`row-${rowIndex}`} 
-              className="flex flex-wrap items-center"
-              style={{ gap: `${gap}px`, marginBottom: rowIndex < packedResult.rows.length - 1 ? '2px' : '0' }}
+              className={`flex flex-wrap items-center ${
+                twoRows && isLast ? 'mt-auto' : ''
+              } ${rowIndex === 0 ? 'pt-2' : ''}`}
+              style={{ gap: `${gap}px` }}
             >
               {row.map((tag, tagIndex) => {
                 const isPlusNTag = tag.id.startsWith('__plus-n-');
