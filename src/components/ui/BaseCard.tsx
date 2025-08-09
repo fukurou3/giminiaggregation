@@ -128,6 +128,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                   createdAt: new Date(), 
                   updatedAt: new Date()
                 }))}
+                postTitle={post.title}
                 maxRows={2}
                 gap={4}
                 tagProps={{
@@ -215,6 +216,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                   createdAt: new Date(), 
                   updatedAt: new Date()
                 }))}
+                postTitle={post.title}
                 maxRows={2}
                 gap={4}
                 tagProps={{

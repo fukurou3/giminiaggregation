@@ -84,6 +84,7 @@ interface HorizontalTagListProps {
   maxRows?: number;
   gap?: number;
   className?: string;
+  postTitle?: string;
   tagProps?: {
     size?: 'sm' | 'md' | 'lg';
     variant?: 'default' | 'outlined' | 'ghost';
@@ -98,6 +99,7 @@ export function HorizontalTagList({
   maxRows = 2,
   gap = 8,
   className = '',
+  postTitle,
   tagProps = {},
   onPlusNClick
 }: HorizontalTagListProps) {
@@ -533,7 +535,12 @@ export function HorizontalTagList({
     return normalizedTags.filter(tag => !visibleTagIds.has(tag.id));
   }, [normalizedTags, packedResult.rows]);
 
-  const handlePlusNClick = useCallback(() => {
+  const handlePlusNClick = useCallback((event?: React.MouseEvent) => {
+    // イベント伝播を停止して親要素のクリックイベントを防ぐ
+    if (event) {
+      event.stopPropagation();
+    }
+    
     if (onPlusNClick && packedResult.hiddenCount > 0) {
       onPlusNClick(hiddenTags);
     } else {
@@ -633,8 +640,8 @@ export function HorizontalTagList({
       <TagModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        tags={hiddenTags}
-        title="すべてのタグ"
+        tags={normalizedTags}
+        postTitle={postTitle}
         tagProps={tagProps}
       />
     </div>
