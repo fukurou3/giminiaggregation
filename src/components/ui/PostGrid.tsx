@@ -6,7 +6,7 @@ import { BaseCard, BaseCardProps } from './BaseCard';
 
 interface PostGridProps {
   posts: Post[];
-  layout: 'grid' | 'list' | 'horizontal-scroll';
+  layout: 'grid' | 'list';
   responsive?: boolean; // デスクトップ/モバイル切り替えを有効にするか
   showRanking?: boolean; // ランキング番号を表示するか
   startRankFrom?: number; // ランキング開始番号（デフォルト: 1）
@@ -29,8 +29,7 @@ interface PostGridProps {
 /**
  * 作品一覧表示用の統合コンポーネント
  * - grid: レスポンシブグリッドレイアウト
- * - list: 縦並びリストレイアウト  
- * - horizontal-scroll: 横スクロールレイアウト
+ * - list: 縦並びリストレイアウト
  */
 export function PostGrid({ 
   posts, 
@@ -137,28 +136,6 @@ export function PostGrid({
             rank={getRank(index)}
           />
         ))}
-      </div>
-    );
-  }
-
-  // 横スクロールレイアウト（基本実装、後でHorizontalScrollContainerに置き換え予定）
-  if (layout === 'horizontal-scroll') {
-    return (
-      <div className={`overflow-x-auto scrollbar-hide ${className}`}>
-        <div className="flex gap-4 pb-4 pt-3 px-3">
-          {posts.map((post, index) => (
-            <div key={post.id} className="w-72 flex-shrink-0">
-              <BaseCard
-                post={post}
-                size={size}
-                layout="vertical"
-                showCategory={showCategory}
-                showViews={showViews}
-                rank={getRank(index)}
-              />
-            </div>
-          ))}
-        </div>
       </div>
     );
   }

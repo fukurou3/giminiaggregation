@@ -163,14 +163,14 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
   return (
     <div
       onClick={handleCardClick}
-      className={`${CARD_STYLES} ${className || ''} cursor-pointer max-w-full rounded-lg pt-2`}
+      className={`${CARD_STYLES} ${className || ''} cursor-pointer max-w-full rounded-lg pt-0`}
       style={{backgroundColor: '#f4f7fb'}}
       role="link"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
     >
       {/* プレビュー画像 */}
-      <div className={`bg-muted relative overflow-hidden ${sizeStyles.image} mx-1 mt-1 rounded`}>
+      <div className={`bg-muted relative overflow-hidden ${sizeStyles.image} mx-1 mt-1 rounded-md`}>
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
           <span className="text-muted-foreground font-medium text-xs">Canvas</span>
         </div>

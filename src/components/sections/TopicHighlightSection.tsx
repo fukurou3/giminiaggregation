@@ -1,9 +1,8 @@
 'use client';
 
 import { Tag } from 'lucide-react';
-import { BaseCard } from '@/components/ui/BaseCard';
+import { PostGrid } from '@/components/ui/PostGrid';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { HorizontalScrollContainer } from '@/components/ui/HorizontalScrollContainer';
 import { TopicHighlight } from '@/types/Topic';
 
 interface TopicHighlightSectionProps {
@@ -26,23 +25,6 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
     />
   );
 
-  if (loading) {
-    return (
-      <section className="space-y-6">
-        {sectionHeader}
-
-        {/* Loading skeleton */}
-        <div className="overflow-x-auto">
-          <div className="flex gap-4 pb-4 pt-3 px-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-muted animate-pulse rounded-xl h-80 w-72 flex-shrink-0"></div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   if (allPosts.length === 0) {
     return (
       <section className="space-y-6">
@@ -63,21 +45,15 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
       {/* Header */}
       {sectionHeader}
 
-      {/* 横スクロールカード - デスクトップのみ */}
-      <HorizontalScrollContainer dependencies={[allPosts]}>
-        <div className="flex gap-4 pb-4 pt-3 px-3">
-          {allPosts.map((post) => (
-            <div key={post.id} className="w-72 flex-shrink-0">
-              <BaseCard 
-                post={post} 
-                size="medium"
-                showViews={false}
-                showCategory={false}
-              />
-            </div>
-          ))}
-        </div>
-      </HorizontalScrollContainer>
+      {/* PostGrid - 統一されたresponsive grid */}
+      <PostGrid
+        posts={allPosts}
+        layout="grid"
+        responsive={true}
+        showViews={false}
+        showCategory={false}
+        size="medium"
+      />
     </section>
   );
 }
