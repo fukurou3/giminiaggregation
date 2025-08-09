@@ -5,6 +5,7 @@ import { useSubmitForm } from "@/hooks/useSubmitForm";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Check, X, AlertCircle } from "lucide-react";
 import { TagInput } from "@/components/ui/TagInput";
+import { AutoTagButton } from "@/components/AutoTagButton";
 import { CATEGORIES, findCategoryByValue } from "@/lib/constants/categories";
 
 
@@ -164,6 +165,17 @@ export default function SubmitPage() {
                 maxTags={5}
                 placeholder="タグを入力してEnterキーで追加（例: 便利ツール、生産性向上）"
               />
+              
+              <div className="mt-2">
+                <AutoTagButton
+                  title={formData.title || ""}
+                  description={formData.description || ""}
+                  currentTags={formData.tags || []}
+                  onTagsGenerated={(tags) => handleInputChange("tags", tags)}
+                  maxTags={5}
+                />
+              </div>
+              
               {errors.tags && <p className="text-error text-sm mt-1">{errors.tags}</p>}
               <p className="text-sm text-muted-foreground mt-1">
                 作品の特徴や用途を表すタグを追加できます（最大5個、各20文字以内）
