@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useFirestoreDocument } from '@/lib/api';
 import { useParams, useRouter } from "next/navigation";
+import { useNavbarHeight } from '@/hooks/useNavbarHeight';
 import Link from "next/link";
 import { doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -44,6 +45,7 @@ export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { isNavbarWrapped } = useNavbarHeight();
   const [isFavorited, setIsFavorited] = useState(false);
 
   const postId = params.id as string;
@@ -156,7 +158,7 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="bg-background -mt-20">
+    <div className={`bg-background ${isNavbarWrapped ? '-mt-16' : '-mt-20'}`}>
         <div className="max-w-6xl mx-auto px-4 py-4">
           {/* 戻るボタン */}
           <button
