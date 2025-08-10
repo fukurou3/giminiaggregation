@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useFirestoreDocument } from '@/lib/api';
 import { useParams, useRouter } from "next/navigation";
-import { useNavbarHeight } from '@/hooks/useNavbarHeight';
 import Link from "next/link";
 import { doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -11,6 +10,7 @@ import { toggleFavorite, isFavorited as checkIsFavorited } from "@/lib/favorites
 import { useAuth } from "@/hooks/useAuth";
 
 import { TagChip } from "@/components/ui/TagChip";
+import Image from "next/image";
 import { 
   Heart, 
   ArrowLeft,
@@ -18,7 +18,8 @@ import {
   Globe,
   Users,
   BarChart3,
-  Zap
+  Zap,
+  Sparkles
 } from "lucide-react";
 import type { Post } from "@/types/Post";
 import { formatDate } from '@/lib/utils/date';
@@ -43,7 +44,6 @@ export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { isNavbarWrapped, navbarHeight } = useNavbarHeight();
   const [isFavorited, setIsFavorited] = useState(false);
 
   const postId = params.id as string;
@@ -157,7 +157,7 @@ export default function PostDetailPage() {
 
   return (
     <div className="bg-background">
-        <div className="max-w-6xl mx-auto px-2" style={{ paddingTop: `${navbarHeight}px` }}>
+        <div className="max-w-6xl mx-auto px-2">
           {/* 戻るボタン */}
           <button
             onClick={() => router.back()}

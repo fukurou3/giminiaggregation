@@ -37,7 +37,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar onProfileEdit={() => setShowProfileEditModal(true)} />
-      <main className="pt-19 flex-1">
+      <main className="flex-1">
         {children}
       </main>
       <Footer />

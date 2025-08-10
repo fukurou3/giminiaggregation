@@ -1,26 +1,48 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // 画像ファイルチェック関数
     function isImage() {
       return request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
-    function under2MB() {
-      return request.resource.size < 2 * 1024 * 1024;
+    
+    // ファイルサイズチェック関数（10MB未満）
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
     }
+    
+    // 所有者チェック関数
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
+    
+    // 認証済みユーザーチェック関数
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-    // /post-images/{uid}/{imageId}
+    // 投稿画像: /post-images/{uid}/{imageId}
     match /post-images/{uid}/{imageId} {
-      // 読み取り：公開ギャラリーなら true（限定公開にしたいなら条件化）
+      // 読み取り：パブリック（誰でも閲覧可能）
       allow read: if true;
-
-      // 書き込み：本人のみ & 2MB未満 & 画像のみ & App Check
-      allow write: if isOwner(uid) 
+      
+      // 書き込み：認証済み & 本人のみ & 画像ファイル & 適切なサイズ
+      allow write: if isAuthenticated() 
+                   && isOwner(uid) 
                    && isImage() 
-                   && under2MB()
-                   && request.auth.token.firebase.app_check_token != null;
+                   && isValidSize();
+    }
+    
+    // プロフィール画像: /profile-images/{uid}/{imageId}  
+    match /profile-images/{uid}/{imageId} {
+      // 読み取り：パブリック（誰でも閲覧可能）
+      allow read: if true;
+      
+      // 書き込み：認証済み & 本人のみ & 画像ファイル & 適切なサイズ
+      allow write: if isAuthenticated() 
+                   && isOwner(uid) 
+                   && isImage() 
+                   && isValidSize();
     }
   }
 }

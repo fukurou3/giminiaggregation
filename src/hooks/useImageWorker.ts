@@ -35,12 +35,20 @@ export const useImageWorker = (): UseImageWorkerReturn => {
   useEffect(() => {
     // Check if Web Workers are supported
     if (typeof Worker !== 'undefined') {
-      isWorkerSupported.current = true;
-      
-      // Create a pool of workers (2-4 based on CPU cores)
-      const maxWorkers = Math.min(navigator.hardwareConcurrency || 2, 4);
-      
       try {
+        // Try to create a simple test worker
+        const testWorker = new Worker(
+          new URL('/src/workers/imageProcessor.worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+        
+        // Test worker creation success
+        testWorker.terminate();
+        isWorkerSupported.current = true;
+        console.log('Image workers enabled - using parallel processing');
+        
+        // Create worker pool
+        const maxWorkers = Math.min(navigator.hardwareConcurrency || 2, 4);
         for (let i = 0; i < maxWorkers; i++) {
           const worker = new Worker(
             new URL('/src/workers/imageProcessor.worker.ts', import.meta.url),
@@ -49,15 +57,19 @@ export const useImageWorker = (): UseImageWorkerReturn => {
           
           worker.onerror = (error) => {
             console.warn(`Image worker ${i} error:`, error);
+            isWorkerSupported.current = false;
           };
           
           workerPool.current.push(worker);
           availableWorkers.current.push(worker);
         }
       } catch (error) {
-        console.warn('Failed to create image workers:', error);
+        console.warn('Web Workers not supported, using main thread processing:', error);
         isWorkerSupported.current = false;
       }
+    } else {
+      console.log('Web Workers not available, using main thread processing');
+      isWorkerSupported.current = false;
     }
 
     // Cleanup workers on unmount
