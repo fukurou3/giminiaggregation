@@ -15,13 +15,11 @@ import {
   Heart, 
   ArrowLeft,
   Award,
-  Sparkles,
   Globe,
   Users,
   BarChart3,
   Zap
 } from "lucide-react";
-import Image from "next/image";
 import type { Post } from "@/types/Post";
 import { formatDate } from '@/lib/utils/date';
 import { findCategoryById } from '@/lib/constants/categories';
@@ -45,7 +43,7 @@ export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { isNavbarWrapped } = useNavbarHeight();
+  const { isNavbarWrapped, navbarHeight } = useNavbarHeight();
   const [isFavorited, setIsFavorited] = useState(false);
 
   const postId = params.id as string;
@@ -158,46 +156,31 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className={`bg-background ${isNavbarWrapped ? '-mt-16' : '-mt-20'}`}>
-        <div className="max-w-6xl mx-auto px-4 py-4">
+    <div className="bg-background">
+        <div className="max-w-6xl mx-auto px-2" style={{ paddingTop: `${navbarHeight}px` }}>
           {/* 戻るボタン */}
           <button
             onClick={() => router.back()}
-            className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
+            className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors ml-2"
           >
-            <ArrowLeft size={18} />
-            <span className="text-sm font-medium">戻る</span>
+            <ArrowLeft size={20} />
+            <span className="text-base font-medium">戻る</span>
           </button>
+          
           {/* アプリストア風ヘッダーセクション */}
-          <div className="bg-card rounded-xl  overflow-hidden mb-8">
-            <div className="p-6">
-              <div className="flex flex-col lg:flex-row gap-8">
-                {/* アプリアイコン */}
-                <div className="flex-shrink-0">
-                  <div className="w-32 h-32 lg:w-40 lg:h-40 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-lg flex items-center justify-center relative overflow-hidden">
-                    {(post.images?.[0] || post.thumbnailUrl || post.ogpImage) ? (
-                      <Image
-                        src={post.images?.[0] || post.thumbnailUrl || post.ogpImage || '/placeholder.jpg'}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <Sparkles size={48} className="text-white" />
-                    )}
-                  </div>
-                </div>
-
+          <div className="bg-card rounded-xl overflow-hidden">
+            <div className="p-3">
+              <div className="flex flex-col">
                 {/* アプリ詳細 */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-col lg:flex-row lg:items-start gap-4 mb-6">
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-3 mb-6">
                     <div className="flex-1">
-                      <h1 className="text-3xl lg:text-4xl font-semibold text-foreground mb-2 leading-tight">
+                      <h1 className="text-xl font-semibold text-foreground mb-2 leading-tight">
                         {post.title}
                       </h1>
 
                       {/* カテゴリとタグ */}
-                      <div className="flex flex-wrap gap-2 mb-6">
+                      <div className="flex flex-wrap gap-3 mb-6">
                         <Link 
                           href={`/categories?category=${post.categoryId || 'other'}`}
                           className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors cursor-pointer"
@@ -227,7 +210,7 @@ export default function PostDetailPage() {
                     </div>
 
                     {/* アクションボタン */}
-                    <div className="flex flex-row gap-2 lg:justify-end">
+                    <div className="flex flex-row gap-3 lg:justify-end">
                       <a
                         href={post.url}
                         target="_blank"
@@ -265,12 +248,12 @@ export default function PostDetailPage() {
             <div className="lg:col-span-2 space-y-8">
               {/* 画像ギャラリー */}
               {post.images && post.images.length > 1 && (
-                <div className="bg-card rounded-xl p-6">
+                <div className="bg-card rounded-xl p-3">
                   <h2 className="text-xl font-bold text-foreground mb-4">画像</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {post.images.map((imageUrl, index) => (
                       <div key={index} className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden">
-                        <div className="absolute top-2 left-2 z-10">
+                        <div className="absolute top-3 left-2 z-10">
                           <span className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded">
                             {index + 1}
                           </span>
@@ -289,7 +272,7 @@ export default function PostDetailPage() {
               )}
 
               {/* 説明セクション */}
-              <div className="bg-card rounded-xl  p-6">
+              <div className="bg-card rounded-xl  p-3">
                 <h2 className="text-xl font-bold text-foreground mb-4">説明</h2>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {post.description}
@@ -298,7 +281,7 @@ export default function PostDetailPage() {
 
               {/* 詳細情報（任意項目のみ表示） */}
               {(post.problemBackground || post.useCase || post.uniquePoints || post.futureIdeas) && (
-                <div className="bg-card rounded-xl  p-6">
+                <div className="bg-card rounded-xl  p-3">
                   <h2 className="text-xl font-bold text-foreground mb-6">詳細情報</h2>
                   <div className="space-y-6">
                     {post.problemBackground && (
@@ -343,7 +326,7 @@ export default function PostDetailPage() {
 
               {/* OGP情報 */}
               {post.ogpTitle && post.ogpTitle !== post.title && (
-                <div className="bg-card rounded-xl  p-6">
+                <div className="bg-card rounded-xl  p-3">
                   <h2 className="text-xl font-bold text-foreground mb-4 flex items-center">
                     <Globe size={20} className="mr-2 text-blue-600" />
                     Canvas情報
@@ -367,7 +350,7 @@ export default function PostDetailPage() {
             {/* サイドバー */}
             <div className="space-y-6">
               {/* アプリ情報 */}
-              <div className="bg-white rounded-xl  border border-gray-200 p-6">
+              <div className="bg-white rounded-xl  border border-gray-200 p-3">
                 <h3 className="text-lg font-bold text-foreground mb-4">情報</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">

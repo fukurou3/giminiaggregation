@@ -52,6 +52,6 @@ export const useNavbarHeight = (): UseNavbarHeightReturn => {
 
   return {
     isNavbarWrapped: isWrapped,
-    navbarHeight: isWrapped ? 96 : 76 // 2行時は約96px、1行時は76px
+    navbarHeight: isWrapped ? 30 : 10 // 2行時は30px、1行時は1px
   };
 };
