@@ -223,7 +223,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
   .navbar {
     /* 2行時（< 830px） */
     --nav-pt: 6px;        /* 外枠 上パディング */
-    --nav-pb: 6px;        /* 外枠 下パディング */
+    --nav-pb: 10px;        /* 外枠 下パディング */
     --row-h: 30px;        /* 各行の高さ（文字上下の余白感） */
     --row-gap: 5px;       /* 1行目と2行目の間隔 */
     --gap-x: 16px;        /* 2行時：センターの横間隔 */

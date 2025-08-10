@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Allow images from Google Cloud Storage
+  // Allow images from Google Cloud Storage and Firebase Storage
   images: {
     remotePatterns: [
       {
@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
         hostname: 'storage.googleapis.com',
         port: '',
         pathname: '/giminiaggregation-profile-images/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/v0/b/giminiaggregation.firebasestorage.app/**',
       },
     ],
   },

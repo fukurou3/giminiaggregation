@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useFirestoreDocument } from '@/lib/api';
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -19,7 +19,9 @@ import {
   Users,
   BarChart3,
   Zap,
-  Sparkles
+  Sparkles,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import type { Post } from "@/types/Post";
 import { formatDate } from '@/lib/utils/date';
@@ -45,6 +47,9 @@ export default function PostDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const postId = params.id as string;
 
@@ -76,6 +81,57 @@ export default function PostDetailPage() {
 
     updateViewsAndFavorites();
   }, [post, postId, user]);
+
+  // スライダー機能の実装
+  const checkScrollButtons = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const imageWidth = 400; // 画像の幅（適度なサイズ）
+      const gap = 16; // gap-4 = 16px
+      scrollContainerRef.current.scrollBy({
+        left: -(imageWidth + gap),
+        behavior: 'smooth'
+      });
+      setTimeout(checkScrollButtons, 300);
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const imageWidth = 400;
+      const gap = 16;
+      scrollContainerRef.current.scrollBy({
+        left: (imageWidth + gap),
+        behavior: 'smooth'
+      });
+      setTimeout(checkScrollButtons, 300);
+    }
+  };
+
+  // 初期化時にスクロールボタンの状態をチェック
+  useEffect(() => {
+    if (post?.images && post.images.length > 0) {
+      const timer = setTimeout(checkScrollButtons, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [post?.images]);
+
+  // ウィンドウリサイズ時にスクロールボタンの状態を更新
+  useEffect(() => {
+    const handleResize = () => {
+      checkScrollButtons();
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleFavorite = async () => {
     if (!post || !user) return;
@@ -242,34 +298,74 @@ export default function PostDetailPage() {
             </div>
           </div>
 
+          {/* 画像ギャラリー（スライダー表示） */}
+          {((post.images && post.images.length > 0) || post.thumbnailUrl) && (
+            <div className="bg-card rounded-xl overflow-hidden">
+              <div className="relative -mx-4 sm:-mx-6 lg:-mx-8">
+                {/* 左矢印 */}
+                {canScrollLeft && post.images && post.images.length > 1 && (
+                  <button
+                    onClick={scrollLeft}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
+                
+                {/* 右矢印 */}
+                {canScrollRight && post.images && post.images.length > 1 && (
+                  <button
+                    onClick={scrollRight}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                )}
+
+                {/* スクロールコンテナ */}
+                <div 
+                  ref={scrollContainerRef}
+                  className="overflow-x-auto scrollbar-hide"
+                  onScroll={checkScrollButtons}
+                >
+                  <div className="flex gap-4 pb-4 px-4 sm:px-6 lg:px-8 min-w-max">
+                    {post.images && post.images.length > 0 ? (
+                      post.images.map((imageUrl, index) => (
+                        <div key={index} className="w-96 flex-shrink-0">
+                          <div className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden border border-black/20">
+                            <Image
+                              src={imageUrl}
+                              alt={`${post.title} - 画像 ${index + 1}`}
+                              fill
+                              loading="lazy"
+                              className="object-cover"
+                            />
+                          </div>
+                        </div>
+                      ))
+                    ) : post.thumbnailUrl && (
+                      <div className="w-96 flex-shrink-0">
+                        <div className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden border border-black/20">
+                          <Image
+                            src={post.thumbnailUrl}
+                            alt={`${post.title} - サムネイル`}
+                            fill
+                            loading="lazy"
+                            className="object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 詳細情報セクション */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* メインコンテンツ */}
             <div className="lg:col-span-2 space-y-8">
-              {/* 画像ギャラリー */}
-              {post.images && post.images.length > 1 && (
-                <div className="bg-card rounded-xl p-3">
-                  <h2 className="text-xl font-bold text-foreground mb-4">画像</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {post.images.map((imageUrl, index) => (
-                      <div key={index} className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden">
-                        <div className="absolute top-3 left-2 z-10">
-                          <span className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded">
-                            {index + 1}
-                          </span>
-                        </div>
-                        <Image
-                          src={imageUrl}
-                          alt={`${post.title} - 画像 ${index + 1}`}
-                          fill
-                          loading="lazy"
-                          className="object-cover hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* 説明セクション */}
               <div className="bg-card rounded-xl  p-3">
