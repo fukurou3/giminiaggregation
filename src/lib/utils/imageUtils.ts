@@ -1,5 +1,6 @@
 import imageCompression from 'browser-image-compression';
 import { removeExifData } from './exifRemover';
+import type { ImageValidationResult } from '@/types/Upload';
 
 export interface ImageProcessingOptions {
   maxSizeMB?: number;
@@ -148,6 +149,85 @@ export const cropToAspectRatio = async (
 export const validateImageFile = (file: File): boolean => {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   return allowedTypes.includes(file.type);
+};
+
+export const validateImageFileDetailed = (file: File): ImageValidationResult => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // ファイル形式チェック
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type.toLowerCase())) {
+    errors.push(`サポートされていないファイル形式です: ${file.type}`);
+  }
+
+  // ファイルサイズチェック（個別制限: 10MB）
+  const maxFileSize = 10 * 1024 * 1024;
+  if (file.size > maxFileSize) {
+    errors.push(`ファイルサイズが大きすぎます: ${formatFileSize(file.size)} (最大: ${formatFileSize(maxFileSize)})`);
+  }
+
+  // ファイルサイズ警告（推奨: 2MB以下）
+  const recommendedSize = 2 * 1024 * 1024;
+  if (file.size > recommendedSize && file.size <= maxFileSize) {
+    warnings.push(`ファイルサイズが大きいです: ${formatFileSize(file.size)} (推奨: ${formatFileSize(recommendedSize)}以下)`);
+  }
+
+  // ファイル名チェック
+  if (!file.name || file.name.trim() === '') {
+    errors.push('ファイル名が不正です');
+  }
+
+  // 拡張子チェック
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+  if (!extension || !validExtensions.includes(extension)) {
+    errors.push(`サポートされていない拡張子です: ${extension || 'なし'}`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors: Object.freeze(errors),
+    warnings: Object.freeze(warnings)
+  };
+};
+
+export const validateMultipleFiles = (
+  files: readonly File[],
+  options: {
+    readonly maxFiles: number;
+    readonly maxTotalSizeMB: number;
+  }
+): ImageValidationResult => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // ファイル数チェック
+  if (files.length > options.maxFiles) {
+    errors.push(`ファイル数が上限を超えています: ${files.length} (最大: ${options.maxFiles})`);
+  }
+
+  // 総容量チェック
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  const maxTotalSize = options.maxTotalSizeMB * 1024 * 1024;
+  if (totalSize > maxTotalSize) {
+    errors.push(`総容量が上限を超えています: ${formatFileSize(totalSize)} (最大: ${formatFileSize(maxTotalSize)})`);
+  }
+
+  // 個別ファイル検証
+  for (let i = 0; i < files.length; i++) {
+    const validation = validateImageFileDetailed(files[i]);
+    if (!validation.isValid) {
+      errors.push(`ファイル${i + 1} (${files[i].name}): ${validation.errors.join(', ')}`);
+    }
+    warnings.push(...validation.warnings.map(w => `ファイル${i + 1} (${files[i].name}): ${w}`));
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors: Object.freeze(errors),
+    warnings: Object.freeze(warnings)
+  };
 };
 
 export const formatFileSize = (bytes: number): string => {

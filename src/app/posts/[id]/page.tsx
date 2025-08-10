@@ -157,7 +157,7 @@ export default function PostDetailPage() {
 
   return (
     <div className="bg-background">
-        <div className="max-w-6xl mx-auto px-2">
+        <div className="max-w-6xl mx-auto px-2 pt-3">
           {/* 戻るボタン */}
           <button
             onClick={() => router.back()}

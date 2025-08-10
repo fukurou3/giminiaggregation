@@ -217,88 +217,109 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
       </div>
 
       <style jsx>{`
+        /* ① 縦リズムをCSS変数で一元管理 */
+        :root {
+          --nav-pt: 8px;   /* デフォ外枠: 上 */
+          --nav-pb: 8px;   /* デフォ外枠: 下 */
+          --row-h: 36px;   /* デフォ行高 (2行時) */
+          --row-gap: 4px;  /* 2行の行間 */
+          --search-w: 200px;
+        }
+
+        /* 1行時（>=830px）は少し薄く */
+        @media (min-width: 830px) {
+          :root {
+            --nav-pt: 4px;
+            --nav-pb: 4px;
+            --row-h: 40px;   /* 1行時はやや高めでバランス確保 */
+            --row-gap: 0px;  /* 1行なので行間なし */
+          }
+        }
+
+        /* 外枠パディングを変数で */
+        nav :global(.navbar-container) {
+          padding-top: var(--nav-pt);
+          padding-bottom: var(--nav-pb);
+        }
+
         .navbar-container {
           display: grid;
-          grid-template-areas: 
+          grid-template-areas:
             "logo user"
             "nav nav";
           grid-template-columns: 1fr auto;
-          gap: 0;
-          row-gap: 0.125rem;
+          /* ② 行高と行間をGrid側で制御（各行min-heightは撤廃） */
+          grid-auto-rows: var(--row-h);
+          row-gap: var(--row-gap);
+          column-gap: 0;
           align-items: center;
-          min-height: 52px;
+        }
+
+        .logo-area,
+        .nav-group,
+        .user-area {
+          /* 行内の縦詰め：余白は外枠とrow-gapに任せる */
+          min-height: 0;
+          height: var(--row-h);
+          display: flex;
+          align-items: center;
         }
 
         .logo-area {
           grid-area: logo;
           justify-self: start;
-          min-height: 2.25rem;
-          display: flex;
-          align-items: center;
         }
 
         .nav-group {
           grid-area: nav;
-          display: flex;
           justify-content: center;
-          align-items: center;
-          gap: 1.25rem;
-          min-height: 2.25rem;
+          gap: 16px; /* 2行時のナカの横間隔 */
         }
 
-        .nav-links {
-          display: flex;
-          gap: 1.25rem;
+        .nav-links { 
+          display: flex; 
+          gap: 16px; 
         }
 
-        .search-area {
-          position: relative;
+        .search-area { 
+          position: relative; 
         }
-
-        .search-wrapper {
-          width: 220px; /* 統一された固定幅 */
-          flex-shrink: 0;
+        
+        .search-wrapper { 
+          width: 200px !important; 
+          flex-shrink: 0; 
         }
-
-        .search-wrapper > div {
-          max-width: none !important; /* SearchBarのmax-w-xl制限を無効化 */
+        
+        .search-wrapper > div { 
+          max-width: 220px !important;
+          width: 220px !important;
         }
 
         .user-area {
           grid-area: user;
           justify-self: end;
-          min-height: 2.25rem;
-          display: flex;
-          align-items: center;
         }
 
-        /* デスクトップレイアウト: 830px以上で1行に */
+        /* 1行時に並べ替え（既存の830pxブレークポイントに合わせる） */
         @media (min-width: 830px) {
           .navbar-container {
             grid-template-areas: "logo nav user";
             grid-template-columns: minmax(200px, auto) 1fr auto;
-            min-height: 52px;
-            row-gap: 0;
           }
-
-          .nav-group {
-            justify-content: center;
+          .nav-group { 
+            justify-content: center; 
+            gap: 24px; 
           }
-
-          /* 1行時も同じ幅に統一 */
-          .search-wrapper {
-            width: 220px; /* 2行時と同じ幅 */
+          .nav-links { 
+            gap: 20px; 
           }
         }
 
-        /* より広い画面での調整 */
-        @media (min-width: 1024px) {
-          .nav-group {
-            gap: 2rem;
-          }
-
-          .nav-links {
-            gap: 1.5rem;
+        /* ③ タイポグラフィも詰める（任意：小画面でだけ） */
+        @media (max-width: 829px) {
+          .nav-links a { 
+            line-height: 1.2; 
+            font-size: 14px; 
           }
         }
       `}</style>
