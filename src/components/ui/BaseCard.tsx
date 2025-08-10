@@ -182,25 +182,36 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
   return (
     <div
       onClick={handleCardClick}
-      className={`${CARD_STYLES} ${className || ''} cursor-pointer max-w-full rounded-lg pt-0`}
-      style={{backgroundColor: '#f4f7fb'}}
+      className={`${CARD_STYLES} ${className || ''} cursor-pointer max-w-full`}
       role="link"
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
     >
-      {/* プレビュー画像 */}
-      <div className={`bg-muted relative overflow-hidden ${sizeStyles.image} mx-1 mt-1 rounded-md`}>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-          <span className="text-muted-foreground font-medium text-xs">Canvas</span>
+      {/* CSS Gridレイアウト */}
+      <div className="grid bg-white rounded-lg overflow-hidden" 
+        style={{
+          gridTemplateRows: 'auto auto auto auto',
+          gridTemplateColumns: '1fr',
+          gap: '0',
+          padding: '0.5rem',
+          boxShadow: '0 1px 4px -0px rgba(0, 0, 0, 0.1)'
+        }}>
+        
+        {/* 画像 - 上部 */}
+        <div className="bg-muted relative overflow-hidden rounded-md" 
+          style={{
+            gridRow: '1',
+            aspectRatio: '5/3'
+          }}>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+            <span className="text-muted-foreground font-medium text-xs">Canvas</span>
+          </div>
         </div>
-      </div>
-
-      {/* コンテンツ */}
-      <div className={`${sizeStyles.card} flex flex-col`}>
+        
         {/* タイトル */}
-        <div className="flex items-center gap-2 mb-1">
+        <div style={{gridRow: '2', marginTop: '0.5rem'}} className="flex items-center gap-2">
           {rank && (
-            <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
+            <span className="text-foreground font-bold text-sm flex-shrink-0">
               {rank}.
             </span>
           )}
@@ -210,46 +221,16 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         </div>
         
         {/* 説明文 */}
-        <div className="h-10 mb-2">
-          {post.description && (
-            <p className="text-black line-clamp-3 text-xs mt-1 break-words font-normal">
-              {post.description}
-            </p>
-          )}
+        <div style={{gridRow: '3', height: '2.25rem', marginTop: '0.5rem'}}>
+          <p className="text-black line-clamp-2 text-xs break-words font-normal leading-tight overflow-hidden">
+            {post.description || ''}
+          </p>
         </div>
-
-        {/* 拡張説明文エリア */}
-        {/* 
-          注意: 以下のタグ表示ロジックは保持されています。必要に応じて拡張説明文と入れ替えできます。
-          タブ表示ロジック（使用中止、削除禁止）:
-          {post.tagIds && post.tagIds.length > 0 && (
-            <HorizontalTagList
-              tags={post.tagIds.map(tagId => ({
-                id: tagId, 
-                name: tagId.replace(/_/g, ' '), 
-                aliases: [], 
-                count: 0, 
-                isOfficial: false, 
-                views: 0, 
-                favorites: 0, 
-                flagged: false,
-                createdAt: new Date(), 
-                updatedAt: new Date()
-              }))}
-              postTitle={post.title}
-              maxRows={2}
-              gap={4}
-              tagProps={{
-                size: 'sm',
-                variant: 'default'
-              }}
-              className="max-w-full"
-            />
-          )}
-        */}
-        <div className="h-12 flex items-start text-xs mb-1 relative">
-          {/* いいね数と閲覧数の高さに合わせたタグ表示エリア */}
-          <div className="flex-1 h-full flex flex-col justify-end">
+        
+        {/* タグ＋いいね数 */}
+        <div style={{gridRow: '4', marginTop: '-0.25rem'}} className="flex items-end justify-between">
+          {/* タグエリア */}
+          <div className="flex-1 min-w-0">
             {post.tagIds && post.tagIds.length > 0 && (
               <HorizontalTagList
                 tags={post.tagIds
@@ -265,21 +246,21 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                     createdAt: new Date(), 
                     updatedAt: new Date()
                   }))
-                  .sort((a, b) => a.name.length - b.name.length)} // 文字数が少ないものから表示
+                  .sort((a, b) => a.name.length - b.name.length)}
                 postTitle={post.title}
                 maxRows={1}
-                gap={2} // 余白を詰める
+                gap={2}
                 tagProps={{
                   size: 'sm',
                   variant: 'outlined'
                 }}
-                className="max-w-full pr-20" // いいね数分の右余白確保
+                className="max-w-full"
               />
             )}
           </div>
           
           {/* いいね数と閲覧数 */}
-          <div className="absolute bottom-0 right-0 flex items-center space-x-3 text-muted-foreground">
+          <div className="flex items-center space-x-3 text-muted-foreground flex-shrink-0">
             <div className="flex items-center space-x-0.5">
               <Heart size={14} className="flex-shrink-0" />
               <span className="text-sm font-medium">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>

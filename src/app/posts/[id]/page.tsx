@@ -8,13 +8,11 @@ import { doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toggleFavorite, isFavorited as checkIsFavorited } from "@/lib/favorites";
 import { useAuth } from "@/hooks/useAuth";
-import { Layout } from "@/components/Layout";
+
 import { TagChip } from "@/components/ui/TagChip";
 import { 
   Heart, 
-  ArrowLeft, 
-  Download,
-  Share2,
+  ArrowLeft,
   Award,
   Sparkles,
   Globe,
@@ -36,12 +34,17 @@ declare global {
   }
 }
 
+// ヘルパー関数
+const getCategoryName = (post: Post): string => {
+  const category = post.categoryId ? findCategoryById(post.categoryId) : null;
+  return category?.name || post.customCategory || 'その他';
+};
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
-  const [shouldWrap, setShouldWrap] = useState(false);
 
   const postId = params.id as string;
 
@@ -50,45 +53,6 @@ export default function PostDetailPage() {
     'posts',
     postId
   );
-
-  // ナビゲーションバーの高さに応じてレイアウト調整
-  useEffect(() => {
-    const checkLayout = () => {
-      const screenWidth = window.innerWidth;
-      
-      if (screenWidth <= 416) {
-        const logoWidth = 160;
-        const navLinksWidth = 180;
-        const searchIconWidth = 40;
-        const userActionsWidth = 60;
-        const minPadding = 8;
-        const minGap = 12;
-        
-        const totalRequiredWidth = logoWidth + navLinksWidth + searchIconWidth + userActionsWidth + minPadding + (minGap * 2);
-        setShouldWrap(screenWidth < totalRequiredWidth);
-        return;
-      }
-      
-      const logoWidth = 180;
-      const navLinksWidth = 200;
-      const searchWidth = screenWidth >= 640 ? 208 : 160;
-      const userActionsWidth = 80;
-      const minPadding = screenWidth >= 640 ? 16 : 8;
-      const minGap = 20;
-      
-      const totalRequiredWidth = logoWidth + navLinksWidth + searchWidth + userActionsWidth + minPadding + (minGap * 2);
-      setShouldWrap(screenWidth < totalRequiredWidth);
-    };
-
-    checkLayout();
-    window.addEventListener('resize', checkLayout);
-    const timer = setTimeout(checkLayout, 100);
-
-    return () => {
-      window.removeEventListener('resize', checkLayout);
-      clearTimeout(timer);
-    };
-  }, []);
 
   useEffect(() => {
     const updateViewsAndFavorites = async () => {
@@ -106,7 +70,7 @@ export default function PostDetailPage() {
           setIsFavorited(fav);
         }
       } catch (err) {
-        console.error("ビュー数更新エラー:", err);
+        console.error("View count update failed:", err);
       }
     };
 
@@ -114,22 +78,15 @@ export default function PostDetailPage() {
   }, [post, postId, user]);
 
   const handleFavorite = async () => {
-    if (!post || !user) {
-      console.warn("お気に入り操作: ポストまたはユーザーが見つかりません", { post: !!post, user: !!user });
-      return;
-    }
+    if (!post || !user) return;
     
     try {
-      console.log("お気に入り操作開始:", { postId: post.id, currentFavorited: isFavorited });
-      
-      // reCAPTCHAが利用可能かチェック
+      // reCAPTCHA待機処理を最適化
       if (!window.grecaptcha) {
-        console.warn("reCAPTCHA not loaded, waiting...");
-        // reCAPTCHAの読み込みを待つ
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
           const checkRecaptcha = () => {
             if (window.grecaptcha) {
-              resolve(undefined);
+              resolve();
             } else {
               setTimeout(checkRecaptcha, 100);
             }
@@ -151,65 +108,55 @@ export default function PostDetailPage() {
         throw new Error("Failed to get reCAPTCHA token");
       }
       
-      console.log("reCAPTCHA token取得成功、toggleFavorite呼び出し");
       await toggleFavorite(post.id, isFavorited, token);
-      
-      console.log("toggleFavorite成功、UIを更新");
-      // データを再取得してUIを更新
       refetch();
       setIsFavorited(!isFavorited);
       
     } catch (error) {
-      console.error("お気に入りエラー:", error);
-      // ユーザーにもエラーを表示
+      console.error("Favorite operation failed:", error);
       alert(`お気に入り操作に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
     }
   };
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">投稿を読み込み中...</p>
-          </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">投稿を読み込み中...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (error || !post) {
     return (
-      <Layout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-4">
-              {error || "投稿が見つかりません"}
-            </h1>
-            <div className="space-x-4">
-              <button
-                onClick={refetch}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90"
-              >
-                再試行
-              </button>
-              <button
-                onClick={() => router.push("/")}
-                className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90"
-              >
-                ホームに戻る
-              </button>
-            </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {error || "投稿が見つかりません"}
+          </h1>
+          <div className="space-x-4">
+            <button
+              onClick={refetch}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90"
+            >
+              再試行
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90"
+            >
+              ホームに戻る
+            </button>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className={`min-h-screen bg-background ${shouldWrap ? '-mt-13' : '-mt-22'}`}>
+    <div className="bg-background -mt-20">
         <div className="max-w-6xl mx-auto px-4 py-4">
           {/* 戻るボタン */}
           <button
@@ -221,7 +168,7 @@ export default function PostDetailPage() {
           </button>
           {/* アプリストア風ヘッダーセクション */}
           <div className="bg-card rounded-xl  overflow-hidden mb-8">
-            <div className="p-8">
+            <div className="p-6">
               <div className="flex flex-col lg:flex-row gap-8">
                 {/* アプリアイコン */}
                 <div className="flex-shrink-0">
@@ -243,18 +190,9 @@ export default function PostDetailPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col lg:flex-row lg:items-start gap-4 mb-6">
                     <div className="flex-1">
-                      <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2 leading-tight">
+                      <h1 className="text-3xl lg:text-4xl font-semibold text-foreground mb-2 leading-tight">
                         {post.title}
                       </h1>
-                      <div className="flex items-center space-x-1 mb-3">
-                        <span className="text-lg text-foreground font-medium">
-                          {post.authorUsername}
-                        </span>
-                        {post.featured && (
-                          <Award size={20} className="text-amber-500 ml-2" />
-                        )}
-                      </div>
-                      
 
                       {/* カテゴリとタグ */}
                       <div className="flex flex-wrap gap-2 mb-6">
@@ -262,10 +200,7 @@ export default function PostDetailPage() {
                           href={`/categories?category=${post.categoryId || 'other'}`}
                           className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors cursor-pointer"
                         >
-                          {(() => {
-                            const category = post.categoryId ? findCategoryById(post.categoryId) : null;
-                            return category?.name || post.customCategory || 'その他';
-                          })()}
+                          {getCategoryName(post)}
                         </Link>
                         {post.tagIds?.map((tagId) => (
                           <TagChip
@@ -290,32 +225,29 @@ export default function PostDetailPage() {
                     </div>
 
                     {/* アクションボタン */}
-                    <div className="flex flex-col space-y-3 lg:items-end">
+                    <div className="flex flex-row gap-2 lg:justify-end">
                       <a
                         href={post.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+                        className="inline-flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
                       >
-                        <Download size={20} />
                         <span>開く</span>
                       </a>
                       
                       <button
                         onClick={handleFavorite}
                         disabled={!user}
-                        className={`inline-flex items-center justify-center space-x-2 px-8 py-3 rounded-xl font-semibold transition-colors border ${
+                        className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
                           isFavorited
                             ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
                             : "bg-card border-border text-foreground hover:bg-muted/50"
                         }`}
                       >
-                        <Heart size={20} fill={isFavorited ? "currentColor" : "none"} />
-                        <span>{isFavorited ? 'お気に入り済み' : 'お気に入り'}</span>
+                        <span>{isFavorited ? 'お気に入り' : 'お気に入り'}</span>
                       </button>
 
-                      <button className="inline-flex items-center justify-center space-x-2 px-8 py-3 rounded-xl font-semibold bg-card border border-border text-foreground hover:bg-muted/50 transition-colors">
-                        <Share2 size={20} />
+                      <button className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-card border border-border text-foreground hover:bg-muted/50 transition-colors">
                         <span>共有</span>
                       </button>
                     </div>
@@ -451,10 +383,7 @@ export default function PostDetailPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">カテゴリ</span>
                     <span className="text-foreground">
-                      {(() => {
-                        const category = post.categoryId ? findCategoryById(post.categoryId) : null;
-                        return category?.name || post.customCategory || 'その他';
-                      })()}
+                      {getCategoryName(post)}
                     </span>
                   </div>
                   {post.featured && (
@@ -473,6 +402,5 @@ export default function PostDetailPage() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }
