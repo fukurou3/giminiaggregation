@@ -82,9 +82,12 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         <div className="grid bg-[#f4f7fb] rounded-lg overflow-hidden" 
           style={{
             gridTemplateColumns: '120px 1fr',
-            gridTemplateRows: '72px auto',
+            gridTemplateRows: '88px auto',
             gap: '0',
-            padding: '0.375rem'
+              paddingTop: '0.8rem',      // 上の余白を増やす (例: 16px)
+  paddingBottom: '0.3rem',// 下の余白はそのまま
+  paddingLeft: '0.6rem', // 左の余白はそのまま
+  paddingRight: '0.6rem' // 右の余白はそのまま
           }}>
           
           {/* 画像 - 左上 */}
@@ -103,7 +106,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
           {/* タイトル＋説明 - 右上 */}
           <div style={{gridColumn: '2', gridRow: '1'}} className="flex flex-col justify-start px-2">
             {/* タイトル */}
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 mt-2">
               {rank && (
                 <span className="text-foreground font-bold text-sm flex-shrink-0">
                   {rank}.
@@ -115,14 +118,14 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             </div>
             
             {/* 説明文 */}
-            <p className="text-black line-clamp-2 text-xs break-words font-normal leading-relaxed min-h-10">
+            <p className="text-black line-clamp-2 text-xs break-words font-normal leading-tight">
               {post.description || ''}
             </p>
           </div>
           
           {/* タグ＋いいね数 - 下部全体 */}
-          <div style={{gridColumn: '1 / 3', gridRow: '2', height: '24px', transform: 'translateY(-4px)'}} 
-            className="flex items-baseline justify-between">
+          <div style={{gridColumn: '1 / 3', gridRow: '2', height: '18px', transform: 'translateY(-20px)'}} 
+            className="flex items-baseline justify-between ">
             {/* タグエリア */}
             <div className="flex-1 min-w-0">
               {post.tagIds && post.tagIds.length > 0 && (
@@ -156,8 +159,8 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             {/* いいね数と閲覧数 */}
             <div className="flex items-center space-x-3 text-muted-foreground flex-shrink-0">
               <div className="flex items-center space-x-0.5">
-                <Heart size={14} className="flex-shrink-0" />
-                <span className="text-sm font-medium">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
+                <Heart size={16} className="flex-shrink-0" />
+                <span className="text-sm font-bold">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
               </div>
               {showViews && (
                 <div className="flex items-center space-x-0.5">
