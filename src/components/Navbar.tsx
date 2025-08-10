@@ -90,7 +90,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
   }, []);
 
   return (
-    <nav className="sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border py-2 min-[830px]:py-0.5">
+    <nav className="sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="navbar-container px-2 sm:px-4">
         {/* ロゴエリア */}
         <div className="logo-area">
@@ -229,9 +229,9 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
         /* 1行時（>=830px）は少し薄く */
         @media (min-width: 830px) {
           :root {
-            --nav-pt: 4px;
-            --nav-pb: 4px;
-            --row-h: 40px;   /* 1行時はやや高めでバランス確保 */
+            --nav-pt: 12px;
+            --nav-pb: 12px;
+            --row-h: 44px;   /* 1行時はやや高めでバランス確保 */
             --row-gap: 0px;  /* 1行なので行間なし */
           }
         }
