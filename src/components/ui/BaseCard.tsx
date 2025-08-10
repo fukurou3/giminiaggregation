@@ -79,15 +79,16 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
       >
         {/* CSS Gridレイアウト */}
-        <div className="grid bg-[#f4f7fb] rounded-lg overflow-hidden" 
+        <div className="grid bg-white rounded-lg overflow-hidden" 
           style={{
             gridTemplateColumns: '120px 1fr',
             gridTemplateRows: '88px auto',
             gap: '0',
-              paddingTop: '0.8rem',      // 上の余白を増やす (例: 16px)
-  paddingBottom: '0.3rem',// 下の余白はそのまま
-  paddingLeft: '0.6rem', // 左の余白はそのまま
-  paddingRight: '0.6rem' // 右の余白はそのまま
+            paddingTop: '0.6rem',
+            paddingBottom: '0.3rem',
+            paddingLeft: '0.6rem',
+            paddingRight: '0.6rem',
+            boxShadow: '0 1px 4px -0px rgba(0, 0, 0, 0.17)'
           }}>
           
           {/* 画像 - 左上 */}
@@ -157,7 +158,10 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             </div>
             
             {/* いいね数と閲覧数 */}
-            <div className="flex items-center space-x-3 text-muted-foreground flex-shrink-0">
+            <div 
+                className="flex items-center space-x-3 text-muted-foreground flex-shrink-0"
+                style={{ transform: 'translateY(+2px)' }} 
+              >
               <div className="flex items-center space-x-0.5">
                 <Heart size={16} className="flex-shrink-0" />
                 <span className="text-sm font-bold">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
