@@ -1,9 +1,8 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useImageGallery } from '@/hooks/useImageGallery';
 
 interface ImageGalleryProps {
   images?: string[];
@@ -21,17 +20,50 @@ const ImageGallery = memo<ImageGalleryProps>(({
   const displayImages = images && images.length > 0 ? images : thumbnailUrl ? [thumbnailUrl] : [];
   const showNavigation = displayImages.length > 1;
   
-  const {
-    scrollContainerRef,
-    canScrollLeft,
-    canScrollRight,
-    scrollLeft,
-    scrollRight,
-  } = useImageGallery({ 
-    images: displayImages,
-    itemWidth: 384, // w-96 = 384px
-    gap: 16 // gap-4 = 16px
-  });
+  // スクロール管理のstate
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // スクロール状態をチェック
+  const checkScrollButtons = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  }, []);
+
+  // スクロール処理
+  const scrollLeft = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const itemWidth = 384 + 16; // w-96 + gap
+      scrollContainerRef.current.scrollBy({ 
+        left: -itemWidth, 
+        behavior: 'smooth' 
+      });
+    }
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const itemWidth = 384 + 16; // w-96 + gap
+      scrollContainerRef.current.scrollBy({ 
+        left: itemWidth, 
+        behavior: 'smooth' 
+      });
+    }
+  }, []);
+
+  // 初期化とスクロールイベント監視
+  useEffect(() => {
+    checkScrollButtons();
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollButtons);
+      return () => container.removeEventListener('scroll', checkScrollButtons);
+    }
+  }, [checkScrollButtons, displayImages]);
 
   if (displayImages.length === 0) {
     return null;
@@ -66,13 +98,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
         <div 
           ref={scrollContainerRef}
           className="overflow-x-auto scrollbar-hide"
-          onScroll={(e) => {
-            // スクロール状態をチェックする関数を呼び出し
-            if (scrollContainerRef.current) {
-              const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-              // この処理はuseImageGallery内で行われるため、ここでは何もしない
-            }
-          }}
+          onScroll={checkScrollButtons}
         >
           <div className="flex gap-4 pb-4 px-4 sm:px-6 lg:px-8 min-w-max">
             {displayImages.map((imageUrl, index) => (
