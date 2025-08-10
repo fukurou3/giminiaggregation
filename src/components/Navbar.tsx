@@ -90,7 +90,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
   }, []);
 
   return (
-    <nav className="sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+<nav className="navbar sticky top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="navbar-container px-2 sm:px-4">
         {/* ロゴエリア */}
         <div className="logo-area">
@@ -216,113 +216,95 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
         </div>
       </div>
 
-      <style jsx>{`
-        /* ① 縦リズムをCSS変数で一元管理 */
-        :root {
-          --nav-pt: 8px;   /* デフォ外枠: 上 */
-          --nav-pb: 8px;   /* デフォ外枠: 下 */
-          --row-h: 36px;   /* デフォ行高 (2行時) */
-          --row-gap: 4px;  /* 2行の行間 */
-          --search-w: 200px;
-        }
+<style jsx>{`
+  /* =========================
+     TUNING: よく触る数値はここだけ
+     ========================= */
+  .navbar {
+    /* 2行時（< 830px） */
+    --nav-pt: 6px;        /* 外枠 上パディング */
+    --nav-pb: 6px;        /* 外枠 下パディング */
+    --row-h: 30px;        /* 各行の高さ（文字上下の余白感） */
+    --row-gap: 5px;       /* 1行目と2行目の間隔 */
+    --gap-x: 16px;        /* 2行時：センターの横間隔 */
+    --links-gap: 24px;    /* 2行時：リンク同士の間隔 */
+    --search-w: 190px;    /* 検索ボックス幅（≥520px） */
+    --icon-pad: 8px;      /* 520px未満：検索アイコンの内側余白 */
+  }
+  @media (min-width: 830px) {
+    .navbar {
+      /* 1行時（>= 830px） */
+      --nav-pt: 7px;     /* ↑ここを増やすと上下が“厚く”なる */
+      --nav-pb: 7px;
+      --row-h: 44px;      /* 文字上下の余白を増やしたい時はここ */
+      --row-gap: 0px;     /* 1行なので 0 のままでOK */
+      --gap-x: 24px;      /* 1行時：センターの横間隔 */
+      --links-gap: 20px;  /* 1行時：リンク同士の間隔 */
+      --search-w: 190px;  /* 1行時：検索ボックス幅 */
+      --icon-pad: 8px;    /* 影響なし（1行時はアイコン非表示想定） */
+    }
+  }
 
-        /* 1行時（>=830px）は少し薄く */
-        @media (min-width: 830px) {
-          :root {
-            --nav-pt: 12px;
-            --nav-pb: 12px;
-            --row-h: 44px;   /* 1行時はやや高めでバランス確保 */
-            --row-gap: 0px;  /* 1行なので行間なし */
-          }
-        }
+  /* 外枠に縦パディングを適用（JSXのpy-*は使わない） */
+  .navbar :global(.navbar-container) {
+    padding-top: var(--nav-pt);
+    padding-bottom: var(--nav-pb);
+  }
 
-        /* 外枠パディングを変数で */
-        nav :global(.navbar-container) {
-          padding-top: var(--nav-pt);
-          padding-bottom: var(--nav-pb);
-        }
+  .navbar :global(.navbar-container) {
+    display: grid;
+    grid-template-areas:
+      "logo user"
+      "nav nav";
+    grid-template-columns: 1fr auto;
+    grid-auto-rows: var(--row-h);    /* ← 行の高さはここで一元管理 */
+    row-gap: var(--row-gap);         /* ← 行間も変数化 */
+    column-gap: 0;
+    align-items: center;
+  }
 
-        .navbar-container {
-          display: grid;
-          grid-template-areas:
-            "logo user"
-            "nav nav";
-          grid-template-columns: 1fr auto;
-          /* ② 行高と行間をGrid側で制御（各行min-heightは撤廃） */
-          grid-auto-rows: var(--row-h);
-          row-gap: var(--row-gap);
-          column-gap: 0;
-          align-items: center;
-        }
+  /* 各行のベース：個別min-hは使わない */
+  .logo-area,
+  .nav-group,
+  .user-area {
+    min-height: 0;
+    height: var(--row-h);
+    display: flex;
+    align-items: center;
+  }
 
-        .logo-area,
-        .nav-group,
-        .user-area {
-          /* 行内の縦詰め：余白は外枠とrow-gapに任せる */
-          min-height: 0;
-          height: var(--row-h);
-          display: flex;
-          align-items: center;
-        }
+  .logo-area { grid-area: logo; justify-self: start; }
+  .user-area { grid-area: user; justify-self: end; }
 
-        .logo-area {
-          grid-area: logo;
-          justify-self: start;
-        }
+  /* 中央グループ（ランキング/カテゴリ/コラム/検索） */
+  .nav-group {
+    grid-area: nav;
+    justify-content: center;
+    gap: var(--gap-x);
+  }
+  .nav-links { display: flex; gap: var(--links-gap); }
 
-        .nav-group {
-          grid-area: nav;
-          justify-content: center;
-          gap: 16px; /* 2行時のナカの横間隔 */
-        }
+  .search-area { position: relative; }
+  .search-wrapper { width: var(--search-w) !important; flex-shrink: 0; }
+  .search-wrapper > div { max-width: calc(var(--search-w) + 20px) !important; width: calc(var(--search-w) + 20px) !important; }
 
-        .nav-links { 
-          display: flex; 
-          gap: 16px; 
-        }
+  .search-icon > div { padding: var(--icon-pad); }
 
-        .search-area { 
-          position: relative; 
-        }
-        
-        .search-wrapper { 
-          width: 200px !important; 
-          flex-shrink: 0; 
-        }
-        
-        .search-wrapper > div { 
-          max-width: 220px !important;
-          width: 220px !important;
-        }
+  /* 1行レイアウト切替（ブレークポイントは数値の単一ソースに合わせて830pxで統一） */
+  @media (min-width: 830px) {
+    .navbar :global(.navbar-container) {
+      grid-template-areas: "logo nav user";
+      grid-template-columns: minmax(200px, auto) 1fr auto;
+      row-gap: 0; /* 念のため：1行なので隙間なし */
+    }
+  }
 
-        .user-area {
-          grid-area: user;
-          justify-self: end;
-        }
+  /* 小画面のタイポ（任意） */
+  @media (max-width: 829px) {
+    .nav-links a { line-height: 1.2; font-size: 14px; }
+  }
+`}</style>
 
-        /* 1行時に並べ替え（既存の830pxブレークポイントに合わせる） */
-        @media (min-width: 830px) {
-          .navbar-container {
-            grid-template-areas: "logo nav user";
-            grid-template-columns: minmax(200px, auto) 1fr auto;
-          }
-          .nav-group { 
-            justify-content: center; 
-            gap: 24px; 
-          }
-          .nav-links { 
-            gap: 20px; 
-          }
-        }
-
-        /* ③ タイポグラフィも詰める（任意：小画面でだけ） */
-        @media (max-width: 829px) {
-          .nav-links a { 
-            line-height: 1.2; 
-            font-size: 14px; 
-          }
-        }
-      `}</style>
     </nav>
   );
 }

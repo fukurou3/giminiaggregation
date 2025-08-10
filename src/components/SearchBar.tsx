@@ -128,14 +128,14 @@ export function SearchBar({
   }, []);
 
   // 画面サイズに応じてプレースホルダーを調整（SSR対応）
-  const [dynamicPlaceholder, setDynamicPlaceholder] = useState("作品を検索...");
+  const [dynamicPlaceholder, setDynamicPlaceholder] = useState("作品を検索");
   
   useEffect(() => {
     const updatePlaceholder = () => {
       if (placeholder) {
         setDynamicPlaceholder(placeholder);
       } else {
-        const baseText = enableTagSearch ? "作品・タグを検索..." : "作品を検索...";
+        const baseText = enableTagSearch ? "作品・タグを検索" : "作品を検索";
         setDynamicPlaceholder(window.innerWidth < 640 ? "検索..." : baseText);
       }
     };
