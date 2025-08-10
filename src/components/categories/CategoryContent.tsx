@@ -10,6 +10,7 @@ interface CategoryContentProps {
   selectedCategoryPosts: Post[];
   categories: Category[];
   layoutPhase: LayoutPhase;
+  isMobile: boolean;
   error: string | null;
   onBackToList?: () => void;
 }
@@ -19,6 +20,7 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
   selectedCategoryPosts,
   categories,
   layoutPhase,
+  isMobile,
   error,
   onBackToList,
 }) {
@@ -54,61 +56,8 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
       
       {/* Header */}
       <header className="mb-8 mt-0">
-        {layoutPhase === 'phase4' ? (
+        {isMobile ? (
           // Mobile layout: Category info positioned relative to external hamburger
-          <div className="ml-13">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              {selectedCategory}
-            </h1>
-            <p className="text-muted-foreground">
-              {selectedCategoryData?.description}
-            </p>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {selectedCategoryPosts.length} 作品
-              </span>
-              
-              {/* Sort Options - Dropdown */}
-              <div className="relative">
-                <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between px-4 py-2 text-sm font-medium bg-background border border-border rounded-lg hover:bg-muted transition-colors min-w-[120px] relative"
-              >
-                <span>{sortBy === 'favorites' ? '人気順' : '新着順'}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-background border border-border rounded-lg shadow-lg z-20 min-w-[120px]">
-                  <button
-                    onClick={() => {
-                      setSortBy('favorites');
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-t-lg ${
-                      sortBy === 'favorites' ? 'text-primary font-medium' : 'text-foreground'
-                    }`}
-                  >
-                    人気順
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy('createdAt');
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
-                      sortBy === 'createdAt' ? 'text-primary font-medium' : 'text-foreground'
-                    }`}
-                  >
-                    新着順
-                  </button>
-                </div>
-              )}
-              </div>
-            </div>
-          </div>
-        ) : layoutPhase === 'phase5' ? (
-          // Phase5 layout: Category info positioned relative to external hamburger (like mobile but without horizontal list)
           <div className="ml-13">
             <h1 className="text-3xl font-bold text-foreground mb-2">
               {selectedCategory}

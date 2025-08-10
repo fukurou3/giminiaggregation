@@ -73,58 +73,58 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
     return (
       <div
         onClick={handleCardClick}
-        className={`${CARD_STYLES} ${className || ''} flex cursor-pointer w-full relative`}
+        className={`${CARD_STYLES} ${className || ''} cursor-pointer w-full`}
         role="link"
         tabIndex={0}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
       >
-        {/* 拡張枠 */}
-        <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-0 rounded-lg" style={{backgroundColor: '#f4f7fb'}}></div>
-        {/* サムネイル画像とカテゴリ */}
-        <div className="w-44 flex-shrink-0 flex flex-col">
-          {/* サムネイル画像 */}
-          <div className="bg-muted relative overflow-hidden ml-1.5 mt-1.5 rounded-sm" style={{width: '155px', height: '93px'}}>
+        {/* CSS Gridレイアウト */}
+        <div className="grid bg-[#f4f7fb] rounded-lg overflow-hidden" 
+          style={{
+            gridTemplateColumns: '120px 1fr',
+            gridTemplateRows: '72px auto',
+            gap: '0',
+            padding: '0.375rem'
+          }}>
+          
+          {/* 画像 - 左上 */}
+          <div className="bg-muted relative overflow-hidden rounded-sm" 
+            style={{
+              gridColumn: '1',
+              gridRow: '1',
+              width: '120px',
+              height: '72px'
+            }}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <span className="text-muted-foreground font-medium text-xs">Canvas</span>
             </div>
           </div>
-          {/* カテゴリ表示 */}
-          {showCategory && (
-            <div className="mt-1 ml-1.5">
-              <span className="bg-primary text-primary-foreground rounded-full font-medium px-1.5 py-0.5 text-xs">
-                {categoryName}
-              </span>
+          
+          {/* タイトル＋説明 - 右上 */}
+          <div style={{gridColumn: '2', gridRow: '1'}} className="flex flex-col justify-start px-2">
+            {/* タイトル */}
+            <div className="flex items-center gap-2 mb-1">
+              {rank && (
+                <span className="text-foreground font-bold text-sm flex-shrink-0">
+                  {rank}.
+                </span>
+              )}
+              <h3 className="text-foreground line-clamp-1 hover:text-primary transition-colors text-sm font-bold">
+                {post.title}
+              </h3>
             </div>
-          )}
-        </div>
-
-        {/* コンテンツ - 横長レイアウト用に調整 */}
-        <div className="flex-1 -ml-2 pr-2 py-2 min-w-0 relative z-10">
-          {/* タイトル */}
-          <div className="flex items-center gap-2 mb-2">
-            {rank && (
-              <span className="text-foreground font-bold text-sm flex-shrink-0 mr-1">
-                {rank}.
-              </span>
-            )}
-            <h3 className="text-foreground line-clamp-1 hover:text-primary transition-colors text-sm font-bold">
-              {post.title}
-            </h3>
+            
+            {/* 説明文 */}
+            <p className="text-black line-clamp-2 text-xs break-words font-normal leading-relaxed min-h-10">
+              {post.description || ''}
+            </p>
           </div>
           
-          {/* 説明文（2行許可） */}
-          <div className="mb-3">
-            {post.description && (
-              <p className="text-black line-clamp-2 text-xs break-words font-normal leading-relaxed">
-                {post.description}
-              </p>
-            )}
-          </div>
-
-          {/* タグエリアといいね数 */}
-          <div className="flex items-end justify-between">
-            {/* タグ表示エリア（一番左から表示） */}
-            <div className="flex-1 min-w-0 pr-4">
+          {/* タグ＋いいね数 - 下部全体 */}
+          <div style={{gridColumn: '1 / 3', gridRow: '2', height: '24px', transform: 'translateY(-4px)'}} 
+            className="flex items-baseline justify-between">
+            {/* タグエリア */}
+            <div className="flex-1 min-w-0">
               {post.tagIds && post.tagIds.length > 0 && (
                 <HorizontalTagList
                   tags={post.tagIds
@@ -140,10 +140,10 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                       createdAt: new Date(), 
                       updatedAt: new Date()
                     }))
-                    .sort((a, b) => a.name.length - b.name.length)} // 文字数が少ないものから表示
+                    .sort((a, b) => a.name.length - b.name.length)}
                   postTitle={post.title}
                   maxRows={1}
-                  gap={2} // 余白を詰める
+                  gap={2}
                   tagProps={{
                     size: 'sm',
                     variant: 'outlined'
@@ -163,7 +163,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                 <div className="flex items-center space-x-0.5">
                   <Eye size={14} className="flex-shrink-0" />
                   <span className="text-sm font-medium">{formatNumber(post.views || 0)}</span>
-                </div>
+              </div>
               )}
             </div>
           </div>

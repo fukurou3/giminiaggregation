@@ -18,15 +18,16 @@ export default function CategoriesPage() {
   const [categoriesWithCounts, setCategoriesWithCounts] = useState(CATEGORY_MASTERS);
   
   // Custom hooks for cleaner component architecture
-  const { layoutPhase, contentWidth, spacerWidth } = useResponsiveLayout();
+  const { layoutPhase, contentWidth, spacerWidth, isMobile } = useResponsiveLayout();
   const { categories, posts, loading, error, getSelectedCategoryPosts } = useCategoriesData();
   
   const { isSidebarOpen, setIsSidebarOpen, sidebarRef } = useMobileSidebar({ 
     layoutPhase, 
     hasCategories: categories.length > 0, 
-    isLoading: loading 
+    isLoading: loading,
+    isMobile 
   });
-  const { isSidebarFixed, sidebarContainerRef } = useStickyHeader({ layoutPhase });
+  const { isSidebarFixed, sidebarContainerRef } = useStickyHeader({ layoutPhase, isMobile });
   
   // カテゴリ別の作品数を計算
   useEffect(() => {
@@ -114,8 +115,8 @@ export default function CategoriesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile Hamburger Button - Only in Phase 4 and Phase 5 */}
-      {(layoutPhase === 'phase4' || layoutPhase === 'phase5') && (
+      {/* Mobile Hamburger Button */}
+      {isMobile && (
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="absolute top-27 left-4 z-40 p-2 hover:bg-muted rounded-md transition-colors"
@@ -125,8 +126,8 @@ export default function CategoriesPage() {
         </button>
       )}
 
-      {/* Mobile Overlay - Only in Phase 4 and Phase 5 */}
-      {(layoutPhase === 'phase4' || layoutPhase === 'phase5') && isSidebarOpen && (
+      {/* Mobile Overlay */}
+      {isMobile && isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsSidebarOpen(false)} />
       )}
 
@@ -138,6 +139,7 @@ export default function CategoriesPage() {
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
           layoutPhase={layoutPhase}
+          isMobile={isMobile}
           isSidebarOpen={isSidebarOpen}
           setIsSidebarOpen={setIsSidebarOpen}
           sidebarRef={sidebarRef}
@@ -145,7 +147,7 @@ export default function CategoriesPage() {
         />
 
         {/* Layout spacer to prevent content jumping when sidebar becomes fixed */}
-        {layoutPhase !== 'phase4' && layoutPhase !== 'phase5' && isSidebarFixed && (
+        {!isMobile && isSidebarFixed && (
           <div className="w-48 flex-shrink-0" />
         )}
 
@@ -154,13 +156,13 @@ export default function CategoriesPage() {
           style={{
             width: layoutPhase === 'phase2' || layoutPhase === 'phase3' ? 
               (contentWidth ? `${contentWidth}px` : 'auto') : undefined,
-            flexGrow: layoutPhase === 'phase1' || layoutPhase === 'phase4' || layoutPhase === 'phase5' ? 1 : 0,
+            flexGrow: layoutPhase === 'phase1' || isMobile ? 1 : 0,
             flexShrink: layoutPhase === 'phase2' ? 0 : 1,
             minWidth: 0
           }}
         >
           <div 
-            className={layoutPhase === 'phase1' ? "max-w-screen-xl mx-auto px-4 py-8" : (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? "px-4 pt-8 pb-8" : "px-4 py-8"}
+            className={layoutPhase === 'phase1' ? "max-w-screen-xl mx-auto px-4 py-8" : isMobile ? "px-4 pt-8 pb-8" : "px-4 py-8"}
             style={{
               maxWidth: layoutPhase === 'phase1' ? undefined : 'none'
             }}
@@ -171,6 +173,7 @@ export default function CategoriesPage() {
                 selectedCategoryPosts={selectedCategoryPosts}
                 categories={categories}
                 layoutPhase={layoutPhase}
+                isMobile={isMobile}
                 error={error}
                 onBackToList={handleBackToList}
               />
@@ -186,7 +189,7 @@ export default function CategoriesPage() {
 
         {/* Right Smart Spacer */}
         <div 
-          className={(layoutPhase === 'phase4' || layoutPhase === 'phase5') ? "hidden" : ""}
+          className={isMobile ? "hidden" : ""}
           style={{
             width: layoutPhase === 'phase1' ? '192px' : (spacerWidth !== undefined ? `${spacerWidth}px` : undefined),
             flexShrink: 0,

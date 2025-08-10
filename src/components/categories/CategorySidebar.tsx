@@ -8,6 +8,7 @@ interface CategorySidebarProps {
   selectedCategory: string;
   onCategorySelect: (categoryName: string) => void;
   layoutPhase: LayoutPhase;
+  isMobile?: boolean;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
   sidebarRef: React.RefObject<HTMLDivElement | null>;
@@ -19,35 +20,38 @@ export const CategorySidebar = React.memo<CategorySidebarProps>(function Categor
   selectedCategory,
   onCategorySelect,
   layoutPhase,
+  isMobile = false,
   isSidebarOpen,
   setIsSidebarOpen,
   sidebarRef,
   isSidebarFixed,
 }) {
+  // Helper to identify mobile phases
+  const isMobilePhase = layoutPhase === 'phase4' || layoutPhase === 'phase5';
   return (
     <div
       ref={sidebarRef}
       className={`
         w-48 flex-shrink-0
-        ${(layoutPhase === 'phase4' || layoutPhase === 'phase5')
+        ${isMobilePhase
           ? `fixed z-40 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
           : ''
         }
       `}
       style={{
-        display: (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? undefined : 'block',
-        position: (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? 'fixed' : (isSidebarFixed ? 'fixed' : 'static'),
-        top: (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? '0' : (isSidebarFixed ? '80px' : undefined),
-        height: (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? '100vh' : undefined,
-        zIndex: (layoutPhase === 'phase4' || layoutPhase === 'phase5') ? 40 : (isSidebarFixed ? 10 : undefined),
+        display: isMobilePhase ? undefined : 'block',
+        position: isMobilePhase ? 'fixed' : (isSidebarFixed ? 'fixed' : 'static'),
+        top: isMobilePhase ? '0' : (isSidebarFixed ? '80px' : undefined),
+        height: isMobilePhase ? '100vh' : undefined,
+        zIndex: isMobilePhase ? 40 : (isSidebarFixed ? 10 : undefined),
       }}
     >
       <div 
         className="bg-background border-r border-border overflow-y-auto h-full relative"
         style={{width: '192px', minWidth: '192px', maxWidth: '192px'}} 
       >
-        {/* Fixed Mobile Header - Only in Phase 4 and Phase 5 */}
-        {(layoutPhase === 'phase4' || layoutPhase === 'phase5') && (
+        {/* Fixed Mobile Header */}
+        {isMobilePhase && (
           <div className="sticky bg-background p-4 z-10" style={{top: '92px'}}>
             <div className="flex items-center">
               <button
@@ -66,11 +70,11 @@ export const CategorySidebar = React.memo<CategorySidebarProps>(function Categor
 
         {/* Content wrapper with appropriate padding */}
         <div 
-          className={(layoutPhase === 'phase4' || layoutPhase === 'phase5') ? "pt-23 px-3 pb-3" : "px-3 py-8"}
+          className={isMobilePhase ? "pt-23 px-3 pb-3" : "px-3 py-8"}
           style={{width: '190px', minWidth: '190px', maxWidth: '190px'}}
         >
           {/* Desktop Header - Show in all phases except mobile */}
-          <h2 className={`${(layoutPhase === 'phase4' || layoutPhase === 'phase5') ? 'hidden' : 'block'} text-base font-semibold text-foreground mb-3 flex items-center`}>
+          <h2 className={`${isMobilePhase ? 'hidden' : 'block'} text-base font-semibold text-foreground mb-3 flex items-center`}>
             <div className="p-2 mr-2">
               <Menu className="w-5 h-5" />
             </div>

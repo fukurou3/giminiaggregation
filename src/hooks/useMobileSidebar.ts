@@ -11,12 +11,14 @@ interface UseMobileSidebarProps {
   layoutPhase: LayoutPhase;
   hasCategories: boolean;
   isLoading: boolean;
+  isMobile?: boolean;
 }
 
 export const useMobileSidebar = ({ 
   layoutPhase, 
   hasCategories, 
-  isLoading 
+  isLoading,
+  isMobile = false 
 }: UseMobileSidebarProps): UseMobileSidebarReturn => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
@@ -24,28 +26,28 @@ export const useMobileSidebar = ({
 
   // 横長リスト表示時の初回読み込みでモーダルを自動で開く
   useEffect(() => {
-    if ((layoutPhase === 'phase4' || layoutPhase === 'phase5') && !isLoading && hasCategories && isInitialLoad) {
+    if (isMobile && !isLoading && hasCategories && isInitialLoad) {
       setIsSidebarOpen(true);
       setIsInitialLoad(false);
     }
-  }, [layoutPhase, isLoading, hasCategories, isInitialLoad]);
+  }, [isMobile, isLoading, hasCategories, isInitialLoad]);
 
   // ページアクセス時の処理（上部タブからのアクセスを検出）
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && (layoutPhase === 'phase4' || layoutPhase === 'phase5')) {
+      if (document.visibilityState === 'visible' && isMobile) {
         setIsSidebarOpen(true);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [layoutPhase]);
+  }, [isMobile]);
 
-  // 右スワイプでカテゴリモーダルを開く（phase4のタッチデバイスのみ）
+  // 右スワイプでカテゴリモーダルを開く（モバイルのタッチデバイスのみ）
   useEffect(() => {
-    // phase4かつタッチデバイスの場合のみ
-    if ((layoutPhase !== 'phase4' && layoutPhase !== 'phase5') || !('ontouchstart' in window)) return;
+    // モバイルかつタッチデバイスの場合のみ
+    if (!isMobile || !('ontouchstart' in window)) return;
 
     let startX = 0;
     let startY = 0;
@@ -77,7 +79,7 @@ export const useMobileSidebar = ({
       mainContent.removeEventListener('touchstart', handleTouchStart);
       mainContent.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [layoutPhase]);
+  }, [isMobile]);
 
   // サイドバー外をクリックした時に閉じる
   useEffect(() => {

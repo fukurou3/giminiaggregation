@@ -11,6 +11,7 @@ interface UseResponsiveLayoutReturn {
   layoutPhase: LayoutPhase;
   contentWidth: number | undefined;
   spacerWidth: number | undefined;
+  isMobile: boolean;
 }
 
 export const useResponsiveLayout = (): UseResponsiveLayoutReturn => {
@@ -26,6 +27,11 @@ export const useResponsiveLayout = (): UseResponsiveLayoutReturn => {
   const MAX_SPACER_WIDTH = 192; // w-48 = 12rem = 192px
   const MOBILE_BREAKPOINT = 680; // カスタムブレークポイント
   const COLLAPSED_SIDEBAR_BREAKPOINT = 830; // サイドバー格納ブレークポイント
+
+  // ヘルパー関数: モバイル判定
+  const isMobileLayout = useCallback((phase: LayoutPhase) => {
+    return phase === 'phase4' || phase === 'phase5';
+  }, []);
 
   const calculateLayout = useCallback((containerWidth: number) => {
     // Phase 4: Mobile view
@@ -99,5 +105,6 @@ export const useResponsiveLayout = (): UseResponsiveLayoutReturn => {
     layoutPhase,
     contentWidth: dimensions.contentWidth,
     spacerWidth: dimensions.spacerWidth,
+    isMobile: isMobileLayout(layoutPhase),
   };
 };

@@ -8,15 +8,16 @@ interface UseStickyHeaderReturn {
 
 interface UseStickyHeaderProps {
   layoutPhase: LayoutPhase;
+  isMobile?: boolean;
 }
 
-export const useStickyHeader = ({ layoutPhase }: UseStickyHeaderProps): UseStickyHeaderReturn => {
+export const useStickyHeader = ({ layoutPhase, isMobile = false }: UseStickyHeaderProps): UseStickyHeaderReturn => {
   const [isSidebarFixed, setIsSidebarFixed] = useState(false);
   const sidebarContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Skip on mobile layout
-    if (layoutPhase === 'phase4' || layoutPhase === 'phase5') return;
+    if (isMobile) return;
 
     const HEADER_HEIGHT = 80; // Adjust based on your header height
 
@@ -35,7 +36,7 @@ export const useStickyHeader = ({ layoutPhase }: UseStickyHeaderProps): UseStick
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [layoutPhase]);
+  }, [isMobile]);
 
   return {
     isSidebarFixed,
