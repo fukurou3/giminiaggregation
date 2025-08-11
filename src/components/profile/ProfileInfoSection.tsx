@@ -1,5 +1,4 @@
-import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, Edit2, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { UserProfile } from "@/types/User";
 
@@ -7,24 +6,17 @@ interface ProfileInfoSectionProps {
   profile: UserProfile;
   photoURL?: string;
   displayName?: string;
-  isOwnProfile: boolean;
   onBack: () => void;
-  stats: {
-    totalPosts: number;
-    totalFavorites: number;
-  };
 }
 
 export function ProfileInfoSection({
   profile,
   photoURL,
   displayName,
-  isOwnProfile,
   onBack,
-  stats,
 }: ProfileInfoSectionProps) {
   return (
-    <div className="relative px-4 pb-4">
+    <div className="relative px-2 pb-2">
       {/* Back Button */}
       <div className="mb-4">
         <button
@@ -119,34 +111,6 @@ export function ProfileInfoSection({
                 <Mail className="w-4 h-4" />
                 <span>{profile.email}</span>
               </div>
-            )}
-          </div>
-
-          <div className="flex gap-6 text-sm">
-            <div className="space-x-1">
-              <span className="font-semibold text-foreground">{stats.totalPosts}</span>
-              <span className="text-muted-foreground">投稿</span>
-            </div>
-            <div className="space-x-1">
-              <span className="font-semibold text-foreground">{stats.totalFavorites}</span>
-              <span className="text-muted-foreground">お気に入り</span>
-            </div>
-          </div>
-
-          {/* Profile Actions */}
-          <div className="flex justify-end pt-4">
-            {isOwnProfile ? (
-              <Link
-                href="/settings/profile"
-                className="flex items-center gap-2 px-4 py-2 border border-border rounded-full hover:bg-muted transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-                <span className="text-sm font-medium">プロフィールを編集</span>
-              </Link>
-            ) : (
-              <button className="px-6 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors font-medium">
-                フォロー
-              </button>
             )}
           </div>
         </div>

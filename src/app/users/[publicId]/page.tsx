@@ -15,11 +15,6 @@ import { ProfileLoading, ProfileError } from "@/components/profile/ProfileStates
 interface ProfileData {
   profile: UserProfile;
   posts: Post[];
-  favorites: Post[];
-  stats: {
-    totalPosts: number;
-    totalFavorites: number;
-  };
 }
 
 export default function UserProfilePage() {
@@ -87,7 +82,7 @@ export default function UserProfilePage() {
     );
   }
 
-  const { profile, posts, favorites, stats } = profileData;
+  const { profile, posts } = profileData;
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,14 +91,11 @@ export default function UserProfilePage() {
           profile={profile}
           photoURL={profile.photoURL}
           displayName={profile.displayName}
-          isOwnProfile={!!isOwnProfile}
           onBack={() => router.back()}
-          stats={stats}
         />
 
         <ProfileTabsSection
           posts={posts}
-          favorites={favorites}
           isOwnProfile={!!isOwnProfile}
           isMobile={isMobile}
           layoutPhase={layoutPhase}
