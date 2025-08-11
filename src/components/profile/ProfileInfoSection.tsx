@@ -1,18 +1,17 @@
-import { Calendar, MapPin, Link as LinkIcon, Twitter, Github, Mail, User, Edit2 } from "lucide-react";
+import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, Edit2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { UserProfile } from "@/types/User";
-import { formatDate } from "@/lib/utils/date";
 
 interface ProfileInfoSectionProps {
   profile: UserProfile;
   photoURL?: string;
   displayName?: string;
   isOwnProfile: boolean;
+  onBack: () => void;
   stats: {
     totalPosts: number;
     totalFavorites: number;
-    totalViews: number;
   };
 }
 
@@ -21,38 +20,48 @@ export function ProfileInfoSection({
   photoURL,
   displayName,
   isOwnProfile,
+  onBack,
   stats,
 }: ProfileInfoSectionProps) {
   return (
     <div className="relative px-4 pb-4">
-      {/* Avatar */}
-      <div className="absolute -top-16 sm:-top-20">
-        <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-background overflow-hidden bg-muted">
-          {photoURL ? (
-            <Image
-              src={photoURL}
-              alt={displayName || "プロフィール画像"}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-primary">
-              <User className="w-8 h-8 sm:w-12 sm:h-12 text-primary-foreground" />
-            </div>
-          )}
-        </div>
+      {/* Back Button */}
+      <div className="mb-4">
+        <button
+          onClick={onBack}
+          className="p-2 rounded-full hover:bg-muted transition-colors"
+          aria-label="戻る"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Profile Info */}
-      <div className="pt-12 sm:pt-16">
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-              {profile.displayName || profile.username || "名前未設定"}
-            </h2>
-            {profile.username && (
-              <p className="text-muted-foreground">@{profile.username}</p>
-            )}
+      <div>
+        <div className="space-y-4">
+          {/* Avatar and Names */}
+          <div className="flex items-start gap-3">
+            <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background overflow-hidden bg-muted flex-shrink-0">
+              {photoURL ? (
+                <Image
+                  src={photoURL}
+                  alt={displayName || "プロフィール画像"}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-primary">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary-foreground" />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground">
+                {profile.displayName || profile.username || "名前未設定"}
+              </h2>
+              <p className="text-sm text-muted-foreground">@{profile.publicId}</p>
+            </div>
           </div>
 
           {profile.bio && (
@@ -113,13 +122,6 @@ export function ProfileInfoSection({
             )}
           </div>
 
-          {profile.createdAt && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>{formatDate(profile.createdAt)}に登録</span>
-            </div>
-          )}
-
           <div className="flex gap-6 text-sm">
             <div className="space-x-1">
               <span className="font-semibold text-foreground">{stats.totalPosts}</span>
@@ -128,10 +130,6 @@ export function ProfileInfoSection({
             <div className="space-x-1">
               <span className="font-semibold text-foreground">{stats.totalFavorites}</span>
               <span className="text-muted-foreground">お気に入り</span>
-            </div>
-            <div className="space-x-1">
-              <span className="font-semibold text-foreground">{stats.totalViews}</span>
-              <span className="text-muted-foreground">閲覧数</span>
             </div>
           </div>
 

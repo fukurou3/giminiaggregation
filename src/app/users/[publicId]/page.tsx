@@ -8,7 +8,6 @@ import { Post } from "@/types/Post";
 import { UserProfile } from "@/types/User";
 
 // Profile Components
-import { ProfileHeaderSection } from "@/components/profile/ProfileHeaderSection";
 import { ProfileInfoSection } from "@/components/profile/ProfileInfoSection";
 import { ProfileTabsSection } from "@/components/profile/ProfileTabsSection";
 import { ProfileLoading, ProfileError } from "@/components/profile/ProfileStates";
@@ -20,7 +19,6 @@ interface ProfileData {
   stats: {
     totalPosts: number;
     totalFavorites: number;
-    totalViews: number;
   };
 }
 
@@ -93,20 +91,13 @@ export default function UserProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ProfileHeaderSection
-        displayName={profile.displayName}
-        username={profile.username}
-        totalPosts={stats.totalPosts}
-        coverImage={profile.coverImage}
-        onBack={() => router.back()}
-      />
-
       <div className={containerClasses}>
         <ProfileInfoSection
           profile={profile}
           photoURL={profile.photoURL}
           displayName={profile.displayName}
           isOwnProfile={!!isOwnProfile}
+          onBack={() => router.back()}
           stats={stats}
         />
 

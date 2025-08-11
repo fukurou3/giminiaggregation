@@ -12,6 +12,8 @@ import { TagChip } from '@/components/ui/TagChip';
 import { formatDate } from '@/lib/utils/date';
 import { findCategoryById } from '@/lib/constants/categories';
 import Link from 'next/link';
+import { RelatedPostsSection } from '@/components/sections/RelatedPostsSection';
+import { useRelatedPosts } from '@/hooks/useRelatedPosts';
 import type { Post } from '@/types/Post';
 import type { UserProfile } from '@/types/UserProfile';
 
@@ -93,6 +95,9 @@ export default function PostDetailPage() {
     postId,
     refetch,
   });
+
+  // 関連作品を取得
+  const { relatedPosts, loading: relatedLoading } = useRelatedPosts(postId);
 
   // ハンドラー
   const handleRetry = () => refetch();
@@ -320,6 +325,12 @@ export default function PostDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* おすすめの作品セクション */}
+        <RelatedPostsSection
+          posts={relatedPosts}
+          loading={relatedLoading}
+        />
       </div>
     </div>
   );

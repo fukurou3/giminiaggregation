@@ -140,7 +140,6 @@ export async function GET(
     const stats = {
       totalPosts: posts.length,
       totalFavorites: favorites.length,
-      totalViews: posts.reduce((sum, post) => sum + (post.views || 0), 0),
     };
     console.log('Step 7: Stats calculated:', stats);
 
