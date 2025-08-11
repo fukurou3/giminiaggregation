@@ -59,16 +59,52 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return {
+      let profile: UserProfile = {
         uid,
         publicId: data.publicId,
         username: data.username,
+        displayName: data.displayName,
+        email: data.email,
         photoURL: data.photoURL,
         photoFileName: data.photoFileName,
+        coverImage: data.coverImage,
+        bio: data.bio,
+        location: data.location,
+        website: data.website,
+        twitter: data.twitter,
+        github: data.github,
+        showEmail: data.showEmail,
+        isVerified: data.isVerified,
+        badges: data.badges,
+        role: data.role,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         isSetupComplete: data.isSetupComplete || false,
       };
+
+      // publicIdが空または存在しない場合は自動生成
+      if (!profile.publicId || profile.publicId === '') {
+        const generatePublicId = () => {
+          const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+          let result = '';
+          for (let i = 0; i < 8; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          return result;
+        };
+
+        profile.publicId = generatePublicId();
+        
+        // Firestoreを更新
+        await updateDoc(docRef, {
+          publicId: profile.publicId,
+          updatedAt: serverTimestamp()
+        });
+
+        console.log(`Auto-generated publicId for user ${uid}: ${profile.publicId}`);
+      }
+
+      return profile;
     }
     
     return null;
@@ -87,11 +123,22 @@ export async function createUserProfile(uid: string): Promise<void> {
     const docRef = doc(db, 'userProfiles', uid);
     const docSnap = await getDoc(docRef);
     
-    // プロフィールが存在しない場合のみ作成（空のプレースホルダー）
+    // プロフィールが存在しない場合のみ作成
     if (!docSnap.exists()) {
+      // ランダムなpublicIdを生成（8文字）
+      const generatePublicId = () => {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+      
       await setDoc(docRef, {
-        publicId: '',  // 初期段階では空
-        username: '',  // 初期段階では空
+        uid,
+        publicId: generatePublicId(),
+        username: '',
         photoURL: '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

@@ -321,7 +321,7 @@ export const ImageUploader = ({
         return item.file ? total + item.file.size : total;
       }, 0);
       const newTotalSize = calculateTotalSize(filesToProcess);
-      const maxTotalSize = 4 * 1024 * 1024; // 4MB
+      const maxTotalSize = 8 * 1024 * 1024; // 8MB
 
       if (currentTotalSize + newTotalSize > maxTotalSize) {
         alert(`容量制限を超えています：\n現在の容量: ${formatFileSize(currentTotalSize)}\n追加予定: ${formatFileSize(newTotalSize)}\n制限: ${formatFileSize(maxTotalSize)}\n\nより小さな画像を選択するか、既存の画像を削除してください。`);
@@ -466,7 +466,7 @@ export const ImageUploader = ({
   return (
     <div className="space-y-4">
       {/* アップロードエリア */}
-      {canAddMore && (
+      {canAddMore && imageItems.length === 0 && (
         <div
           className={`
             border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
@@ -488,9 +488,7 @@ export const ImageUploader = ({
           <p className="text-sm text-muted-foreground">
             JPEG, PNG, WebP形式 / 最大{maxImages}枚 / 個別ファイル制限: 10MB
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            🎨 5:3比率に自動切り抜き • 🔒 EXIF除去 • 📊 総容量制限: 4MB {isWorkerSupported ? '• ⚡ 並列処理対応' : ''}
-          </p>
+
           
           <input
             ref={fileInputRef}
@@ -603,6 +601,24 @@ export const ImageUploader = ({
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 画像追加後の小さい追加ボタン */}
+      {canAddMore && imageItems.length > 0 && (
+        <div className="flex justify-center">
+          <button
+            className={`
+              inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm 
+              transition-colors hover:bg-muted/50 hover:border-primary/50
+              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+            onClick={() => !disabled && fileInputRef.current?.click()}
+            disabled={disabled}
+          >
+            <Upload size={16} />
+            追加
+          </button>
         </div>
       )}
 

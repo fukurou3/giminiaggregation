@@ -11,6 +11,7 @@ export type Post = {
   customCategory?: string;
   authorId: string;
   authorUsername: string;  // ユーザーの公開ハンドル
+  authorPublicId: string;  // ユーザーのpublicID（URL用）
   thumbnailUrl?: string; // 後方互換性のため保持
   images?: string[]; // Firebase Storage URLs配列
   imageOrder?: number[]; // 画像表示順序

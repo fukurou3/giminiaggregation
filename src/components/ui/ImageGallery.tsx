@@ -37,7 +37,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
   // スクロール処理
   const scrollLeft = useCallback(() => {
     if (scrollContainerRef.current) {
-      const itemWidth = 384 + 16; // w-96 + gap
+      const itemWidth = 320 + 16; // w-80 + gap
       scrollContainerRef.current.scrollBy({ 
         left: -itemWidth, 
         behavior: 'smooth' 
@@ -47,7 +47,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
 
   const scrollRight = useCallback(() => {
     if (scrollContainerRef.current) {
-      const itemWidth = 384 + 16; // w-96 + gap
+      const itemWidth = 320 + 16; // w-80 + gap
       scrollContainerRef.current.scrollBy({ 
         left: itemWidth, 
         behavior: 'smooth' 
@@ -76,7 +76,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
         {showNavigation && canScrollLeft && (
           <button
             onClick={scrollLeft}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
             aria-label="前の画像"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -87,7 +87,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
         {showNavigation && canScrollRight && (
           <button
             onClick={scrollRight}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
             aria-label="次の画像"
           >
             <ChevronRight className="w-5 h-5" />
@@ -101,8 +101,10 @@ const ImageGallery = memo<ImageGalleryProps>(({
           onScroll={checkScrollButtons}
         >
           <div className="flex gap-4 pb-4 px-4 sm:px-6 lg:px-8 min-w-max">
+            {/* 先頭に空白を追加 */}
+            {displayImages.length > 0 && <div className="w-3 flex-shrink-0" />}
             {displayImages.map((imageUrl, index) => (
-              <div key={`${imageUrl}-${index}`} className="w-96 flex-shrink-0">
+              <div key={`${imageUrl}-${index}`} className="w-80 flex-shrink-0">
                 <div className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden border border-black/20">
                   <Image
                     src={imageUrl}
@@ -115,7 +117,8 @@ const ImageGallery = memo<ImageGalleryProps>(({
                 </div>
               </div>
             ))}
-          </div>
+            {/* 最後尾に空白を追加 */}
+            {displayImages.length > 0 && <div className="w-3 flex-shrink-0" />}$1</div>
         </div>
       </div>
     </div>

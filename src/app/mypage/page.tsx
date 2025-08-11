@@ -7,11 +7,14 @@ import { useRouter } from "next/navigation";
 import { Post } from "@/types/Post";
 import { Heart, FileText, Loader2 } from "lucide-react";
 import { PostGrid } from "@/components/ui/PostGrid";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import Link from "next/link";
 
 export default function MyPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { userProfile } = useUserProfile();
   const router = useRouter();
+  const { layoutPhase, isMobile } = useResponsiveLayout();
   const [activeTab, setActiveTab] = useState<"favorites" | "posts">("favorites");
   const [favorites, setFavorites] = useState<Post[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);
@@ -73,14 +76,34 @@ export default function MyPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) {
+    // 認証状態の読み込み中は何もしない
+    if (authLoading) return;
+    
+    // 認証状態が確定してユーザーがいない場合のみリダイレクト
+    if (!authLoading && !user) {
       router.push("/");
       return;
     }
     
-    fetchUserData();
-  }, [user, router, fetchUserData]);
+    // ユーザーが存在する場合はデータを取得
+    if (user) {
+      fetchUserData();
+    }
+  }, [user, authLoading, router, fetchUserData]);
 
+  // 認証状態の読み込み中はローディング表示
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 認証されていない場合
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted">
@@ -93,21 +116,40 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">マイページ</h1>
+    <div className="min-h-screen bg-background">
+      <div className={`${
+        layoutPhase === 'phase1' ? 'max-w-7xl' : 
+        layoutPhase === 'phase2' || layoutPhase === 'phase3' ? 'max-w-6xl' : 
+        'w-full'
+      } mx-auto px-4 sm:px-6 lg:px-8 py-8`}>
+        <div className={`mb-8 ${isMobile ? 'px-2' : ''}`}>
+          <h1 className={`font-bold text-foreground mb-2 ${
+            isMobile ? 'text-2xl' : 'text-3xl'
+          }`}>マイページ</h1>
           <p className="text-muted-foreground">
             {userProfile?.username || "ユーザー"}さんのページ
           </p>
+          {userProfile?.publicId && (
+            <p className="text-xs text-muted-foreground mt-1">
+              プロフィールURL: 
+              <Link 
+                href={`/users/${userProfile.publicId}`}
+                className="text-primary hover:underline ml-1"
+              >
+                /users/{userProfile.publicId}
+              </Link>
+            </p>
+          )}
         </div>
 
         {/* タブナビゲーション */}
-        <div className="bg-background border border-border rounded-lg shadow-md mb-6">
+        <div className={`bg-background border border-border rounded-lg shadow-md mb-6 ${
+          isMobile ? 'mx-2' : ''
+        }`}>
           <div className="flex border-b border-border">
             <button
               onClick={() => setActiveTab("favorites")}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+              className={`flex-1 ${isMobile ? 'px-3 py-3 text-sm' : 'px-6 py-4'} text-center font-medium transition-colors ${
                 activeTab === "favorites"
                   ? "bg-primary/5 text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -118,7 +160,7 @@ export default function MyPage() {
             </button>
             <button
               onClick={() => setActiveTab("posts")}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+              className={`flex-1 ${isMobile ? 'px-3 py-3 text-sm' : 'px-6 py-4'} text-center font-medium transition-colors ${
                 activeTab === "posts"
                   ? "bg-primary/5 text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -150,8 +192,10 @@ export default function MyPage() {
                 {activeTab === "favorites" && (
                   <div>
                     {favorites.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Heart className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+                      <div className={`text-center ${isMobile ? 'py-8' : 'py-12'}`}>
+                        <Heart className={`mx-auto text-muted-foreground/50 mb-4 ${
+                          isMobile ? 'w-12 h-12' : 'w-16 h-16'
+                        }`} />
                         <h3 className="text-lg font-semibold text-foreground mb-2">
                           お気に入りした作品がありません
                         </h3>
@@ -169,6 +213,10 @@ export default function MyPage() {
                       <PostGrid
                         posts={favorites}
                         layout="grid"
+                        responsive={layoutPhase === 'phase4'}
+                        showViews={false}
+                        showCategory={layoutPhase !== 'phase4'}
+                        className={layoutPhase !== 'phase4' ? 'grid-cols-[repeat(auto-fill,minmax(280px,1fr))]' : ''}
                         gridCols={{ md: 2, lg: 3 }}
                       />
                     )}
@@ -178,8 +226,10 @@ export default function MyPage() {
                 {activeTab === "posts" && (
                   <div>
                     {myPosts.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FileText className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+                      <div className={`text-center ${isMobile ? 'py-8' : 'py-12'}`}>
+                        <FileText className={`mx-auto text-muted-foreground/50 mb-4 ${
+                          isMobile ? 'w-12 h-12' : 'w-16 h-16'
+                        }`} />
                         <h3 className="text-lg font-semibold text-foreground mb-2">
                           投稿した作品がありません
                         </h3>
@@ -197,6 +247,10 @@ export default function MyPage() {
                       <PostGrid
                         posts={myPosts}
                         layout="grid"
+                        responsive={layoutPhase === 'phase4'}
+                        showViews={false}
+                        showCategory={layoutPhase !== 'phase4'}
+                        className={layoutPhase !== 'phase4' ? 'grid-cols-[repeat(auto-fill,minmax(280px,1fr))]' : ''}
                         gridCols={{ md: 2, lg: 3 }}
                       />
                     )}

@@ -13,6 +13,7 @@ import { formatDate } from '@/lib/utils/date';
 import { findCategoryById } from '@/lib/constants/categories';
 import Link from 'next/link';
 import type { Post } from '@/types/Post';
+import type { UserProfile } from '@/types/UserProfile';
 
 // ローディングコンポーネント
 const LoadingSpinner = () => (
@@ -78,6 +79,12 @@ export default function PostDetailPage() {
   const { data: post, loading, error, refetch } = useFirestoreDocument<Post>(
     'posts',
     postId
+  );
+
+  // 作成者のユーザー情報を取得
+  const { data: authorProfile } = useFirestoreDocument<UserProfile>(
+    'userProfiles',
+    post?.authorId || ''
   );
 
   // 投稿詳細のロジック
@@ -271,7 +278,16 @@ export default function PostDetailPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">作成者</span>
-                  <span className="font-medium text-foreground">{post.authorUsername}</span>
+                  {authorProfile?.publicId ? (
+                    <Link 
+                      href={`/users/${authorProfile.publicId}`}
+                      className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer underline-offset-4 hover:underline"
+                    >
+                      {post.authorUsername}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground">{post.authorUsername}</span>
+                  )}
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">公開日</span>
