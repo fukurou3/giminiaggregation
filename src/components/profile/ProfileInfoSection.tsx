@@ -16,9 +16,9 @@ export function ProfileInfoSection({
   onBack,
 }: ProfileInfoSectionProps) {
   return (
-    <div className="relative px-2 pb-2">
-      {/* Back Button */}
-      <div className="mb-4">
+    <div className="relative px-0 pb-1">
+      {/* Header with Back Button and Profile Info */}
+      <div className="flex items-center gap-2 mb-4 mt-2">
         <button
           onClick={onBack}
           className="p-2 rounded-full hover:bg-muted transition-colors"
@@ -26,35 +26,33 @@ export function ProfileInfoSection({
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
+        
+        <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background overflow-hidden bg-muted flex-shrink-0">
+          {photoURL ? (
+            <Image
+              src={photoURL}
+              alt={displayName || "プロフィール画像"}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-primary">
+              <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary-foreground" />
+            </div>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base sm:text-lg font-bold text-foreground">
+            {profile.displayName || profile.username || "名前未設定"}
+          </h2>
+          <p className="text-sm text-muted-foreground">@{profile.publicId}</p>
+        </div>
       </div>
 
       {/* Profile Info */}
       <div>
         <div className="space-y-4">
-          {/* Avatar and Names */}
-          <div className="flex items-start gap-3">
-            <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background overflow-hidden bg-muted flex-shrink-0">
-              {photoURL ? (
-                <Image
-                  src={photoURL}
-                  alt={displayName || "プロフィール画像"}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-primary">
-                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary-foreground" />
-                </div>
-              )}
-            </div>
-            
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                {profile.displayName || profile.username || "名前未設定"}
-              </h2>
-              <p className="text-sm text-muted-foreground">@{profile.publicId}</p>
-            </div>
-          </div>
 
           {profile.bio && (
             <p className="text-foreground leading-relaxed">{profile.bio}</p>

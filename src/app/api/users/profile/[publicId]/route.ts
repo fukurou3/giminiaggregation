@@ -15,13 +15,12 @@ import { UserProfile } from '@/types/User';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { publicId: string } }
+  { params }: { params: Promise<{ publicId: string }> }
 ) {
-  console.log('Profile API called with publicId:', params.publicId);
+  const { publicId } = await params;
+  console.log('Profile API called with publicId:', publicId);
   
   try {
-    const { publicId } = params;
-
     if (!publicId) {
       return NextResponse.json(
         { error: "Public ID is required" },
@@ -73,42 +72,49 @@ export async function GET(
       updatedAt: profileDoc.data().updatedAt?.toDate?.() || null,
     } as UserProfile;
 
-    const userId = profile.uid;
+    const userId = profile.uid || profile.id;
     console.log('Step 4: Getting user posts for userId:', userId);
+    console.log('Profile data:', profile);
 
-    // ユーザーの投稿を取得
-    let postsSnapshot;
+    // ユーザーの投稿を取得 - まず既存のAPIを確認
+    let posts: Post[] = [];
+    
+    // 既存のユーザー投稿APIを使用
     try {
-      const postsRef = collection(db, 'posts');
-      const postsQuery = query(
-        postsRef,
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      
-      postsSnapshot = await getDocs(postsQuery);
-      console.log('Step 4: Posts query success, found', postsSnapshot.size, 'posts');
+      console.log('Fetching posts via existing API for userId:', userId);
+      const postsResponse = await fetch(`${request.nextUrl.origin}/api/users/${userId}/posts`);
+      if (postsResponse.ok) {
+        const postsData = await postsResponse.json();
+        posts = postsData.data?.posts || [];
+        console.log('Posts fetched via API:', posts.length);
+      } else {
+        console.log('Posts API failed, trying direct query');
+        // フォールバック: 直接クエリ
+        const postsRef = collection(db, 'posts');
+        const postsQuery = query(
+          postsRef,
+          where('userId', '==', userId),
+          orderBy('createdAt', 'desc')
+        );
+        const postsSnapshot = await getDocs(postsQuery);
+        posts = postsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+          updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
+        } as Post));
+      }
     } catch (postsError) {
       console.error('Posts query error:', postsError);
-      // 投稿の取得に失敗してもプロフィール表示は継続
-      postsSnapshot = { docs: [] };
+      posts = [];
     }
-    const posts: Post[] = postsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-    } as Post));
 
-    // Skip favorites retrieval
     console.log('Step 5: Skipping favorites retrieval');
-    const favorites: Post[] = [];
-
     console.log('Step 7: Skipping stats calculation');
 
     // プライバシー設定に応じて情報をフィルタリング
     const publicProfile = {
-      uid: profile.uid,
+      uid: profile.uid || profile.id,
       username: profile.username,
       displayName: profile.displayName,
       photoURL: profile.photoURL,
