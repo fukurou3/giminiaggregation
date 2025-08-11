@@ -16,8 +16,6 @@ export function ProfileTabsSection({
   isMobile,
   layoutPhase
 }: ProfileTabsSectionProps) {
-  console.log('ProfileTabsSection - posts:', posts, 'length:', posts?.length);
-  
   return (
     <div>
       {/* Header */}

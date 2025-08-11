@@ -18,7 +18,6 @@ export async function GET(
   { params }: { params: Promise<{ publicId: string }> }
 ) {
   const { publicId } = await params;
-  console.log('Profile API called with publicId:', publicId);
   
   try {
     if (!publicId) {
@@ -28,36 +27,15 @@ export async function GET(
       );
     }
 
-    // publicIdでユーザープロフィールを検索
-    console.log('Searching for profile with publicId:', publicId);
-    
-    let profilesRef, profileQuery, profileSnapshot;
-    
-    try {
-      console.log('Step 1: Creating collection reference...');
-      profilesRef = collection(db, 'userProfiles');
-      console.log('Step 1: Success');
-      
-      console.log('Step 2: Creating query...');
-      profileQuery = query(
-        profilesRef,
-        where('publicId', '==', publicId),
-        limit(1)
-      );
-      console.log('Step 2: Success');
-      
-      console.log('Step 3: Executing query...');
-      profileSnapshot = await getDocs(profileQuery);
-      console.log('Step 3: Success');
-    } catch (queryError) {
-      console.error('Query error:', queryError);
-      throw new Error(`Database query failed: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
-    }
-    console.log('Profile query result - empty:', profileSnapshot.empty);
-    console.log('Profile query result - size:', profileSnapshot.size);
+    const profilesRef = collection(db, 'userProfiles');
+    const profileQuery = query(
+      profilesRef,
+      where('publicId', '==', publicId),
+      limit(1)
+    );
+    const profileSnapshot = await getDocs(profileQuery);
     
     if (profileSnapshot.empty) {
-      console.log('No profile found for publicId:', publicId);
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
@@ -73,23 +51,15 @@ export async function GET(
     } as UserProfile;
 
     const userId = profile.uid || profile.id;
-    console.log('Step 4: Getting user posts for userId:', userId);
-    console.log('Profile data:', profile);
 
-    // ユーザーの投稿を取得 - まず既存のAPIを確認
     let posts: Post[] = [];
     
-    // 既存のユーザー投稿APIを使用
     try {
-      console.log('Fetching posts via existing API for userId:', userId);
       const postsResponse = await fetch(`${request.nextUrl.origin}/api/users/${userId}/posts`);
       if (postsResponse.ok) {
         const postsData = await postsResponse.json();
         posts = postsData.data?.posts || [];
-        console.log('Posts fetched via API:', posts.length);
       } else {
-        console.log('Posts API failed, trying direct query');
-        // フォールバック: 直接クエリ
         const postsRef = collection(db, 'posts');
         const postsQuery = query(
           postsRef,
@@ -105,12 +75,8 @@ export async function GET(
         } as Post));
       }
     } catch (postsError) {
-      console.error('Posts query error:', postsError);
       posts = [];
     }
-
-    console.log('Step 5: Skipping favorites retrieval');
-    console.log('Step 7: Skipping stats calculation');
 
     // プライバシー設定に応じて情報をフィルタリング
     const publicProfile = {
@@ -131,12 +97,7 @@ export async function GET(
       badges: profile.badges || [],
     };
 
-    console.log('Step 8: Creating response...');
-    console.log('Public profile created:', Object.keys(publicProfile));
-    
     const filteredPosts = posts.filter(post => post.status === 'published' || !post.status);
-    
-    console.log('Step 8: Filtered posts:', filteredPosts.length, '/', posts.length);
 
     return NextResponse.json({
       success: true,
@@ -147,13 +108,6 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("Error fetching user profile:", error);
-    console.error("Error details:", {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      publicId
-    });
     
     return NextResponse.json(
       { 
