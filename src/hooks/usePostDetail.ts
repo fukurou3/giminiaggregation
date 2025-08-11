@@ -3,7 +3,6 @@ import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toggleFavorite, isFavorited as checkIsFavorited } from '@/lib/favorites';
 import { useAuth } from '@/hooks/useAuth';
-import { env } from '@/lib/env';
 import type { Post } from '@/types/Post';
 
 interface UsePostDetailProps {
@@ -58,40 +57,37 @@ export const usePostDetail = ({
     setIsUpdatingFavorite(true);
     
     try {
-      // reCAPTCHA待機処理を最適化
-      if (!window.grecaptcha) {
-        await new Promise<void>((resolve) => {
-          const checkRecaptcha = () => {
-            if (window.grecaptcha) {
-              resolve();
-            } else {
-              setTimeout(checkRecaptcha, 100);
-            }
-          };
-          checkRecaptcha();
-        });
-      }
-      
-      if (!env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
-        throw new Error('reCAPTCHA site key not configured');
-      }
-      
-      const token = await window.grecaptcha?.execute(
-        env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
-        { action: 'favorite' }
-      );
-      
-      if (!token) {
-        throw new Error('Failed to get reCAPTCHA token');
-      }
-      
-      await toggleFavorite(post.id, isFavorited, token);
+      await toggleFavorite(post.id, isFavorited, user.uid);
       refetch();
       setIsFavorited(!isFavorited);
       
     } catch (error) {
       console.error('Favorite operation failed:', error);
-      alert(`お気に入り操作に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
+      
+      // 詳細なエラー情報を取得
+      let errorMessage = 'お気に入り操作に失敗しました';
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+        
+        // Firebase特有のエラーハンドリング
+        if (error.message.includes('unauthenticated')) {
+          errorMessage = 'ログインが必要です。再度ログインしてください。';
+        } else if (error.message.includes('permission-denied')) {
+          errorMessage = 'この操作を実行する権限がありません。';
+        } else if (error.message.includes('internal')) {
+          errorMessage = 'サーバーエラーが発生しました。しばらく時間をおいて再試行してください。';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+          errorMessage = 'ネットワークエラーです。接続を確認して再試行してください。';
+        } else {
+          errorMessage = `エラー: ${error.message}`;
+        }
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsUpdatingFavorite(false);
     }

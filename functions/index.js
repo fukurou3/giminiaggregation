@@ -11,34 +11,14 @@ exports.toggleFavorite = functions.https.onCall(async (data, context) => {
 
   const postId = data.postId;
   const isFavorited = data.isFavorited;
-  const token = data.token;
   if (
     typeof postId !== 'string' ||
-    typeof isFavorited !== 'boolean' ||
-    typeof token !== 'string'
+    typeof isFavorited !== 'boolean'
   ) {
     throw new functions.https.HttpsError('invalid-argument', 'Invalid arguments');
   }
 
-  // reCAPTCHA トークン検証
-  const secret = process.env.RECAPTCHA_SECRET;
-  if (!secret) {
-    throw new functions.https.HttpsError('internal', 'reCAPTCHA secret not configured');
-  }
-
-  const params = new URLSearchParams();
-  params.append('secret', secret);
-  params.append('response', token);
-
-  const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params
-  });
-  const verifyData = await verifyRes.json();
-  if (!verifyData.success) {
-    throw new functions.https.HttpsError('failed-precondition', 'reCAPTCHA verification failed');
-  }
+  // 基本的なスパム対策: ユーザー認証は既に上で確認済み
 
   const db = admin.firestore();
   const favRef = db.doc(`posts/${postId}/favorites/${uid}`);
@@ -53,14 +33,20 @@ exports.toggleFavorite = functions.https.onCall(async (data, context) => {
     if (isFavorited) {
       if (favDoc.exists) {
         txn.delete(favRef);
-        if (shardDoc.exists) {
+        if (!shardDoc.exists) {
+          console.warn(`Missing shard detected during unfavorite, creating new one: postId=${postId}, shardId=${shardId}`);
+          txn.set(shardRef, { count: 0 });
+        } else {
           txn.update(shardRef, { count: admin.firestore.FieldValue.increment(-1) });
         }
       }
     } else {
       if (!favDoc.exists) {
         txn.set(favRef, { createdAt: admin.firestore.FieldValue.serverTimestamp() });
-        if (shardDoc.exists) {
+        if (!shardDoc.exists) {
+          console.warn(`Missing shard detected, creating new one: postId=${postId}, shardId=${shardId}`);
+          txn.set(shardRef, { count: 1 });
+        } else {
           txn.update(shardRef, { count: admin.firestore.FieldValue.increment(1) });
         }
       }

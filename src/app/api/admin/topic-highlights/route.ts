@@ -14,8 +14,13 @@ interface AdminTopicHighlightConfig {
 }
 
 // Postドキュメントを変換する関数
-function docToPost(doc: DocumentData): Post {
+async function docToPost(doc: DocumentData): Promise<Post> {
   const data = doc.data();
+  
+  // シャードからお気に入り数を取得
+  const { getFavoriteCount } = await import('@/lib/favorites');
+  const actualFavoriteCount = await getFavoriteCount(doc.id);
+  
   return {
     id: doc.id,
     title: data.title || '',
@@ -30,7 +35,7 @@ function docToPost(doc: DocumentData): Post {
     updatedAt: data.updatedAt?.toDate() || new Date(),
     views: data.views || 0,
     likes: data.likes || 0,
-    favoriteCount: data.favoriteCount || 0,
+    favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
     isPublic: data.isPublic !== false,
     featured: data.featured || false
   };
@@ -83,7 +88,7 @@ export async function GET() {
             const postRef = doc(db, 'posts', postId);
             const postDoc = await getDoc(postRef);
             if (postDoc.exists() && postDoc.data().isPublic !== false) {
-              posts.push(docToPost(postDoc));
+              posts.push(await docToPost(postDoc));
             }
           } catch (error) {
             console.error(`Error fetching post ${postId}:`, error);

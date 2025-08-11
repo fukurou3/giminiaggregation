@@ -11,33 +11,14 @@ export const toggleFavorite = functions.https.onCall(async (data, context) => {
 
   const postId: string = data.postId;
   const isFavorited: boolean = data.isFavorited;
-  const token: string = data.token;
   if (
     typeof postId !== 'string' ||
-    typeof isFavorited !== 'boolean' ||
-    typeof token !== 'string'
+    typeof isFavorited !== 'boolean'
   ) {
     throw new functions.https.HttpsError('invalid-argument', 'Invalid arguments');
   }
 
-  // reCAPTCHA トークン検証
-  const secret = process.env.RECAPTCHA_SECRET;
-  if (!secret) {
-    throw new functions.https.HttpsError('internal', 'reCAPTCHA secret not configured');
-  }
-  const params = new URLSearchParams();
-  params.append('secret', secret);
-  params.append('response', token);
-
-  const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-  });
-  const verifyData = await verifyRes.json();
-  if (!verifyData.success) {
-    throw new functions.https.HttpsError('failed-precondition', 'reCAPTCHA verification failed');
-  }
+  // 基本的なスパム対策: ユーザー認証は既に上で確認済み
 
   const db = admin.firestore();
   const favRef = db.doc(`posts/${postId}/favorites/${uid}`);

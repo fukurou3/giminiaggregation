@@ -93,7 +93,7 @@ export async function GET(
       createdAt: currentPostData.createdAt,
       updatedAt: currentPostData.updatedAt,
       likes: currentPostData.likes || 0,
-      favoriteCount: currentPostData.favoriteCount || 0,
+      favoriteCount: currentPostData.favoriteCount || 0, // TODO: 必要に応じて実際の値を取得
       views: currentPostData.views || 0,
       featured: currentPostData.featured || false,
       problemBackground: currentPostData.problemBackground,
@@ -115,51 +115,60 @@ export async function GET(
       
       const tagMatchSnapshot = await getDocs(tagMatchQuery);
       
-      relatedPosts = tagMatchSnapshot.docs
-        .filter(doc => {
-          const data = doc.data();
-          return (
-            doc.id !== postId && // 現在の投稿除外
-            (data.tagIds || []).some((tagId: string) => currentPost.tagIds.includes(tagId)) // タグマッチ
-          );
-        })
-        .map(doc => {
-          const data = doc.data();
-          const post: RelatedPost = {
-            id: doc.id,
-            title: data.title || '',
-            url: data.url || '',
-            description: data.description || '',
-            tagIds: data.tagIds || [],
-            categoryId: data.categoryId || 'other',
-            customCategory: data.customCategory,
-            authorId: data.authorId || '',
-            authorUsername: data.authorUsername || '',
-            authorPublicId: data.authorPublicId || '',
-            thumbnailUrl: data.thumbnailUrl,
-            images: data.images,
-            imageOrder: data.imageOrder,
-            ogpTitle: data.ogpTitle,
-            ogpDescription: data.ogpDescription,
-            ogpImage: data.ogpImage,
-            isPublic: data.isPublic !== false,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate(),
-            likes: data.likes || 0,
-            favoriteCount: data.favoriteCount || 0,
-            views: data.views || 0,
-            featured: data.featured || false,
-            problemBackground: data.problemBackground,
-            useCase: data.useCase,
-            uniquePoints: data.uniquePoints,
-            futureIdeas: data.futureIdeas,
-            acceptInterview: data.acceptInterview || false,
-            score: 0
-          };
-          
-          post.score = calculateRelatedScore(currentPost, post);
-          return post;
-        })
+      relatedPosts = await Promise.all(
+        tagMatchSnapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            return (
+              doc.id !== postId && // 現在の投稿除外
+              (data.tagIds || []).some((tagId: string) => currentPost.tagIds.includes(tagId)) // タグマッチ
+            );
+          })
+          .map(async (doc) => {
+            const data = doc.data();
+            
+            // シャードからお気に入り数を取得
+            const { getFavoriteCount } = await import('@/lib/favorites');
+            const actualFavoriteCount = await getFavoriteCount(doc.id);
+            
+            const post: RelatedPost = {
+              id: doc.id,
+              title: data.title || '',
+              url: data.url || '',
+              description: data.description || '',
+              tagIds: data.tagIds || [],
+              categoryId: data.categoryId || 'other',
+              customCategory: data.customCategory,
+              authorId: data.authorId || '',
+              authorUsername: data.authorUsername || '',
+              authorPublicId: data.authorPublicId || '',
+              thumbnailUrl: data.thumbnailUrl,
+              images: data.images,
+              imageOrder: data.imageOrder,
+              ogpTitle: data.ogpTitle,
+              ogpDescription: data.ogpDescription,
+              ogpImage: data.ogpImage,
+              isPublic: data.isPublic !== false,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              updatedAt: data.updatedAt?.toDate(),
+              likes: data.likes || 0,
+              favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
+              views: data.views || 0,
+              featured: data.featured || false,
+              problemBackground: data.problemBackground,
+              useCase: data.useCase,
+              uniquePoints: data.uniquePoints,
+              futureIdeas: data.futureIdeas,
+              acceptInterview: data.acceptInterview || false,
+              score: 0
+            };
+            
+            post.score = calculateRelatedScore(currentPost, post);
+            return post;
+          })
+      );
+      
+      relatedPosts = relatedPosts
         .sort((a, b) => b.score - a.score)
         .slice(0, 6);
     }
@@ -178,50 +187,58 @@ export async function GET(
       const existingIds = new Set(relatedPosts.map(p => p.id));
       existingIds.add(postId); // 現在の投稿も除外
       
-      const categoryPosts = categorySnapshot.docs
-        .filter(doc => !existingIds.has(doc.id)) // 既に追加済みの投稿を除外
-        .map(doc => {
-          const data = doc.data();
-          const post: RelatedPost = {
-            id: doc.id,
-            title: data.title || '',
-            url: data.url || '',
-            description: data.description || '',
-            tagIds: data.tagIds || [],
-            categoryId: data.categoryId || 'other',
-            customCategory: data.customCategory,
-            authorId: data.authorId || '',
-            authorUsername: data.authorUsername || '',
-            authorPublicId: data.authorPublicId || '',
-            thumbnailUrl: data.thumbnailUrl,
-            images: data.images,
-            imageOrder: data.imageOrder,
-            ogpTitle: data.ogpTitle,
-            ogpDescription: data.ogpDescription,
-            ogpImage: data.ogpImage,
-            isPublic: data.isPublic !== false,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate(),
-            likes: data.likes || 0,
-            favoriteCount: data.favoriteCount || 0,
-            views: data.views || 0,
-            featured: data.featured || false,
-            problemBackground: data.problemBackground,
-            useCase: data.useCase,
-            uniquePoints: data.uniquePoints,
-            futureIdeas: data.futureIdeas,
-            acceptInterview: data.acceptInterview || false,
-            score: 0
-          };
-          
-          post.score = calculateRelatedScore(currentPost, post);
-          return post;
-        })
-        .sort((a, b) => b.score - a.score);
+      const categoryPosts = await Promise.all(
+        categorySnapshot.docs
+          .filter(doc => !existingIds.has(doc.id)) // 既に追加済みの投稿を除外
+          .map(async (doc) => {
+            const data = doc.data();
+            
+            // シャードからお気に入り数を取得
+            const { getFavoriteCount } = await import('@/lib/favorites');
+            const actualFavoriteCount = await getFavoriteCount(doc.id);
+            
+            const post: RelatedPost = {
+              id: doc.id,
+              title: data.title || '',
+              url: data.url || '',
+              description: data.description || '',
+              tagIds: data.tagIds || [],
+              categoryId: data.categoryId || 'other',
+              customCategory: data.customCategory,
+              authorId: data.authorId || '',
+              authorUsername: data.authorUsername || '',
+              authorPublicId: data.authorPublicId || '',
+              thumbnailUrl: data.thumbnailUrl,
+              images: data.images,
+              imageOrder: data.imageOrder,
+              ogpTitle: data.ogpTitle,
+              ogpDescription: data.ogpDescription,
+              ogpImage: data.ogpImage,
+              isPublic: data.isPublic !== false,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              updatedAt: data.updatedAt?.toDate(),
+              likes: data.likes || 0,
+              favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
+              views: data.views || 0,
+              featured: data.featured || false,
+              problemBackground: data.problemBackground,
+              useCase: data.useCase,
+              uniquePoints: data.uniquePoints,
+              futureIdeas: data.futureIdeas,
+              acceptInterview: data.acceptInterview || false,
+              score: 0
+            };
+            
+            post.score = calculateRelatedScore(currentPost, post);
+            return post;
+          })
+      );
+      
+      const sortedCategoryPosts = categoryPosts.sort((a, b) => b.score - a.score);
       
       // 不足分を補完
       const remainingSlots = 6 - relatedPosts.length;
-      relatedPosts = [...relatedPosts, ...categoryPosts.slice(0, remainingSlots)];
+      relatedPosts = [...relatedPosts, ...sortedCategoryPosts.slice(0, remainingSlots)];
     }
 
     // まだ不足している場合、最終手段として人気作品で補完
@@ -237,49 +254,57 @@ export async function GET(
       const existingIds = new Set(relatedPosts.map(p => p.id));
       existingIds.add(postId); // 現在の投稿も除外
       
-      const popularPosts = popularSnapshot.docs
-        .filter(doc => !existingIds.has(doc.id)) // 既に追加済みの投稿を除外
-        .map(doc => {
-          const data = doc.data();
-          const post: RelatedPost = {
-            id: doc.id,
-            title: data.title || '',
-            url: data.url || '',
-            description: data.description || '',
-            tagIds: data.tagIds || [],
-            categoryId: data.categoryId || 'other',
-            customCategory: data.customCategory,
-            authorId: data.authorId || '',
-            authorUsername: data.authorUsername || '',
-            authorPublicId: data.authorPublicId || '',
-            thumbnailUrl: data.thumbnailUrl,
-            images: data.images,
-            imageOrder: data.imageOrder,
-            ogpTitle: data.ogpTitle,
-            ogpDescription: data.ogpDescription,
-            ogpImage: data.ogpImage,
-            isPublic: data.isPublic !== false,
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate(),
-            likes: data.likes || 0,
-            favoriteCount: data.favoriteCount || 0,
-            views: data.views || 0,
-            featured: data.featured || false,
-            problemBackground: data.problemBackground,
-            useCase: data.useCase,
-            uniquePoints: data.uniquePoints,
-            futureIdeas: data.futureIdeas,
-            acceptInterview: data.acceptInterview || false,
-            score: data.favoriteCount || 0 // お気に入り数をスコアとして使用
-          };
-          
-          return post;
-        })
-        .sort((a, b) => b.score - a.score); // お気に入り数順でソート
+      const popularPosts = await Promise.all(
+        popularSnapshot.docs
+          .filter(doc => !existingIds.has(doc.id)) // 既に追加済みの投稿を除外
+          .map(async (doc) => {
+            const data = doc.data();
+            
+            // シャードからお気に入り数を取得
+            const { getFavoriteCount } = await import('@/lib/favorites');
+            const actualFavoriteCount = await getFavoriteCount(doc.id);
+            
+            const post: RelatedPost = {
+              id: doc.id,
+              title: data.title || '',
+              url: data.url || '',
+              description: data.description || '',
+              tagIds: data.tagIds || [],
+              categoryId: data.categoryId || 'other',
+              customCategory: data.customCategory,
+              authorId: data.authorId || '',
+              authorUsername: data.authorUsername || '',
+              authorPublicId: data.authorPublicId || '',
+              thumbnailUrl: data.thumbnailUrl,
+              images: data.images,
+              imageOrder: data.imageOrder,
+              ogpTitle: data.ogpTitle,
+              ogpDescription: data.ogpDescription,
+              ogpImage: data.ogpImage,
+              isPublic: data.isPublic !== false,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              updatedAt: data.updatedAt?.toDate(),
+              likes: data.likes || 0,
+              favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
+              views: data.views || 0,
+              featured: data.featured || false,
+              problemBackground: data.problemBackground,
+              useCase: data.useCase,
+              uniquePoints: data.uniquePoints,
+              futureIdeas: data.futureIdeas,
+              acceptInterview: data.acceptInterview || false,
+              score: actualFavoriteCount // お気に入り数をスコアとして使用
+            };
+            
+            return post;
+          })
+      );
+      
+      const sortedPopularPosts = popularPosts.sort((a, b) => b.score - a.score); // お気に入り数順でソート
       
       // 最終的な不足分を補完
       const finalRemainingSlots = 6 - relatedPosts.length;
-      relatedPosts = [...relatedPosts, ...popularPosts.slice(0, finalRemainingSlots)];
+      relatedPosts = [...relatedPosts, ...sortedPopularPosts.slice(0, finalRemainingSlots)];
     }
 
     // scoreフィールドを除去してレスポンス用データを作成

@@ -15,6 +15,8 @@ export default function MyPage() {
   const { userProfile } = useUserProfile();
   const router = useRouter();
   const { layoutPhase, isMobile } = useResponsiveLayout();
+  console.log('MyPage - layoutPhase:', layoutPhase);
+  console.log('MyPage - showCategory should be:', layoutPhase !== 'phase4');
   const [activeTab, setActiveTab] = useState<"favorites" | "posts">("favorites");
   const [favorites, setFavorites] = useState<Post[]>([]);
   const [myPosts, setMyPosts] = useState<Post[]>([]);

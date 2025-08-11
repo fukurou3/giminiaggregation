@@ -58,31 +58,41 @@ export async function GET(
 
     const postsSnapshot = await getDocs(postsQuery);
     
-    const posts = postsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title || '',
-        url: data.url || '',
-        description: data.description || '',
-        tags: data.tags || [],
-        category: data.category || 'その他',
-        customCategory: data.customCategory || undefined,
-        thumbnailUrl: data.thumbnailUrl || '',
-        authorId: data.authorId || '',
-        authorUsername: data.authorUsername || '匿名ユーザー',
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || undefined,
-        likes: data.likes || 0,
-        favoriteCount: data.favoriteCount || 0,
-        views: data.views || 0,
-        featured: data.featured || false,
-        isPublic: data.isPublic !== false,
-        ogpTitle: data.ogpTitle || null,
-        ogpDescription: data.ogpDescription || null,
-        ogpImage: data.ogpImage || null,
-      };
-    })
+    const posts = await Promise.all(
+      postsSnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        
+        // シャードからお気に入り数を取得
+        const { getFavoriteCount } = await import('@/lib/favorites');
+        const actualFavoriteCount = await getFavoriteCount(doc.id);
+        
+        return {
+          id: doc.id,
+          title: data.title || '',
+          url: data.url || '',
+          description: data.description || '',
+          tags: data.tags || [],
+          tagIds: data.tagIds || [],
+          category: data.category || 'その他',
+          categoryId: data.categoryId || 'other',
+          customCategory: data.customCategory || undefined,
+          thumbnailUrl: data.thumbnailUrl || '',
+          authorId: data.authorId || '',
+          authorUsername: data.authorUsername || '匿名ユーザー',
+          authorPublicId: data.authorPublicId || '',
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || undefined,
+          likes: data.likes || 0,
+          favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
+          views: data.views || 0,
+          featured: data.featured || false,
+          isPublic: data.isPublic !== false,
+          ogpTitle: data.ogpTitle || null,
+          ogpDescription: data.ogpDescription || null,
+          ogpImage: data.ogpImage || null,
+        };
+      })
+    )
     // クライアント側でソート（新しい順）
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 

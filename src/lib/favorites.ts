@@ -18,11 +18,44 @@ export async function getFavoriteCount(postId: string): Promise<number> {
 export async function toggleFavorite(
   postId: string,
   isFavorited: boolean,
-  token: string
+  userId: string
 ) {
-  const functions = getFunctions();
-  const toggle = httpsCallable(functions, "toggleFavorite");
-  await toggle({ postId, isFavorited, token });
+  const db = (await import('./firebase')).db;
+  const { doc, setDoc, deleteDoc, runTransaction, serverTimestamp, increment } = await import('firebase/firestore');
+  
+  const favRef = doc(db, `posts/${postId}/favorites/${userId}`);
+  const shardCount = 10;
+  const shardId = Math.floor(Math.random() * shardCount).toString();
+  const shardRef = doc(db, `posts/${postId}/favoriteShards/${shardId}`);
+
+  await runTransaction(db, async (txn) => {
+    const favDoc = await txn.get(favRef);
+    const shardDoc = await txn.get(shardRef);
+
+    if (isFavorited) {
+      // お気に入り解除
+      if (favDoc.exists()) {
+        txn.delete(favRef);
+        if (!shardDoc.exists()) {
+          console.warn(`Missing shard detected during unfavorite, creating new one: postId=${postId}, shardId=${shardId}`);
+          txn.set(shardRef, { count: 0 });
+        } else {
+          txn.update(shardRef, { count: increment(-1) });
+        }
+      }
+    } else {
+      // お気に入り追加
+      if (!favDoc.exists()) {
+        txn.set(favRef, { createdAt: serverTimestamp() });
+        if (!shardDoc.exists()) {
+          console.warn(`Missing shard detected, creating new one: postId=${postId}, shardId=${shardId}`);
+          txn.set(shardRef, { count: 1 });
+        } else {
+          txn.update(shardRef, { count: increment(1) });
+        }
+      }
+    }
+  });
 }
 
 /**

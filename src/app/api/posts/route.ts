@@ -79,39 +79,47 @@ export async function GET(request: NextRequest) {
     // データを取得
     const snapshot = await getDocs(postsQuery);
     
-    let posts = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title || '',
-        url: data.url || '',
-        description: data.description || '',
-        tags: data.tags || [],
-        tagIds: data.tagIds || [], // tagIds配列を追加
-        category: data.category || 'その他',
-        categoryId: data.categoryId || 'other', // categoryIdを追加
-        customCategory: data.customCategory || undefined,
-        thumbnailUrl: data.thumbnailUrl || '',
-        authorId: data.authorId || '',
-        authorUsername: data.authorUsername || '匿名ユーザー',
-        isPublic: data.isPublic !== false, // Default to true if not explicitly false
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || undefined,
-        likes: data.likes || 0,
-        favoriteCount: data.favoriteCount || 0,
-        views: data.views || 0,
-        featured: data.featured || false,
-        ogpTitle: data.ogpTitle || null,
-        ogpDescription: data.ogpDescription || null,
-        ogpImage: data.ogpImage || null,
-        // コンセプト詳細フィールド
-        problemBackground: data.problemBackground || undefined,
-        useCase: data.useCase || undefined,
-        uniquePoints: data.uniquePoints || undefined,
-        futureIdeas: data.futureIdeas || undefined,
-        acceptInterview: data.acceptInterview || false,
-      };
-    });
+    // 投稿データをマッピングしてお気に入り数を動的に計算
+    let posts = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        
+        // シャードからお気に入り数を取得
+        const { getFavoriteCount } = await import('@/lib/favorites');
+        const actualFavoriteCount = await getFavoriteCount(doc.id);
+        
+        return {
+          id: doc.id,
+          title: data.title || '',
+          url: data.url || '',
+          description: data.description || '',
+          tags: data.tags || [],
+          tagIds: data.tagIds || [], // tagIds配列を追加
+          category: data.category || 'その他',
+          categoryId: data.categoryId || 'other', // categoryIdを追加
+          customCategory: data.customCategory || undefined,
+          thumbnailUrl: data.thumbnailUrl || '',
+          authorId: data.authorId || '',
+          authorUsername: data.authorUsername || '匿名ユーザー',
+          isPublic: data.isPublic !== false, // Default to true if not explicitly false
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || undefined,
+          likes: data.likes || 0,
+          favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
+          views: data.views || 0,
+          featured: data.featured || false,
+          ogpTitle: data.ogpTitle || null,
+          ogpDescription: data.ogpDescription || null,
+          ogpImage: data.ogpImage || null,
+          // コンセプト詳細フィールド
+          problemBackground: data.problemBackground || undefined,
+          useCase: data.useCase || undefined,
+          uniquePoints: data.uniquePoints || undefined,
+          futureIdeas: data.futureIdeas || undefined,
+          acceptInterview: data.acceptInterview || false,
+        };
+      })
+    );
 
     // カテゴリフィルターを適用
     if (categoryFilter && categoryFilter !== 'all') {

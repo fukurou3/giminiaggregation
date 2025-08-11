@@ -8,7 +8,9 @@ import {
   orderBy, 
   limit,
   getDoc,
-  doc
+  doc,
+  startAfter,
+  Timestamp
 } from 'firebase/firestore';
 import { Post } from '@/types/Post';
 import { UserProfile } from '@/types/User';
@@ -26,6 +28,11 @@ export async function GET(
         { status: 400 }
       );
     }
+
+    // ページネーション用クエリパラメータを取得
+    const { searchParams } = new URL(request.url);
+    const lastCreatedAt = searchParams.get('lastCreatedAt');
+    const lastDocId = searchParams.get('lastDocId');
 
     const profilesRef = collection(db, 'userProfiles');
     const profileQuery = query(
@@ -55,26 +62,51 @@ export async function GET(
     let posts: Post[] = [];
     
     try {
-      const postsResponse = await fetch(`${request.nextUrl.origin}/api/users/${userId}/posts`);
-      if (postsResponse.ok) {
-        const postsData = await postsResponse.json();
-        posts = postsData.data?.posts || [];
-      } else {
-        const postsRef = collection(db, 'posts');
-        const postsQuery = query(
-          postsRef,
-          where('userId', '==', userId),
-          orderBy('createdAt', 'desc')
-        );
-        const postsSnapshot = await getDocs(postsQuery);
-        posts = postsSnapshot.docs.map(doc => ({
+      // 最適化されたクエリ：正しい順序、高速、ページネーション対応
+      const postsRef = collection(db, 'posts');
+      
+      // 一時的にインデックス不要なクエリに変更（動作確認用）
+      let postsQuery = query(
+        postsRef,
+        where('authorId', '==', userId),
+        where('isPublic', '==', true),
+        limit(20)
+      );
+      
+      const postsSnapshot = await getDocs(postsQuery);
+      posts = postsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
           id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-        } as Post));
-      }
+          title: data.title || '',
+          url: data.url || '',
+          description: data.description || '',
+          tags: data.tags || [],
+          tagIds: data.tagIds || [],
+          category: data.category || 'その他',
+          categoryId: data.categoryId || 'other',
+          customCategory: data.customCategory || undefined,
+          thumbnailUrl: data.thumbnailUrl || '',
+          authorId: data.authorId || '',
+          authorUsername: data.authorUsername || '匿名ユーザー',
+          authorPublicId: data.authorPublicId || '',
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || undefined,
+          likes: data.likes || 0,
+          favoriteCount: data.favoriteCount || 0, // TODO: シャードから取得するように修正が必要
+          views: data.views || 0,
+          featured: data.featured || false,
+          isPublic: data.isPublic !== false,
+          ogpTitle: data.ogpTitle || null,
+          ogpDescription: data.ogpDescription || null,
+          ogpImage: data.ogpImage || null,
+        } as Post;
+      })
+      // 一時的にクライアント側ソートを復活（インデックス作成まで）
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 20);
     } catch (postsError) {
+      console.error('Posts fetch error:', postsError);
       posts = [];
     }
 

@@ -16,6 +16,9 @@ export function ProfileTabsSection({
   isMobile,
   layoutPhase
 }: ProfileTabsSectionProps) {
+  console.log('ProfileTabsSection - layoutPhase:', layoutPhase);
+  console.log('ProfileTabsSection - showCategory should be:', layoutPhase !== 'phase4');
+  
   return (
     <div>
       {/* Header */}
@@ -56,7 +59,7 @@ export function ProfileTabsSection({
             layout="grid"
             responsive={layoutPhase === 'phase4'}
             showViews={false}
-            showCategory={layoutPhase !== 'phase4'}
+            showCategory={true}
             className={layoutPhase !== 'phase4' ? 'grid-cols-[repeat(auto-fill,minmax(280px,1fr))]' : ''}
             gridCols={{ sm: 2, md: 3, lg: 3, xl: 4 }}
           />
