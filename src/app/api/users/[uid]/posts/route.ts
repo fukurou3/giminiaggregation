@@ -7,6 +7,7 @@ import {
   getClientIP 
 } from '@/lib/api/utils';
 import { checkRateLimit } from '@/lib/api/rateLimiter';
+import { getFavoriteCount } from '@/lib/favorites';
 
 export async function GET(
   request: NextRequest,
@@ -63,7 +64,6 @@ export async function GET(
         const data = doc.data();
         
         // シャードからお気に入り数を取得
-        const { getFavoriteCount } = await import('@/lib/favorites');
         const actualFavoriteCount = await getFavoriteCount(doc.id);
         
         return {
@@ -80,8 +80,8 @@ export async function GET(
           authorId: data.authorId || '',
           authorUsername: data.authorUsername || '匿名ユーザー',
           authorPublicId: data.authorPublicId || '',
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || undefined,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt || new Date(),
+          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt || undefined,
           likes: data.likes || 0,
           favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
           views: data.views || 0,

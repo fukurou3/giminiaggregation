@@ -56,15 +56,9 @@ export function createErrorResponse(
   status: number = 400,
   details?: Array<{ field: string; message: string }>
 ): NextResponse<ApiErrorResponse> {
-  return NextResponse.json(
-    {
-      success: false,
-      error,
-      message,
-      ...(details && { details }),
-    },
-    { status, headers: CORS_HEADERS }
-  );
+  // 段階的移行: 統一エラーハンドリングモジュールを使用
+  const { createErrorResponse: newCreateErrorResponse } = require('@/shared/errors');
+  return newCreateErrorResponse(error, message, status, details);
 }
 
 // Create standardized success response
