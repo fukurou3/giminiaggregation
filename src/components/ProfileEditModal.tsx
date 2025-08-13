@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { User, Upload, Check, X, Edit3, Loader2 } from 'lucide-react';
-import imageCompression from 'browser-image-compression';
 import { updateUserProfile, updateUserProfileDirect } from '@/lib/userProfile';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { ImageUploader } from '@/components/ui/ImageUploader';
+import { AvatarImagePicker } from '@/components/ui/AvatarImagePicker';
+import { uploadMultipleImages } from '@/lib/utils/storageUtils';
+import { processImage } from '@/lib/utils/imageUtils';
+import { useAuth } from '@/hooks/useAuth';
 import type { UserProfileForm } from '@/types/User';
 
 interface ProfileEditModalProps {
@@ -16,31 +19,25 @@ interface ProfileEditModalProps {
 
 export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
   const { userProfile, refreshProfile } = useUserProfile();
+  const { user } = useAuth();
   const [formData, setFormData] = useState<UserProfileForm>({
     publicId: userProfile?.publicId || '',
     username: userProfile?.username || '',
   });
-  const [profileImages, setProfileImages] = useState<string[]>([]);
-  
-  // Debug: Track profileImages state changes
-  useEffect(() => {
-    console.log('ProfileEditModal - profileImages state changed:', profileImages);
-  }, [profileImages]);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isImageSelectionActive, setIsImageSelectionActive] = useState(false);
 
   // モーダルが開かれたときにフォームをリセット
   useEffect(() => {
-    console.log('ProfileEditModal - Modal useEffect triggered:', { isOpen, userProfile });
     if (isOpen && userProfile) {
       setFormData({
         publicId: userProfile.publicId,
         username: userProfile.username,
       });
-      // 既存のプロフィール画像があれば表示
-      const initialImages = userProfile.photoURL ? [userProfile.photoURL] : [];
-      console.log('ProfileEditModal - Modal opened, setting initial images:', initialImages);
-      setProfileImages(initialImages);
+      // 選択された画像をリセット
+      setSelectedImageFile(null);
       setError('');
     }
   }, [isOpen, userProfile]);
@@ -58,10 +55,18 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
   }, [isOpen, onClose]);
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    console.log('ProfileEditModal - Submit button clicked', e);
+    e?.preventDefault();
+    e?.stopPropagation();
     
-    if (!userProfile) return;
+    // 画像選択中の場合は何もしない
+    if (isImageSelectionActive) {
+      console.log('ProfileEditModal - Ignoring form submit during image selection');
+      return;
+    }
+    
+    if (!userProfile || !user) return;
     
     // 公開IDの入力チェック
     if (!formData.publicId.trim()) {
@@ -94,21 +99,44 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
     setError('');
 
     try {
-      console.log('ProfileEditModal - Before update:');
-      console.log('- profileImages:', profileImages);
-      console.log('- profileImages.length:', profileImages.length);
-      console.log('- userProfile.photoURL:', userProfile.photoURL);
-      
-      // 新しい画像パイプライン用のユーザープロフィール更新
-      // profileImagesから新しい画像URLを取得
+      let newPhotoURL = userProfile.photoURL;
+
+      // 新しい画像が選択されている場合は、圧縮・アップロード処理
+      if (selectedImageFile) {
+        console.log('Processing and uploading new avatar image...');
+        
+        // 画像を圧縮処理
+        const processedFile = await processImage(selectedImageFile, {
+          maxSizeMB: 1.0,
+          maxWidthOrHeight: 512,
+          aspectRatio: 1,
+          removeExif: true
+        });
+
+        // Firebase Storageにアップロード（avatarモード）
+        const uploadedUrls = await uploadMultipleImages(
+          [processedFile],
+          { 
+            userId: user.uid, 
+            folder: 'avatar-images',
+            mode: 'avatar'
+          }
+        );
+
+        if (uploadedUrls.length > 0) {
+          newPhotoURL = uploadedUrls[0];
+          console.log('New avatar uploaded successfully:', newPhotoURL);
+        }
+      }
+
+      // プロフィール更新
       const updateData = {
         ...formData,
-        photoURL: profileImages.length > 0 ? profileImages[0] : userProfile.photoURL
+        photoURL: newPhotoURL
       };
       
       console.log('ProfileEditModal - updating with:', updateData);
       
-      // 直接Firestoreを更新（新しいパイプライン対応）
       await updateUserProfileDirect(userProfile.uid, updateData);
       await refreshProfile();
       onClose();
@@ -121,14 +149,24 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+    console.log('ProfileEditModal - Backdrop click detected', e.target, e.currentTarget, 'isImageSelectionActive:', isImageSelectionActive);
+    
+    // ファイル入力要素はバックドロップクリックとして扱わない
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' && target.getAttribute('type') === 'file') {
+      console.log('ProfileEditModal - Ignoring file input click');
+      return;
+    }
+    
+    if (e.target === e.currentTarget && !isImageSelectionActive) {
+      console.log('ProfileEditModal - Closing modal due to backdrop click');
       onClose();
     }
   };
 
   if (!isOpen || !userProfile) return null;
 
-  return (
+  const modalContent = (
     <div 
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
@@ -149,24 +187,37 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
         </div>
 
         {/* コンテンツ */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="p-6 space-y-6">
           {/* プロフィール画像 */}
           <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">
               プロフィール画像
             </label>
-            <ImageUploader
-              images={profileImages}
-              onImagesChange={(urls) => {
-                console.log('ProfileEditModal - onImagesChange callback received URLs:', urls);
-                setProfileImages(urls);
+            <AvatarImagePicker
+              currentImageUrl={userProfile.photoURL || undefined}
+              onImageSelected={(file) => {
+                console.log('Avatar image selected:', file);
+                setSelectedImageFile(file);
+                setIsImageSelectionActive(false);
               }}
-              maxImages={1}
+              onImageRemoved={() => {
+                console.log('Avatar image removed');
+                setSelectedImageFile(null);
+                setIsImageSelectionActive(false);
+              }}
               disabled={isSubmitting}
-              mode="avatar"
+              onImageSelectionStart={() => {
+                console.log('Image selection started - setting isImageSelectionActive to true');
+                setIsImageSelectionActive(true);
+                // 少し遅延してからリセット（ファイル選択ダイアログが閉じるまで待つ）
+                setTimeout(() => {
+                  console.log('Resetting isImageSelectionActive to false');
+                  setIsImageSelectionActive(false);
+                }, 1000);
+              }}
             />
             <p className="text-xs text-gray-500">
-              正方形（1:1）に自動調整されます
+              画像を選択後、切り抜きを行ってから「更新」ボタンを押してください
             </p>
           </div>
 
@@ -230,14 +281,15 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
               キャンセル
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={isSubmitting || !formData.publicId.trim() || !formData.username.trim()}
               className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>更新中...</span>
+                  <span>{selectedImageFile ? '画像処理中...' : '更新中...'}</span>
                 </>
               ) : (
                 <>
@@ -247,8 +299,13 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
               )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
+
+  // Portal を使用してbodyに直接レンダリング
+  return typeof window !== 'undefined' 
+    ? createPortal(modalContent, document.body)
+    : null;
 }

@@ -8,12 +8,16 @@ export interface UploadImageOptions {
   userId: string;
   folder?: string;
   mode?: 'post' | 'avatar';
+  metadata?: Array<{
+    cropMeta?: any;
+  }>;
 }
 
 export const uploadImageToStorage = async (
   file: File,
   options: UploadImageOptions,
-  maxRetries: number = 2
+  maxRetries: number = 2,
+  cropMeta?: any
 ): Promise<ProcessedImageResult> => {
   const { userId, folder = 'post-images', mode = 'post' } = options;
   
@@ -49,17 +53,24 @@ export const uploadImageToStorage = async (
     try {
       // Step 1: Firebase Storageの/tmpディレクトリに非公開でアップロード
       const storageRef = ref(storage, tmpFilePath);
+      const customMetadata: Record<string, string> = {
+        uploadedBy: userId,
+        uploadedAt: new Date().toISOString(),
+        originalName: file.name,
+        fileSize: file.size.toString(),
+        sessionId,
+        mode, // モード情報を追加
+        processingStatus: 'pending' // Cloud Functionsによる処理待ち
+      };
+
+      // クロップメタデータがあれば追加
+      if (cropMeta) {
+        customMetadata.cropMeta = JSON.stringify(cropMeta);
+      }
+
       const metadata = {
         contentType: file.type,
-        customMetadata: {
-          uploadedBy: userId,
-          uploadedAt: new Date().toISOString(),
-          originalName: file.name,
-          fileSize: file.size.toString(),
-          sessionId,
-          mode, // モード情報を追加
-          processingStatus: 'pending' // Cloud Functionsによる処理待ち
-        }
+        customMetadata
       };
       
       const snapshot = await uploadBytes(storageRef, file, metadata);
@@ -279,7 +290,12 @@ export const uploadMultipleImages = async (
   for (const chunk of chunks) {
     const chunkPromises = chunk.map(async (file, chunkIndex) => {
       try {
-        const result = await uploadImageToStorage(file, options);
+        // 現在のファイルのインデックスを計算
+        const globalIndex = (chunks.indexOf(chunk) * concurrency) + chunkIndex;
+        // 対応するクロップメタデータを取得
+        const cropMeta = options.metadata?.[globalIndex]?.cropMeta;
+        
+        const result = await uploadImageToStorage(file, options, 2, cropMeta);
         completed++;
         
         // 詳細な進捗情報を提供

@@ -12,6 +12,7 @@ import { Field } from "@/components/Field";
 import { AutosizeTextarea } from "@/components/AutosizeTextarea";
 import { ValidationStatus } from "@/components/ValidationStatus";
 import { ImageUploader } from "@/components/ui/ImageUploader";
+import { ThumbnailUploader } from "@/components/ui/ThumbnailUploader";
 import { cx } from "@/lib/cx";
 import { Plus, X } from "lucide-react";
 
@@ -239,23 +240,41 @@ export default function SubmitPage() {
               </div>
             </Field>
 
-            {/* 画像 */}
+            {/* サムネイル画像 */}
             <div>
               <label className="block text-base font-medium text-foreground mb-2">
-                画像
+                サムネイル画像
                 <span className="text-error"> *</span>
-                <span className="text-sm font-normal text-muted-foreground ml-2">：必須／5:3に切り抜きされる／最大5枚</span>
+                <span className="text-sm font-normal text-muted-foreground ml-2">：5:3に自動で切り抜かれます</span>
+              </label>
+              <ThumbnailUploader
+                image={formData.thumbnail || ''}
+                onImageChange={(image) => handleInputChange("thumbnail", image)}
+                disabled={isSubmitting}
+              />
+              {errors.thumbnail && (
+                <p className="text-error text-sm mt-1">
+                  {errors.thumbnail}
+                </p>
+              )}
+            </div>
+
+            {/* PR画像 */}
+            <div>
+              <label className="block text-base font-medium text-foreground mb-2">
+                PR画像
+                <span className="text-sm font-normal text-muted-foreground ml-2">：ドラッグで並べ替え／最大6枚</span>
               </label>
               <ImageUploader
-                images={formData.images || []}
-                onImagesChange={(images) => handleInputChange("images", images)}
-                maxImages={5}
+                images={formData.prImages || []}
+                onImagesChange={(images) => handleInputChange("prImages", images)}
+                maxImages={6}
                 disabled={isSubmitting}
-                mode="post"
+                mode="pr"
               />
-              {errors.images && (
+              {errors.prImages && (
                 <p className="text-error text-sm mt-1">
-                  {errors.images}
+                  {errors.prImages}
                 </p>
               )}
             </div>

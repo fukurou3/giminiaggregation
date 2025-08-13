@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { processImage, validateImageFile, formatFileSize, generateFileHashSync, checkDuplicateFiles, calculateTotalSize } from '@/lib/utils/imageUtils';
-import { useImageWorker } from '@/hooks/useImageWorker';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { Upload, X, Image as ImageIcon, GripVertical } from 'lucide-react';
+import { validateImageFile, formatFileSize, generateFileHashSync, checkDuplicateFiles, calculateTotalSize } from '@/lib/utils/imageUtils';
 import { uploadMultipleImages } from '@/lib/utils/storageUtils';
+import { CropMeta, generateCropMeta } from '@/types/CropMeta';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface ImageUploaderProps {
@@ -12,7 +12,8 @@ export interface ImageUploaderProps {
   onImagesChange: (images: string[]) => void;
   maxImages?: number;
   disabled?: boolean;
-  mode?: 'post' | 'avatar';
+  mode?: 'post' | 'avatar' | 'pr';
+  onUploadRef?: React.MutableRefObject<(() => Promise<string[]>) | null>; // 実際のアップロード関数を外部に公開
 }
 
 interface ImageItem {
@@ -24,6 +25,7 @@ interface ImageItem {
   error?: string;
   previewUrl?: string; // 5:3プレビュー用のBlob URL
   originalDimensions?: { width: number; height: number }; // 元画像サイズ
+  cropMeta?: CropMeta; // クロップメタデータ
 }
 
 export const ImageUploader = ({
@@ -31,13 +33,18 @@ export const ImageUploader = ({
   onImagesChange,
   maxImages = 5,
   disabled = false,
-  mode = 'post'
+  mode = 'post',
+  onUploadRef
 }: ImageUploaderProps) => {
   const { user } = useAuth();
-  const { processImages, isWorkerSupported } = useImageWorker();
   const [imageItems, setImageItems] = useState<ImageItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [dragRect, setDragRect] = useState<DOMRect | null>(null);
+  const [overRect, setOverRect] = useState<DOMRect | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prevImagesRef = useRef<string[]>([]);
   const isInternalUpdateRef = useRef(false);
@@ -45,6 +52,39 @@ export const ImageUploader = ({
   
   // メモリリーク防止: 作成したBlob URLをトラッキング
   const createdBlobUrlsRef = useRef<Set<string>>(new Set());
+
+  // 透明ドラッグ画像（既定ゴーストを消す）
+  const transparentImg = useMemo(() => {
+    const img = new Image();
+    img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9U2j1W0AAAAASUVORK5CYII=';
+    return img;
+  }, []);
+
+  // rAF で onDragOver をスムーズに（ちらつき抑制）
+  let rafId: number | null = null;
+  const schedule = (fn: () => void) => {
+    if (rafId != null) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(fn);
+  };
+
+  // ポインタ位置から「もっとも近いセル index」を求める
+  const getIndexFromPoint = (x: number, y: number) => {
+    const grid = gridRef.current;
+    if (!grid) return null;
+    const cards = Array.from(grid.querySelectorAll<HTMLDivElement>('[data-idx]'));
+    if (!cards.length) return null;
+    let best = { idx: 0, d: Infinity, rect: cards[0].getBoundingClientRect() };
+    for (const el of cards) {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = cx - x;
+      const dy = cy - y;
+      const d = dx * dx + dy * dy;
+      if (d < best.d) best = { idx: Number(el.dataset.idx), d, rect };
+    }
+    return best;
+  };
 
   // メモ化された画像配列の深い比較
   const memoizedImageItems = useMemo(() => {
@@ -68,90 +108,17 @@ export const ImageUploader = ({
     }, 0);
   }, [onImagesChange]);
 
-  // 共通の画像処理・アップロード処理
-  const handleFileProcessing = useCallback(async (filesToProcess: File[], newItems: ImageItem[]) => {
-    try {
-      // モード依存の処理パラメータ
-      const processingParams = mode === 'avatar' 
-        ? {
-            maxSizeMB: 1.0,
-            maxWidthOrHeight: 512,
-            aspectRatio: 1, // 1:1 for avatars
-            removeExif: true
-          }
-        : {
-            maxSizeMB: 0.5,
-            maxWidthOrHeight: 1200,
-            aspectRatio: 5/3, // 5:3 for posts
-            removeExif: true
-          };
-
-      // 画像を並列処理（WebWorkerまたはメインスレッド）
-      const processedFiles = isWorkerSupported 
-        ? await processImages(filesToProcess, processingParams)
-        : await Promise.all(
-            filesToProcess.map(file => processImage(file, processingParams))
-          );
-
-      // Firebase Storageにアップロード (mode情報を含む)
-      const uploadedUrls = await uploadMultipleImages(
-        processedFiles,
-        { 
-          userId: user.uid, 
-          folder: mode === 'avatar' ? 'avatar-images' : 'post-images',
-          mode
-        },
-        setUploadProgress
-      );
-
-      console.log('ImageUploader - Upload completed:', uploadedUrls);
-      
-      // アップロード完了後、画像アイテムを更新（競合状態を回避）
-      setImageItems(prev => {
-        const updated = [...prev];
-        newItems.forEach((item, index) => {
-          const itemIndex = updated.findIndex(i => i.id === item.id);
-          if (itemIndex !== -1) {
-            console.log(`ImageUploader - Updating item ${item.id} with URL:`, uploadedUrls[index]);
-            updated[itemIndex] = {
-              ...item,
-              url: uploadedUrls[index],
-              uploading: false,
-              file: undefined
-            };
-          }
-        });
-        console.log('ImageUploader - Updated items:', updated);
-        return updated;
-      });
-      
-      // 即座に親に通知（upload完了後の直接呼び出し）
-      const finalUrls = uploadedUrls.filter(url => url && url !== '');
-      console.log('ImageUploader - Notifying parent immediately with URLs:', finalUrls);
-      onImagesChange(finalUrls);
-
-    } catch (error) {
-      console.error('Upload failed:', error);
-      
-      // エラーが発生した場合、アップロード中のアイテムにエラーを設定
-      setImageItems(prev => {
-        const updated = [...prev];
-        newItems.forEach(item => {
-          const itemIndex = updated.findIndex(i => i.id === item.id);
-          if (itemIndex !== -1) {
-            updated[itemIndex] = {
-              ...item,
-              uploading: false,
-              error: 'アップロードに失敗しました'
-            };
-          }
-        });
-        return updated;
-      });
-    }
+  // 投稿前の軽量処理（ファイル保持のみ、アップロードは投稿時まで保留）
+  const handleFileSelection = useCallback((filesToProcess: File[], newItems: ImageItem[]) => {
+    console.log('ImageUploader - Files selected for preview:', filesToProcess);
     
-    setUploadProgress(0);
-  }, [user, processImages, isWorkerSupported, mode]);
+    // ファイルを保持し、投稿ボタンが押されるまでアップロードは実行しない
+    setImageItems(prev => [...prev, ...newItems]);
+    
+    // ファイル参照のみを親に通知（実際のアップロードURLではない）
+    const fileUrls = newItems.map(item => item.previewUrl || '');
+    onImagesChange([...images, ...fileUrls]);
+  }, [images, onImagesChange]);
 
 
   // imageItems変更時の親への安全な通知（競合状態防止）
@@ -202,105 +169,124 @@ export const ImageUploader = ({
     };
   }, []);
 
-  // モード依存プレビューを生成する関数
-  const generatePreview = useCallback(async (file: File): Promise<{ previewUrl: string; dimensions: { width: number; height: number } }> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      let blobUrl: string | null = null;
+  // 投稿時の実際のアップロード処理（5:3クロップは一枚目のみ）
+  const handleActualUpload = useCallback(async (): Promise<string[]> => {
+    if (!user) {
+      throw new Error('認証が必要です');
+    }
 
-      const cleanup = () => {
-        if (blobUrl) {
-          URL.revokeObjectURL(blobUrl);
-          blobUrl = null;
-        }
-        if (ctx) {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        canvas.width = 0;
-        canvas.height = 0;
-        img.src = '';
-      };
+    const filesToUpload = imageItems
+      .filter(item => item.file && !item.uploading && !item.error)
+      .map(item => item.file!);
 
-      if (!ctx) {
-        cleanup();
-        reject(new Error('Canvas context not available'));
-        return;
+    if (filesToUpload.length === 0) {
+      return [];
+    }
+
+    // メタデータを生成（PRモードはクロップなし）
+    const metadata = filesToUpload.map((file, index) => {
+      const item = imageItems.find(item => item.file === file);
+      if (!item || !item.originalDimensions) {
+        return {};
       }
 
-      img.onload = () => {
-        try {
-          const { width: imgWidth, height: imgHeight } = img;
-          const aspectRatio = mode === 'avatar' ? 1 : 5/3; // Avatar: 1:1, Post: 5:3
-          
-          // 切り抜きサイズを計算
-          let sourceX = 0;
-          let sourceY = 0;
-          let sourceWidth = imgWidth;
-          let sourceHeight = imgHeight;
-          
-          const currentRatio = imgWidth / imgHeight;
-          
-          if (currentRatio > aspectRatio) {
-            sourceWidth = imgHeight * aspectRatio;
-            sourceX = (imgWidth - sourceWidth) / 2;
-          } else if (currentRatio < aspectRatio) {
-            sourceHeight = imgWidth / aspectRatio;
-            sourceY = (imgHeight - sourceHeight) / 2;
-          }
+      // PRモードはクロップなし
+      if (mode === 'pr') {
+        return {};
+      }
 
-          // プレビューサイズ
-          const maxPreviewWidth = mode === 'avatar' ? 200 : 300;
-          const previewWidth = Math.min(maxPreviewWidth, sourceWidth);
-          const previewHeight = mode === 'avatar' ? previewWidth : previewWidth / aspectRatio;
+      // 一枚目のみ5:3クロップメタデータを生成（postモードのみ）
+      if (index === 0 && mode === 'post') {
+        const cropMeta = generateCropMeta(
+          item.originalDimensions.width,
+          item.originalDimensions.height,
+          5/3,
+          'post'
+        );
+        return { cropMeta };
+      }
 
-          canvas.width = previewWidth;
-          canvas.height = previewHeight;
+      // アバターモードは1:1クロップ
+      if (mode === 'avatar') {
+        const cropMeta = generateCropMeta(
+          item.originalDimensions.width,
+          item.originalDimensions.height,
+          1,
+          'avatar'
+        );
+        return { cropMeta };
+      }
 
-          ctx.drawImage(
-            img,
-            sourceX, sourceY, sourceWidth, sourceHeight,
-            0, 0, previewWidth, previewHeight
-          );
-
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              cleanup();
-              reject(new Error('Canvas to blob conversion failed'));
-              return;
-            }
-
-            const previewUrl = URL.createObjectURL(blob);
-            createdBlobUrlsRef.current.add(previewUrl);
-            
-            cleanup();
-            resolve({ 
-              previewUrl, 
-              dimensions: { width: imgWidth, height: imgHeight }
-            });
-          }, 'image/jpeg', 0.9);
-        } catch (error) {
-          cleanup();
-          reject(error);
-        }
-      };
-
-      img.onerror = () => {
-        cleanup();
-        reject(new Error('Failed to load image for preview'));
-      };
-
-      blobUrl = URL.createObjectURL(file);
-      img.src = blobUrl;
+      // それ以外はクロップメタデータなし
+      return {};
     });
-  }, [mode]);
+
+    try {
+      const results = await uploadMultipleImages(filesToUpload, {
+        userId: user.uid,
+        folder: mode === 'avatar' ? 'avatars' : mode === 'pr' ? 'pr-images' : 'post-images',
+        mode,
+        metadata
+      }, (progress) => {
+        setUploadProgress(progress.percentage);
+      });
+
+      // アップロード完了後のクリーンアップ
+      setUploadProgress(0);
+      return results;
+    } catch (error) {
+      setUploadProgress(0);
+      throw error;
+    }
+  }, [user, imageItems, mode]);
+
+  // アップロード関数を親コンポーネントに公開
+  useEffect(() => {
+    if (onUploadRef) {
+      onUploadRef.current = handleActualUpload;
+    }
+  }, [handleActualUpload, onUploadRef]);
+
+  // 軽量即出しプレビュー生成（クロップ処理なし）
+  const generateInstantPreview = useCallback((file: File): Promise<{ previewUrl: string; dimensions: { width: number; height: number } }> => {
+    return new Promise((resolve) => {
+      // Object URLを即座に生成（処理なし）
+      const previewUrl = URL.createObjectURL(file);
+      createdBlobUrlsRef.current.add(previewUrl);
+
+      // 画像サイズを取得
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          previewUrl,
+          dimensions: { width: img.width, height: img.height }
+        });
+      };
+      img.onerror = () => {
+        // エラー時もプレビューURLは返す
+        resolve({
+          previewUrl,
+          dimensions: { width: 0, height: 0 }
+        });
+      };
+      img.src = previewUrl;
+    });
+  }, []);
 
   const handleFileSelect = useCallback(async (files: FileList | File[]) => {
-    if (!user) return;
+    console.log('ImageUploader - handleFileSelect called with files:', files);
+    console.log('ImageUploader - User exists:', !!user);
+    console.log('ImageUploader - Current imageItems:', imageItems);
+    
+    if (!user) {
+      console.log('ImageUploader - No user, returning early');
+      return;
+    }
 
     const fileArray = Array.from(files);
+    console.log('ImageUploader - File array:', fileArray);
     const validFiles = fileArray.filter(validateImageFile);
+    console.log('ImageUploader - Valid files:', validFiles);
     
     if (validFiles.length === 0) {
       alert('有効な画像ファイル（JPEG, PNG, WebP）を選択してください。\n対応形式: JPEG, PNG, WebP');
@@ -354,27 +340,27 @@ export const ImageUploader = ({
         return;
       }
 
-      // プレビューを生成
+      // 軽量即出しプレビューを生成
       const previewPromises = filesToProcess.map(async (file, index) => {
         try {
-          const { previewUrl, dimensions } = await generatePreview(file);
+          const { previewUrl, dimensions } = await generateInstantPreview(file);
           return {
-            id: `uploading-${Date.now()}-${index}`,
-            url: '',
+            id: `selected-${Date.now()}-${index}`,
+            url: '', // アップロードURLは投稿時まで空
             file,
             fileHash: hashesToProcess[index],
-            uploading: true,
+            uploading: false, // 選択段階ではアップロード中ではない
             previewUrl,
             originalDimensions: dimensions
           };
         } catch (error) {
           console.warn(`Failed to generate preview for ${file.name}:`, error);
           return {
-            id: `uploading-${Date.now()}-${index}`,
+            id: `selected-${Date.now()}-${index}`,
             url: '',
             file,
             fileHash: hashesToProcess[index],
-            uploading: true,
+            uploading: false,
             error: 'プレビュー生成に失敗しました'
           };
         }
@@ -382,10 +368,8 @@ export const ImageUploader = ({
 
       const newItems: ImageItem[] = await Promise.all(previewPromises);
 
-      setImageItems(prev => [...prev, ...newItems]);
-      
-      // 共通の処理関数を使用
-      handleFileProcessing(filesToProcess, newItems);
+      // 軽量選択処理を使用（アップロードは投稿時まで保留）
+      handleFileSelection(filesToProcess, newItems);
       
     } catch (hashError) {
       console.error('Hash generation failed:', hashError);
@@ -395,20 +379,27 @@ export const ImageUploader = ({
       const remainingSlots = maxImages - imageItems.length;
       const fallbackFilesToProcess = validFiles.slice(0, remainingSlots);
       
-      const fallbackItems: ImageItem[] = fallbackFilesToProcess.map((file, index) => ({
-        id: `uploading-${Date.now()}-${index}`,
-        url: '',
-        file,
-        fileHash: generateFileHashSync(file), // 同期版フォールバック
-        uploading: true
-      }));
+      const fallbackItems: ImageItem[] = fallbackFilesToProcess.map((file, index) => {
+        const fallbackCropMeta = generateCropMeta(
+          1000, 600, // デフォルト値
+          mode === 'avatar' ? 1 : 5/3
+        );
+        return {
+          id: `uploading-${Date.now()}-${index}`,
+          url: '',
+          file,
+          fileHash: generateFileHashSync(file), // 同期版フォールバック
+          uploading: true,
+          cropMeta: fallbackCropMeta
+        };
+      });
 
       setImageItems(prev => [...prev, ...fallbackItems]);
       
-      // フォールバック用のファイル処理を実行
-      handleFileProcessing(fallbackFilesToProcess, fallbackItems);
+      // フォールバック：軽量選択処理を使用
+      handleFileSelection(fallbackFilesToProcess, fallbackItems);
     }
-  }, [user, maxImages, imageItems.length]);
+  }, [user, maxImages, imageItems, generateInstantPreview, handleFileSelection]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -433,15 +424,25 @@ export const ImageUploader = ({
   }, []);
 
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('ImageUploader - File input change triggered, files:', e.target.files);
+    console.log('ImageUploader - Current imageItems length:', imageItems.length);
+    
     const files = e.target.files;
-    if (files) {
+    if (files && files.length > 0) {
+      console.log('ImageUploader - Calling handleFileSelect with files:', Array.from(files));
       handleFileSelect(files);
+    } else {
+      console.log('ImageUploader - No files selected');
     }
-    // ファイル入力をリセット
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [handleFileSelect]);
+    
+    // ファイル入力を即座にリセット（再選択を可能にする）
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        console.log('ImageUploader - Resetting file input value');
+        fileInputRef.current.value = '';
+      }
+    }, 100);
+  }, [handleFileSelect, imageItems.length]);
 
   const removeImage = useCallback((id: string) => {
     setImageItems(prev => {
@@ -505,18 +506,26 @@ export const ImageUploader = ({
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          onClick={() => !disabled && fileInputRef.current?.click()}
+          onClick={() => {
+            if (!disabled && fileInputRef.current) {
+              fileInputRef.current.value = '';
+              fileInputRef.current.click();
+            }
+          }}
         >
           <Upload size={48} className="mx-auto mb-4 text-muted-foreground" />
           <p className="text-lg font-medium text-foreground mb-2">
-            画像をドロップまたはクリックして選択
+            {mode === 'pr' ? 'PR画像' : '画像'}を選択
           </p>
           <p className="text-sm text-muted-foreground">
-            JPEG, PNG, WebP形式 / 最大{maxImages}枚 / 個別ファイル制限: 10MB / 合計制限: 30MB
-            {mode === 'avatar' && <br />}
-            {mode === 'avatar' && '正方形（1:1）に切り抜きされます'}
-            {mode === 'post' && '5:3比率に切り抜きされます'}
+            JPEG, PNG, WebP形式 / 最大{maxImages}枚
           </p>
+          {mode === 'post' && (
+            <p className="text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded mt-3">
+              ⚠️ 一枚目に指定された画像は5:3に切り抜かれサムネ画像として使用されます
+            </p>
+          )}
+
 
           
           <input
@@ -543,36 +552,78 @@ export const ImageUploader = ({
 
       {/* 画像グリッド */}
       {imageItems.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div
+          ref={gridRef}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative"
+        >
           {imageItems.map((item, index) => (
             <div 
               key={item.id}
-              className={`relative group ${mode === 'avatar' ? 'aspect-square' : 'aspect-[5/3]'} bg-muted rounded-lg overflow-hidden border border-border`}
+              data-idx={index}
+              className={`relative group ${mode === 'avatar' ? 'aspect-square' : 'aspect-[5/3]'} bg-muted rounded-lg overflow-hidden border border-border
+                ${draggedItemIndex === index ? 'opacity-50 scale-95' : ''}
+                ${!item.uploading && !disabled ? 'cursor-move' : ''}
+                transition-all duration-150
+              `}
               draggable={!item.uploading && !disabled}
               onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', index.toString());
+                e.dataTransfer.setDragImage(transparentImg, 0, 0);
+                setDraggedItemIndex(index);
+                setOverIndex(index);
+                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                setDragRect(rect);
               }}
-              onDragOver={(e) => e.preventDefault()}
+              onDragEnd={() => {
+                setDraggedItemIndex(null);
+                setOverIndex(null);
+                setDragRect(null);
+                setOverRect(null);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                schedule(() => {
+                  const best = getIndexFromPoint(e.clientX, e.clientY);
+                  if (!best) return;
+                  setOverIndex(best.idx);
+                  setOverRect(best.rect);
+                });
+              }}
               onDrop={(e) => {
                 e.preventDefault();
-                const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                if (dragIndex !== index) {
-                  moveImage(dragIndex, index);
+                const dragIndex = draggedItemIndex;
+                const dropIndex = overIndex;
+                setDraggedItemIndex(null);
+                setOverIndex(null);
+                setDragRect(null);
+                setOverRect(null);
+                if (
+                  typeof dragIndex === 'number' &&
+                  typeof dropIndex === 'number' &&
+                  dragIndex !== dropIndex
+                ) {
+                  moveImage(dragIndex, dropIndex);
                 }
               }}
             >
-              {/* 順番番号 */}
+              {/* 順番番号とドラッグハンドル */}
               <div className="absolute top-2 left-2 z-10">
-                <span className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded">
-                  {index + 1}
-                </span>
+                {!item.uploading && !disabled ? (
+                  <div className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                    <GripVertical size={12} />
+                    {index + 1}
+                  </div>
+                ) : (
+                  <span className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded">
+                    {index + 1}
+                  </span>
+                )}
               </div>
 
-              {/* 削除ボタン */}
+              {/* 削除ボタン - 常時表示 */}
               {!item.uploading && (
                 <button
                   onClick={() => removeImage(item.id)}
-                  className="absolute top-2 right-2 z-10 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  className="absolute top-2 right-2 z-10 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
                   disabled={disabled}
                 >
                   <X size={16} />
@@ -620,14 +671,23 @@ export const ImageUploader = ({
                 />
               ) : null}
 
-              {/* 比率インジケーター（アップロード中のみ） */}
-              {item.uploading && item.originalDimensions && (
-                <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded">
-                  {mode === 'avatar' ? '1:1に切抜' : '5:3に切抜'}
-                </div>
-              )}
             </div>
           ))}
+          
+          {/* プレースホルダーオーバーレイ */}
+          {draggedItemIndex != null && overRect && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute z-20 border-2 border-dashed border-primary/80 rounded-lg bg-primary/5 transition-transform duration-100"
+              style={{
+                left: overRect.left - gridRef.current!.getBoundingClientRect().left,
+                top: overRect.top - gridRef.current!.getBoundingClientRect().top,
+                width: overRect.width,
+                height: overRect.height,
+                transform: 'translateZ(0)', // 合成レイヤでちらつき抑制
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -640,12 +700,32 @@ export const ImageUploader = ({
               transition-colors hover:bg-muted/50 hover:border-primary/50
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
-            onClick={() => !disabled && fileInputRef.current?.click()}
+            onClick={() => {
+              console.log('ImageUploader - Add button clicked, disabled:', disabled);
+              if (!disabled && fileInputRef.current) {
+                console.log('ImageUploader - Resetting and clicking file input');
+                fileInputRef.current.value = '';
+                fileInputRef.current.click();
+              } else {
+                console.log('ImageUploader - Cannot click file input, disabled:', disabled, 'fileInputRef.current:', !!fileInputRef.current);
+              }
+            }}
             disabled={disabled}
           >
             <Upload size={16} />
             追加
           </button>
+          
+          {/* 追加ボタン専用の隠しinput */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="hidden"
+            onChange={handleFileInputChange}
+            disabled={disabled}
+          />
         </div>
       )}
 
