@@ -192,7 +192,7 @@ export function ProfileSetup({ uid, onComplete }: ProfileSetupProps) {
             />
             
             <p className="text-xs text-muted-foreground text-center">
-              {isCompressing ? '画像を圧縮しています...' : 'JPG, PNG形式（自動圧縮されます）'}
+              {isCompressing ? '画像を圧縮しています...' : 'JPG, PNG形式'}
             </p>
           </div>
 

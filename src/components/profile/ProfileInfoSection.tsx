@@ -1,12 +1,15 @@
-import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, ArrowLeft } from "lucide-react";
+import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, ArrowLeft, Settings } from "lucide-react";
 import Image from "next/image";
 import { UserProfile } from "@/types/User";
+import { getAvatarDisplayUrl } from "@/lib/utils/imageUrlHelpers";
 
 interface ProfileInfoSectionProps {
   profile: UserProfile;
   photoURL?: string;
   displayName?: string;
   onBack: () => void;
+  isOwnProfile?: boolean;
+  onEditProfile?: () => void;
 }
 
 export function ProfileInfoSection({
@@ -14,6 +17,8 @@ export function ProfileInfoSection({
   photoURL,
   displayName,
   onBack,
+  isOwnProfile,
+  onEditProfile,
 }: ProfileInfoSectionProps) {
   return (
     <div className="relative px-0 pb-1">
@@ -30,7 +35,7 @@ export function ProfileInfoSection({
         <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background overflow-hidden bg-muted flex-shrink-0">
           {photoURL ? (
             <Image
-              src={photoURL}
+              src={getAvatarDisplayUrl(photoURL, 'small') || photoURL}
               alt={displayName || "プロフィール画像"}
               fill
               className="object-cover"
@@ -48,6 +53,16 @@ export function ProfileInfoSection({
           </h2>
           <p className="text-sm text-muted-foreground">@{profile.publicId}</p>
         </div>
+        
+        {isOwnProfile && onEditProfile && (
+          <button
+            onClick={onEditProfile}
+            className="p-2 rounded-full hover:bg-muted transition-colors"
+            aria-label="プロフィール編集"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Profile Info */}

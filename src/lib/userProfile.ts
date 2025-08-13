@@ -184,14 +184,52 @@ export async function setupUserProfile(uid: string, profileData: UserProfileForm
       isSetupComplete: true,
     };
 
-    // 画像ファイルがある場合はアップロード
+    // 画像ファイルがある場合はアップロード（厳密なvalidation付き）
     if (profileData.photoFile) {
-      const uploadResult = await uploadProfileImage(uid, profileData.photoFile);
-      updateData.photoURL = uploadResult.url;
-      updateData.photoFileName = uploadResult.fileName;
+      try {
+        const uploadResult = await uploadProfileImage(uid, profileData.photoFile);
+        console.log('Setup upload result received:', uploadResult);
+        
+        // uploadResultが有効で、urlがundefinedでないことを確認
+        if (uploadResult && uploadResult.url && uploadResult.url !== undefined && uploadResult.url !== null && uploadResult.url !== '') {
+          updateData.photoURL = uploadResult.url;
+        } else {
+          console.warn('Setup upload result URL is invalid:', uploadResult);
+        }
+        
+        if (uploadResult && uploadResult.fileName && uploadResult.fileName !== undefined && uploadResult.fileName !== null && uploadResult.fileName !== '') {
+          updateData.photoFileName = uploadResult.fileName;
+        }
+      } catch (uploadError) {
+        console.error('Error uploading image in setup:', uploadError);
+        // アップロードエラーの場合は画像以外の情報のみ更新
+      }
     }
 
-    await updateDoc(docRef, updateData);
+    // undefined値を除外する関数
+    const removeUndefinedFields = (obj: any): any => {
+      const cleaned: any = {};
+      Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        if (value !== undefined && value !== null && value !== '') {
+          cleaned[key] = value;
+        } else {
+          console.log(`Setup filtering out field '${key}' with value:`, value);
+        }
+      });
+      return cleaned;
+    };
+
+    const cleanedUpdateData = removeUndefinedFields(updateData);
+    console.log('setupUserProfile - data being sent to Firestore:', cleanedUpdateData);
+
+    // 最終検証: photoURLフィールドがundefinedでないことを確認
+    if ('photoURL' in cleanedUpdateData && cleanedUpdateData.photoURL === undefined) {
+      console.error('CRITICAL SETUP: photoURL is still undefined after cleaning!');
+      delete cleanedUpdateData.photoURL;
+    }
+
+    await updateDoc(docRef, cleanedUpdateData);
   } catch (error) {
     console.error('Error setting up user profile:', error);
     throw error;
@@ -200,8 +238,11 @@ export async function setupUserProfile(uid: string, profileData: UserProfileForm
 
 /**
  * プロフィール画像をGoogle Cloud Storageにアップロード
+ * @deprecated この関数は非推奨です。新しい統合画像パイプライン（ImageUploader with avatar mode）を使用してください。
  */
 export async function uploadProfileImage(uid: string, file: File): Promise<{ url: string; fileName: string }> {
+  console.warn('[DEPRECATED] uploadProfileImage is deprecated. Use unified image pipeline with avatar mode instead.');
+  
   try {
     // Firebase認証トークンを取得
     const user = auth.currentUser;
@@ -215,7 +256,7 @@ export async function uploadProfileImage(uid: string, file: File): Promise<{ url
     const formData = new FormData();
     formData.append('file', file);
     
-    // API経由でアップロード
+    // API経由でアップロード（非推奨警告付き）
     const response = await fetch('/api/upload-profile-image', {
       method: 'POST',
       headers: {
@@ -230,6 +271,12 @@ export async function uploadProfileImage(uid: string, file: File): Promise<{ url
     }
     
     const result = await response.json();
+    
+    // 非推奨警告をコンソールに出力
+    if (result.deprecated) {
+      console.warn('[MIGRATION NOTICE]', result.migrationNote);
+    }
+    
     return {
       url: result.url,
       fileName: result.fileName
@@ -279,6 +326,42 @@ export async function refreshProfileImageUrl(fileName: string): Promise<string> 
 /**
  * ユーザープロフィールを更新
  */
+/**
+ * 新しい画像パイプライン対応のプロフィール更新関数
+ */
+export async function updateUserProfileDirect(uid: string, profileData: any): Promise<void> {
+  try {
+    const docRef = doc(db, 'userProfiles', uid);
+    
+    // 明示的にフィールドを構築（undefinedを確実に除外）
+    const updateData: Record<string, any> = {
+      updatedAt: serverTimestamp(),
+    };
+
+    // 各フィールドを個別に検証して追加
+    if (profileData.publicId && profileData.publicId !== undefined && profileData.publicId !== null && profileData.publicId !== '') {
+      updateData.publicId = profileData.publicId;
+    }
+    
+    if (profileData.username && profileData.username !== undefined && profileData.username !== null && profileData.username !== '') {
+      updateData.username = profileData.username;
+    }
+    
+    if (profileData.photoURL && profileData.photoURL !== undefined && profileData.photoURL !== null && profileData.photoURL !== '') {
+      updateData.photoURL = profileData.photoURL;
+    }
+    
+    updateData.isSetupComplete = true;
+
+    console.log('updateUserProfileDirect - Final data:', updateData);
+
+    await updateDoc(docRef, updateData);
+  } catch (error) {
+    console.error('Error updating user profile directly:', error);
+    throw error;
+  }
+}
+
 export async function updateUserProfile(uid: string, profileData: UserProfileForm): Promise<void> {
   try {
     // usernameの長さをチェック（日本語10文字まで）
@@ -312,14 +395,52 @@ export async function updateUserProfile(uid: string, profileData: UserProfileFor
       isSetupComplete: true,
     };
 
-    // 画像ファイルがある場合はアップロード
+    // 画像ファイルがある場合はアップロード（厳密なvalidation付き）
     if (profileData.photoFile) {
-      const uploadResult = await uploadProfileImage(uid, profileData.photoFile);
-      updateData.photoURL = uploadResult.url;
-      updateData.photoFileName = uploadResult.fileName;
+      try {
+        const uploadResult = await uploadProfileImage(uid, profileData.photoFile);
+        console.log('Upload result received:', uploadResult);
+        
+        // uploadResultが有効で、urlがundefinedでないことを確認
+        if (uploadResult && uploadResult.url && uploadResult.url !== undefined && uploadResult.url !== null && uploadResult.url !== '') {
+          updateData.photoURL = uploadResult.url;
+        } else {
+          console.warn('Upload result URL is invalid:', uploadResult);
+        }
+        
+        if (uploadResult && uploadResult.fileName && uploadResult.fileName !== undefined && uploadResult.fileName !== null && uploadResult.fileName !== '') {
+          updateData.photoFileName = uploadResult.fileName;
+        }
+      } catch (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        // アップロードエラーの場合は画像以外の情報のみ更新
+      }
     }
 
-    await updateDoc(docRef, updateData);
+    // undefined値を除外する関数
+    const removeUndefinedFields = (obj: any): any => {
+      const cleaned: any = {};
+      Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        if (value !== undefined && value !== null && value !== '') {
+          cleaned[key] = value;
+        } else {
+          console.log(`Filtering out field '${key}' with value:`, value);
+        }
+      });
+      return cleaned;
+    };
+
+    const cleanedUpdateData = removeUndefinedFields(updateData);
+    console.log('updateUserProfile - data being sent to Firestore:', cleanedUpdateData);
+
+    // 最終検証: photoURLフィールドがundefinedでないことを確認
+    if ('photoURL' in cleanedUpdateData && cleanedUpdateData.photoURL === undefined) {
+      console.error('CRITICAL: photoURL is still undefined after cleaning!');
+      delete cleanedUpdateData.photoURL;
+    }
+
+    await updateDoc(docRef, cleanedUpdateData);
   } catch (error) {
     console.error('Error updating user profile:', error);
     throw error;

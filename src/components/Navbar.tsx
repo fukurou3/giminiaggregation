@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { User, LogOut, Plus, Edit3, Search } from 'lucide-react';
+import { User, LogOut, Plus, Search } from 'lucide-react';
 import { SearchBar } from './SearchBar';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,12 +10,9 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { loginWithGoogle, logout } from '@/lib/auth';
 import { auth } from '@/lib/firebase';
 import { Settings } from 'lucide-react';
+import { getAvatarDisplayUrl } from '@/lib/utils/imageUrlHelpers';
 
-interface NavbarProps {
-  onProfileEdit?: () => void;
-}
-
-export function Navbar({ onProfileEdit }: NavbarProps) {
+export function Navbar() {
   const { isAuthenticated } = useAuth();
   const { userProfile } = useUserProfile();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -39,10 +36,6 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
     }
   };
 
-  const handleProfileEdit = () => {
-    setShowUserMenu(false);
-    onProfileEdit?.();
-  };
 
   // 管理者権限チェック
   useEffect(() => {
@@ -146,7 +139,7 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                   {userProfile?.photoURL ? (
                     <div className="w-7 h-7 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
                       <Image
-                        src={userProfile.photoURL}
+                        src={getAvatarDisplayUrl(userProfile.photoURL, 'small') || userProfile.photoURL}
                         alt={userProfile.username || 'User'}
                         width={28}
                         height={28}
@@ -170,20 +163,13 @@ export function Navbar({ onProfileEdit }: NavbarProps) {
                       </p>
                     </div>
                     <Link
-                      href="/mypage"
+                      href={`/users/${userProfile?.publicId || ''}`}
                       onClick={() => setShowUserMenu(false)}
                       className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     >
                       <User size={13} />
-                      <span>マイページ</span>
+                      <span>プロフィール</span>
                     </Link>
-                    <button
-                      onClick={handleProfileEdit}
-                      className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    >
-                      <Edit3 size={13} />
-                      <span>プロフィール編集</span>
-                    </button>
                     {isAdmin && (
                       <Link
                         href="/secure-dashboard-a8f7k2x9"

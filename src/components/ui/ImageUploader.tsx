@@ -12,6 +12,7 @@ export interface ImageUploaderProps {
   onImagesChange: (images: string[]) => void;
   maxImages?: number;
   disabled?: boolean;
+  mode?: 'post' | 'avatar';
 }
 
 interface ImageItem {
@@ -29,7 +30,8 @@ export const ImageUploader = ({
   images,
   onImagesChange,
   maxImages = 5,
-  disabled = false
+  disabled = false,
+  mode = 'post'
 }: ImageUploaderProps) => {
   const { user } = useAuth();
   const { processImages, isWorkerSupported } = useImageWorker();
@@ -66,27 +68,36 @@ export const ImageUploader = ({
   // 共通の画像処理・アップロード処理
   const handleFileProcessing = useCallback(async (filesToProcess: File[], newItems: ImageItem[]) => {
     try {
-      // 画像を並列処理（WebWorkerまたはメインスレッド）
-      const processedFiles = isWorkerSupported 
-        ? await processImages(filesToProcess, {
+      // モード依存の処理パラメータ
+      const processingParams = mode === 'avatar' 
+        ? {
+            maxSizeMB: 1.0,
+            maxWidthOrHeight: 512,
+            aspectRatio: 1, // 1:1 for avatars
+            removeExif: true
+          }
+        : {
             maxSizeMB: 0.5,
             maxWidthOrHeight: 1200,
-            aspectRatio: 5/3,
+            aspectRatio: 5/3, // 5:3 for posts
             removeExif: true
-          })
+          };
+
+      // 画像を並列処理（WebWorkerまたはメインスレッド）
+      const processedFiles = isWorkerSupported 
+        ? await processImages(filesToProcess, processingParams)
         : await Promise.all(
-            filesToProcess.map(file => processImage(file, {
-              maxSizeMB: 0.5,
-              maxWidthOrHeight: 1200,
-              aspectRatio: 5/3,
-              removeExif: true
-            }))
+            filesToProcess.map(file => processImage(file, processingParams))
           );
 
-      // Firebase Storageにアップロード
+      // Firebase Storageにアップロード (mode情報を含む)
       const uploadedUrls = await uploadMultipleImages(
         processedFiles,
-        { userId: user.uid, folder: 'post-images' },
+        { 
+          userId: user.uid, 
+          folder: mode === 'avatar' ? 'avatar-images' : 'post-images',
+          mode
+        },
         setUploadProgress
       );
 
@@ -176,7 +187,7 @@ export const ImageUploader = ({
     };
   }, []);
 
-  // 5:3プレビューを生成する関数
+  // モード依存プレビューを生成する関数
   const generatePreview = useCallback(async (file: File): Promise<{ previewUrl: string; dimensions: { width: number; height: number } }> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -206,7 +217,7 @@ export const ImageUploader = ({
       img.onload = () => {
         try {
           const { width: imgWidth, height: imgHeight } = img;
-          const aspectRatio = 5/3;
+          const aspectRatio = mode === 'avatar' ? 1 : 5/3; // Avatar: 1:1, Post: 5:3
           
           // 切り抜きサイズを計算
           let sourceX = 0;
@@ -224,10 +235,10 @@ export const ImageUploader = ({
             sourceY = (imgHeight - sourceHeight) / 2;
           }
 
-          // プレビューサイズ（最大300px幅）
-          const maxPreviewWidth = 300;
+          // プレビューサイズ
+          const maxPreviewWidth = mode === 'avatar' ? 200 : 300;
           const previewWidth = Math.min(maxPreviewWidth, sourceWidth);
-          const previewHeight = previewWidth / aspectRatio;
+          const previewHeight = mode === 'avatar' ? previewWidth : previewWidth / aspectRatio;
 
           canvas.width = previewWidth;
           canvas.height = previewHeight;
@@ -268,7 +279,7 @@ export const ImageUploader = ({
       blobUrl = URL.createObjectURL(file);
       img.src = blobUrl;
     });
-  }, []);
+  }, [mode]);
 
   const handleFileSelect = useCallback(async (files: FileList | File[]) => {
     if (!user) return;
@@ -316,12 +327,12 @@ export const ImageUploader = ({
         alert(`画像の選択上限に達しました。\n現在: ${imageItems.length}枚 / 最大: ${maxImages}枚\n\n${uniqueFiles.length - filesToProcess.length}枚をスキップします。`);
       }
 
-      // 総容量チェック（4MB制限）
+      // 総容量チェック（アップロード前: 30MB、処理後目標: 4MB）
       const currentTotalSize = imageItems.reduce((total, item) => {
         return item.file ? total + item.file.size : total;
       }, 0);
       const newTotalSize = calculateTotalSize(filesToProcess);
-      const maxTotalSize = 8 * 1024 * 1024; // 8MB
+      const maxTotalSize = 30 * 1024 * 1024; // 30MB（UX確保のためアップロード前制限を緩和）
 
       if (currentTotalSize + newTotalSize > maxTotalSize) {
         alert(`容量制限を超えています：\n現在の容量: ${formatFileSize(currentTotalSize)}\n追加予定: ${formatFileSize(newTotalSize)}\n制限: ${formatFileSize(maxTotalSize)}\n\nより小さな画像を選択するか、既存の画像を削除してください。`);
@@ -486,7 +497,10 @@ export const ImageUploader = ({
             画像をドロップまたはクリックして選択
           </p>
           <p className="text-sm text-muted-foreground">
-            JPEG, PNG, WebP形式 / 最大{maxImages}枚 / 個別ファイル制限: 10MB
+            JPEG, PNG, WebP形式 / 最大{maxImages}枚 / 個別ファイル制限: 10MB / 合計制限: 30MB
+            {mode === 'avatar' && <br />}
+            {mode === 'avatar' && '正方形（1:1）に切り抜きされます'}
+            {mode === 'post' && '5:3比率に切り抜きされます'}
           </p>
 
           
@@ -518,7 +532,7 @@ export const ImageUploader = ({
           {imageItems.map((item, index) => (
             <div 
               key={item.id}
-              className="relative group aspect-[5/3] bg-muted rounded-lg overflow-hidden border border-border"
+              className={`relative group ${mode === 'avatar' ? 'aspect-square' : 'aspect-[5/3]'} bg-muted rounded-lg overflow-hidden border border-border`}
               draggable={!item.uploading && !disabled}
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', index.toString());
@@ -562,16 +576,14 @@ export const ImageUploader = ({
                       />
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                        <p className="text-white text-xs mt-2">アップロード中...</p>
-                        {item.originalDimensions && (
-                          <p className="text-white text-xs opacity-80">
-                            {item.originalDimensions.width}×{item.originalDimensions.height}
-                          </p>
-                        )}
+
                       </div>
                     </>
                   ) : (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+
+                    </div>
                   )}
                 </div>
               ) : item.error ? (
@@ -593,10 +605,10 @@ export const ImageUploader = ({
                 />
               ) : null}
 
-              {/* 5:3比率インジケーター（アップロード中のみ） */}
+              {/* 比率インジケーター（アップロード中のみ） */}
               {item.uploading && item.originalDimensions && (
                 <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded">
-                  5:3に切抜
+                  {mode === 'avatar' ? '1:1に切抜' : '5:3に切抜'}
                 </div>
               )}
             </div>

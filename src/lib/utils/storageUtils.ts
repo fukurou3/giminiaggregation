@@ -1,4 +1,4 @@
-import { storage } from '@/lib/firebase';
+import { storage, auth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import type { UploadConfig, ProcessedImageResult, UploadProgress } from '@/types/Upload';
@@ -7,6 +7,7 @@ import { ImageUploadError } from './uploadErrors';
 export interface UploadImageOptions {
   userId: string;
   folder?: string;
+  mode?: 'post' | 'avatar';
 }
 
 export const uploadImageToStorage = async (
@@ -14,53 +15,62 @@ export const uploadImageToStorage = async (
   options: UploadImageOptions,
   maxRetries: number = 2
 ): Promise<ProcessedImageResult> => {
-  const { userId, folder = 'post-images' } = options;
+  const { userId, folder = 'post-images', mode = 'post' } = options;
   
-  // ファイル名を生成（重複を避けるためにUUIDを使用）
+  // 認証状態を確認
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new ImageUploadError('認証が必要です。ログインしてください。', 'auth_required');
+  }
+  
+  if (currentUser.uid !== userId) {
+    throw new ImageUploadError('ユーザーIDが一致しません。', 'user_mismatch');
+  }
+  
+  console.log('Upload auth check passed:', {
+    currentUserId: currentUser.uid,
+    requestedUserId: userId,
+    isAuthenticated: !!currentUser,
+    tokenExists: !!await currentUser.getIdToken()
+  });
+  
+  // 二段階アップロード: まず/tmpディレクトリに非公開でアップロード
+  const sessionId = uuidv4();
   const fileExtension = file.name.split('.').pop() || 'jpg';
-  const fileName = `${uuidv4()}.${fileExtension}`;
-  const filePath = `${folder}/${userId}/${fileName}`;
+  
+  // モード依存のファイル名プレフィックス
+  const filePrefix = mode === 'avatar' ? 'avatar_' : 'post_';
+  const fileName = `${filePrefix}${uuidv4()}.${fileExtension}`;
+  const tmpFilePath = `tmp/${sessionId}/${fileName}`;
 
   let lastError: Error | null = null;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // Firebase Storageへファイルをアップロード（キャッシュ最適化メタデータ付き）
-      const storageRef = ref(storage, filePath);
+      // Step 1: Firebase Storageの/tmpディレクトリに非公開でアップロード
+      const storageRef = ref(storage, tmpFilePath);
       const metadata = {
-        cacheControl: 'public, max-age=31536000, immutable',
         contentType: file.type,
         customMetadata: {
           uploadedBy: userId,
           uploadedAt: new Date().toISOString(),
           originalName: file.name,
-          fileSize: file.size.toString()
+          fileSize: file.size.toString(),
+          sessionId,
+          mode, // モード情報を追加
+          processingStatus: 'pending' // Cloud Functionsによる処理待ち
         }
       };
       
       const snapshot = await uploadBytes(storageRef, file, metadata);
       
-      // ダウンロードURLを取得
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      // Step 2: 一時的なダウンロードURLを取得（処理監視用）
+      const tmpDownloadURL = await getDownloadURL(snapshot.ref);
       
-      // 画像の寸法を取得（非同期で実行、失敗しても処理は継続）
-      let dimensions = { width: 0, height: 0 };
-      try {
-        dimensions = await getImageDimensions(file);
-      } catch (error) {
-        console.warn('Failed to get image dimensions:', error);
-      }
-
-      return {
-        url: downloadURL,
-        metadata: {
-          originalName: file.name,
-          fileSize: file.size,
-          dimensions,
-          uploadedAt: new Date().toISOString(),
-          uploadedBy: userId
-        }
-      };
+      // Step 3: Cloud Functionsによる処理完了を待機
+      const processedResult = await waitForProcessing(sessionId, fileName, userId);
+      
+      return processedResult;
     } catch (error) {
       lastError = error;
       console.error(`Image upload failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error);
@@ -74,6 +84,122 @@ export const uploadImageToStorage = async (
   }
   
   throw ImageUploadError.fromFirebaseError(lastError);
+};
+
+/**
+ * Cloud Functionsによる画像処理完了を待機
+ */
+const waitForProcessing = async (
+  sessionId: string, 
+  fileName: string, 
+  userId: string,
+  timeoutMs: number = 60000 // 60秒
+): Promise<ProcessedImageResult> => {
+  const startTime = Date.now();
+  const pollInterval = 2000; // 2秒間隔でポーリング
+  
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      // Firestoreから処理結果を確認
+      const response = await fetch('/api/check-image-processing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId, fileName, userId })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Processing check failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.status === 'processed') {
+        return {
+          url: result.publicUrl,
+          metadata: {
+            originalName: fileName,
+            fileSize: result.metadata.size,
+            dimensions: {
+              width: result.metadata.width,
+              height: result.metadata.height
+            },
+            uploadedAt: result.processedAt,
+            uploadedBy: userId
+          }
+        };
+      } else if (result.status === 'failed') {
+        throw new ImageUploadError(
+          'PROCESSING_FAILED',
+          `画像処理に失敗しました: ${result.error}`,
+          { sessionId, fileName }
+        );
+      }
+      
+      // まだ処理中の場合は待機
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    } catch (error) {
+      if (Date.now() - startTime > timeoutMs - pollInterval) {
+        // タイムアウト直前の場合はエラーを投げる
+        throw new ImageUploadError(
+          'PROCESSING_TIMEOUT',
+          '画像処理がタイムアウトしました。しばらく待ってから再試行してください。',
+          { sessionId, fileName, originalError: error }
+        );
+      }
+      
+      // 一時的なエラーの場合は待機して再試行
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+  }
+  
+  throw new ImageUploadError(
+    'PROCESSING_TIMEOUT',
+    '画像処理がタイムアウトしました。',
+    { sessionId, fileName }
+  );
+};
+
+/**
+ * アップロード前のレート制限チェック
+ */
+const checkRateLimits = async (userId: string, fileCount: number): Promise<void> => {
+  try {
+    const response = await fetch('/api/check-rate-limits', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, fileCount })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new ImageUploadError(
+        'RATE_LIMITED',
+        errorData.message || 'レート制限に達しています',
+        { userId, fileCount }
+      );
+    }
+
+    const result = await response.json();
+    
+    if (!result.allowed) {
+      throw new ImageUploadError(
+        'RATE_LIMITED',
+        result.message || 'アップロード制限に達しています',
+        { userId, fileCount, remaining: result.remaining }
+      );
+    }
+  } catch (error) {
+    if (error instanceof ImageUploadError) {
+      throw error;
+    }
+    
+    // ネットワークエラー等の場合は警告してアップロードは続行
+    console.warn('Rate limit check failed, continuing upload:', error);
+  }
 };
 
 // 画像の寸法を取得するヘルパー関数
@@ -101,6 +227,9 @@ export const uploadMultipleImages = async (
   options: UploadImageOptions,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<string[]> => {
+  // レート制限チェック
+  await checkRateLimits(options.userId, files.length);
+  
   const results: string[] = [];
   let completed = 0;
 

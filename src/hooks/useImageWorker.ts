@@ -36,35 +36,44 @@ export const useImageWorker = (): UseImageWorkerReturn => {
     // Check if Web Workers are supported
     if (typeof Worker !== 'undefined') {
       try {
-        // Try to create a simple test worker
-        const testWorker = new Worker(
-          new URL('/src/workers/imageProcessor.worker.ts', import.meta.url),
-          { type: 'module' }
-        );
+        console.log('Attempting to initialize image workers...');
         
-        // Test worker creation success
-        testWorker.terminate();
-        isWorkerSupported.current = true;
-        console.log('Image workers enabled - using parallel processing');
-        
-        // Create worker pool
+        // Create worker pool with error handling
         const maxWorkers = Math.min(navigator.hardwareConcurrency || 2, 4);
+        let successfulWorkers = 0;
+        
         for (let i = 0; i < maxWorkers; i++) {
-          const worker = new Worker(
-            new URL('/src/workers/imageProcessor.worker.ts', import.meta.url),
-            { type: 'module' }
-          );
-          
-          worker.onerror = (error) => {
-            console.warn(`Image worker ${i} error:`, error);
-            isWorkerSupported.current = false;
-          };
-          
-          workerPool.current.push(worker);
-          availableWorkers.current.push(worker);
+          try {
+            const worker = new Worker(
+              new URL('/src/workers/imageProcessor.worker.ts', import.meta.url),
+              { type: 'module' }
+            );
+            
+            worker.onerror = (error) => {
+              console.warn(`Image worker ${i} error, falling back to main thread:`, error);
+              isWorkerSupported.current = false;
+            };
+            
+            // Test worker with a simple message
+            worker.postMessage({ test: true });
+            
+            workerPool.current.push(worker);
+            availableWorkers.current.push(worker);
+            successfulWorkers++;
+          } catch (workerError) {
+            console.warn(`Failed to create worker ${i}:`, workerError);
+          }
+        }
+        
+        if (successfulWorkers > 0) {
+          isWorkerSupported.current = true;
+          console.log(`Image workers enabled - ${successfulWorkers} workers ready`);
+        } else {
+          console.warn('No workers could be created, using main thread processing');
+          isWorkerSupported.current = false;
         }
       } catch (error) {
-        console.warn('Web Workers not supported, using main thread processing:', error);
+        console.warn('Web Workers initialization failed, using main thread processing:', error);
         isWorkerSupported.current = false;
       }
     } else {
@@ -117,12 +126,18 @@ export const useImageWorker = (): UseImageWorkerReturn => {
         const { success, processedImage, error, fileName } = event.data;
 
         if (success && processedImage) {
-          const processedFile = new File([processedImage], fileName, {
-            type: file.type
-          });
-          resolve(processedFile);
+          try {
+            const processedFile = new File([processedImage], fileName, {
+              type: file.type
+            });
+            resolve(processedFile);
+          } catch (fileError) {
+            console.error('Error creating File object:', fileError);
+            reject(new Error(`File creation failed for ${fileName}: ${fileError}`));
+          }
         } else {
-          reject(new Error(error || `Processing failed for ${fileName}`));
+          console.error('Worker processing failed:', { success, error, fileName });
+          reject(new Error(error || `画像のメタデータ除去に失敗しました: ${fileName}`));
         }
       };
 
@@ -160,11 +175,19 @@ export const useImageWorker = (): UseImageWorkerReturn => {
     files: File[],
     options: ProcessImageOptions
   ): Promise<File[]> => {
+    // Always use main thread processing for now to avoid Worker issues
+    // TODO: Re-enable workers after debugging Image API issues
+    console.log('Processing images on main thread (Worker disabled for stability)');
+    const { processImage } = await import('@/lib/utils/imageUtils');
+    return Promise.all(files.map(file => processImage(file, options)));
+    
+    /* Worker processing temporarily disabled
     if (!isWorkerSupported.current || workerPool.current.length === 0) {
       // Fallback to main thread processing
       const { processImage } = await import('@/lib/utils/imageUtils');
       return Promise.all(files.map(file => processImage(file, options)));
     }
+    */
 
     // Process files in batches using available workers
     const results: File[] = [];
@@ -193,7 +216,9 @@ export const useImageWorker = (): UseImageWorkerReturn => {
           batchResults.push(processedFile);
         } catch (error) {
           console.error(`Failed to process ${file.name}:`, error);
-          // Fallback to main thread for failed files
+          
+          // Worker処理失敗時は、必ずメインスレッドにフォールバック
+          console.warn(`Falling back to main thread processing for ${file.name}`);
           try {
             const { processImage } = await import('@/lib/utils/imageUtils');
             const fallbackFile = await processImage(file, options);

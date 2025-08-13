@@ -44,5 +44,29 @@ service firebase.storage {
                    && isImage() 
                    && isValidSize();
     }
+    
+    // 一時画像アップロード: /tmp/{sessionId}/{fileName}
+    match /tmp/{sessionId}/{fileName} {
+      // 読み取り：認証済みユーザーのみ（処理監視用）
+      allow read: if isAuthenticated();
+      
+      // 書き込み：認証済み & 画像ファイル & 適切なサイズ
+      // sessionIdはクライアント生成なので、認証済みなら誰でも書き込み可能
+      allow write: if isAuthenticated() 
+                   && isImage() 
+                   && isValidSize();
+                   
+      // 削除：Cloud Functions用（処理完了後のクリーンアップ）
+      allow delete: if true; // Cloud Functionsからの削除を許可
+    }
+    
+    // 処理済み公開画像: /public/{path=**}
+    match /public/{path=**} {
+      // 読み取り：パブリック（CDN配信用）
+      allow read: if true;
+      
+      // 書き込み：Cloud Functionsのみ（サーバー側で処理済み画像を配置）
+      allow write: if false; // クライアントからの直接書き込み禁止
+    }
   }
 }

@@ -243,14 +243,12 @@ export class TagGenerationService extends BaseAIService {
 export interface CoachResult {
   advice: {
     refinedOverview: string;
-    storeBlurb140: string;
     headlineIdeas: string[];
-    valueBullets: string[];
+    goodPoints: string[];
   };
   questionnaire: Array<{
     field: "problem" | "background" | "scenes" | "users" | "differentiation" | "extensions";
     question: string;
-    why: string;
   }>;
 }
 

@@ -14,14 +14,12 @@ export interface AITagResponse {
 export interface AICoachResponse {
   advice: {
     refinedOverview: string;
-    storeBlurb140: string;
     headlineIdeas: string[];
-    valueBullets: string[];
+    goodPoints: string[];
   };
   questionnaire: Array<{
     field: "problem" | "background" | "scenes" | "users" | "differentiation" | "extensions";
     question: string;
-    why: string;
   }>;
 }
 
@@ -60,9 +58,8 @@ export function parseCoachResponse(rawText: string): AICoachResponse {
   const parsed: AICoachResponse = {
     advice: {
       refinedOverview: "概要の改善案を生成できませんでした",
-      storeBlurb140: "140文字の紹介文を生成できませんでした",
-      headlineIdeas: ["ヘッドライン案1", "ヘッドライン案2", "ヘッドライン案3"],
-      valueBullets: ["便益案1", "便益案2", "便益案3"],
+      headlineIdeas: ["タイトル案1", "タイトル案2", "タイトル案3"],
+      goodPoints: ["便益ポイント1", "便益ポイント2", "便益ポイント3"],
     },
     questionnaire: [],
   };
@@ -77,19 +74,16 @@ export function parseCoachResponse(rawText: string): AICoachResponse {
         if (typeof result.advice.refinedOverview === 'string') {
           parsed.advice.refinedOverview = result.advice.refinedOverview;
         }
-        if (typeof result.advice.storeBlurb140 === 'string') {
-          parsed.advice.storeBlurb140 = result.advice.storeBlurb140;
-        }
         if (Array.isArray(result.advice.headlineIdeas)) {
           const headlines = sanitizeStringArray(result.advice.headlineIdeas);
           if (headlines.length >= 3) {
             parsed.advice.headlineIdeas = headlines.slice(0, 3);
           }
         }
-        if (Array.isArray(result.advice.valueBullets)) {
-          const bullets = sanitizeStringArray(result.advice.valueBullets);
-          if (bullets.length >= 3) {
-            parsed.advice.valueBullets = bullets.slice(0, 3);
+        if (Array.isArray(result.advice.goodPoints)) {
+          const points = sanitizeStringArray(result.advice.goodPoints);
+          if (points.length >= 3) {
+            parsed.advice.goodPoints = points.slice(0, 3);
           }
         }
       }
@@ -101,7 +95,6 @@ export function parseCoachResponse(rawText: string): AICoachResponse {
           .filter((item: Record<string, unknown>) => 
             typeof item.field === 'string' &&
             typeof item.question === 'string' &&
-            typeof item.why === 'string' &&
             ['problem', 'background', 'scenes', 'users', 'differentiation', 'extensions'].includes(item.field as string)
           )
           .slice(0, 5); // 最大5問

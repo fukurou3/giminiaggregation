@@ -41,44 +41,39 @@ async function loadImageCompression() {
 }
 
 async function removeExifInWorker(file: File): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const canvas = new OffscreenCanvas(1, 1);
+  try {
+    // Web Worker環境では createImageBitmap を使用
+    const imageBitmap = await createImageBitmap(file);
+    const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      reject(new Error('Canvas context not available in worker'));
-      return;
+      throw new Error('Canvas context not available in worker');
     }
 
-    img.onload = () => {
-      try {
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        
-        ctx.drawImage(img, 0, 0);
-        
-        canvas.convertToBlob({
-          type: file.type,
-          quality: 0.95
-        }).then(blob => {
-          if (blob) {
-            const cleanFile = new File([blob], file.name, { type: file.type });
-            resolve(cleanFile);
-          } else {
-            reject(new Error('Failed to create blob from canvas'));
-          }
-        }).catch(reject);
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    img.onerror = () => reject(new Error('Failed to load image for EXIF removal'));
+    // ImageBitmapをcanvasに描画（EXIF情報が除去される）
+    ctx.drawImage(imageBitmap, 0, 0);
     
-    const blob = new Blob([file], { type: file.type });
-    img.src = URL.createObjectURL(blob);
-  });
+    // Blobに変換
+    const blob = await canvas.convertToBlob({
+      type: file.type,
+      quality: 0.95
+    });
+    
+    if (!blob) {
+      throw new Error('Failed to create blob from canvas');
+    }
+    
+    // 新しいFileオブジェクトを作成（EXIF情報なし）
+    const cleanFile = new File([blob], file.name, { type: file.type });
+    
+    // ImageBitmapのクリーンアップ
+    imageBitmap.close();
+    
+    return cleanFile;
+  } catch (error) {
+    throw new Error(`EXIF removal failed: ${error}`);
+  }
 }
 
 async function processImageInWorker(
@@ -98,8 +93,9 @@ async function processImageInWorker(
     try {
       file = await removeExifInWorker(file);
     } catch (error) {
-      console.warn(`EXIF removal failed for ${fileName}:`, error);
-      // Continue with original file if EXIF removal fails
+      console.error(`EXIF removal failed for ${fileName}:`, error);
+      // セキュリティ強化: EXIF除去失敗時は即エラー（未サニタイズのアップロード禁止）
+      throw new Error(`画像のメタデータ除去に失敗しました: ${fileName}`);
     }
   }
 

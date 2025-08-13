@@ -81,14 +81,12 @@ const responseSchema = z.object({
   timestamp: z.string(),
   advice: z.object({
     refinedOverview: z.string(),
-    storeBlurb140: z.string(),
     headlineIdeas: z.array(z.string()).length(3),
-    valueBullets: z.array(z.string()).length(3),
+    goodPoints: z.array(z.string()).length(3),
   }),
   questionnaire: z.array(z.object({
     field: z.enum(["problem", "background", "scenes", "users", "differentiation", "extensions"]),
     question: z.string(),
-    why: z.string(),
   })).max(5),
 });
 

@@ -11,6 +11,7 @@ import { UserProfile } from "@/types/User";
 import { ProfileInfoSection } from "@/components/profile/ProfileInfoSection";
 import { ProfileTabsSection } from "@/components/profile/ProfileTabsSection";
 import { ProfileLoading, ProfileError } from "@/components/profile/ProfileStates";
+import { ProfileEditModal } from "@/components/ProfileEditModal";
 
 interface ProfileData {
   profile: UserProfile;
@@ -27,6 +28,7 @@ export default function UserProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   
   const isOwnProfile = user && profileData?.profile.uid === user.uid;
 
@@ -76,8 +78,6 @@ export default function UserProfilePage() {
         error={error}
         publicId={publicId}
         onGoHome={() => router.push("/")}
-        onGoToMyPage={() => router.push("/mypage")}
-        showMyPageButton={!!user}
       />
     );
   }
@@ -92,6 +92,8 @@ export default function UserProfilePage() {
           photoURL={profile.photoURL}
           displayName={profile.displayName}
           onBack={() => router.back()}
+          isOwnProfile={!!isOwnProfile}
+          onEditProfile={() => setShowEditModal(true)}
         />
 
         <ProfileTabsSection
@@ -99,8 +101,20 @@ export default function UserProfilePage() {
           isOwnProfile={!!isOwnProfile}
           isMobile={isMobile}
           layoutPhase={layoutPhase}
+          uid={profile.uid}
         />
       </div>
+      
+      {showEditModal && (
+        <ProfileEditModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={() => {
+            setShowEditModal(false);
+            fetchProfileData();
+          }}
+        />
+      )}
     </div>
   );
 }

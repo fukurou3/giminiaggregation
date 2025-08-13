@@ -7,6 +7,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { db, storage } from "@/lib/firebase";
 import { doc, updateDoc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { shouldMigrateImage } from '@/lib/utils/imageUrlHelpers';
 
 // Settings Components
 import { SettingsHeaderSection } from "@/components/profile/settings/SettingsHeaderSection";
@@ -21,6 +22,7 @@ export default function ProfileSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showMigrationSuggestion, setShowMigrationSuggestion] = useState(false);
   
   // フォームデータ
   const [formData, setFormData] = useState({
@@ -38,6 +40,7 @@ export default function ProfileSettingsPage() {
   
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
@@ -59,6 +62,11 @@ export default function ProfileSettingsPage() {
       
       if (userProfile.photoURL) {
         setPhotoPreview(userProfile.photoURL);
+        
+        // Check if migration suggestion should be shown
+        if (shouldMigrateImage(userProfile.photoURL) && !userProfile.photoURLMigrated) {
+          setShowMigrationSuggestion(true);
+        }
       }
       if (userProfile.coverImage) {
         setCoverPreview(userProfile.coverImage);
@@ -163,12 +171,21 @@ export default function ProfileSettingsPage() {
       let photoURL = userProfile?.photoURL;
       let coverImage = userProfile?.coverImage;
 
-      // プロフィール画像のアップロード
-      if (photoFile) {
+      console.log('Before processing:', { photoURL, coverImage, photoUrls, photoFile });
+
+      // プロフィール画像のアップロード (新しい統一パイプライン使用)
+      if (photoUrls.length > 0) {
+        photoURL = photoUrls[0]; // 新しいパイプラインからの URL
+        console.log('Using new pipeline URL:', photoURL);
+      } else if (photoFile) {
+        // フォールバック: 従来の直接アップロード (移行期間中)
         const photoRef = ref(storage, `users/${user.uid}/profile.jpg`);
         await uploadBytes(photoRef, photoFile);
         photoURL = await getDownloadURL(photoRef);
+        console.log('Using legacy upload URL:', photoURL);
       }
+      
+      console.log('After processing:', { photoURL, coverImage });
 
       // カバー画像のアップロード
       if (coverFile) {
@@ -177,24 +194,73 @@ export default function ProfileSettingsPage() {
         coverImage = await getDownloadURL(coverRef);
       }
 
-      // プロフィールデータの準備
-      const profileData = {
+      // プロフィールデータの準備 - 明示的にフィールドを構築
+      const profileData: any = {
         uid: user.uid,
-        ...formData,
-        photoURL,
-        coverImage,
         updatedAt: new Date(),
       };
+
+      // formDataから明示的に必要なフィールドのみ追加
+      const fieldsToInclude = [
+        'publicId', 'displayName', 'username', 'bio', 'location', 
+        'website', 'twitter', 'github', 'email', 'showEmail'
+      ];
+      
+      fieldsToInclude.forEach(field => {
+        const value = formData[field as keyof typeof formData];
+        if (value !== undefined && value !== null && value !== '') {
+          profileData[field] = value;
+        }
+      });
+
+      // 画像URLは undefined でない場合のみ追加
+      if (photoURL !== undefined && photoURL !== null && photoURL !== '') {
+        profileData.photoURL = photoURL;
+      }
+      if (coverImage !== undefined && coverImage !== null && coverImage !== '') {
+        profileData.coverImage = coverImage;
+      }
 
       // Firestoreに保存
       const profileRef = doc(db, "userProfiles", user.uid);
       const profileDoc = await getDoc(profileRef);
       
+      // profileDataは既に安全に構築されているが、念のため最終チェック
+      const cleanedProfileData = { ...profileData };
+      
+      console.log('Profile data before cleaning:', profileData);
+      console.log('Profile data after cleaning:', cleanedProfileData);
+      
+      // 最終安全チェック: undefinedが残っていないか確認
+      const hasUndefinedValues = Object.entries(cleanedProfileData).some(([key, value]) => {
+        if (value === undefined) {
+          console.error(`ERROR: Field '${key}' still has undefined value!`, value);
+          return true;
+        }
+        return false;
+      });
+      
+      if (hasUndefinedValues) {
+        throw new Error('Profile data contains undefined values after cleaning');
+      }
+      
+      // 絶対的な安全措置: photoURLが存在してundefinedの場合は削除
+      if ('photoURL' in cleanedProfileData && cleanedProfileData.photoURL === undefined) {
+        console.warn('Removing undefined photoURL from cleaned data');
+        delete cleanedProfileData.photoURL;
+      }
+      if ('coverImage' in cleanedProfileData && cleanedProfileData.coverImage === undefined) {
+        console.warn('Removing undefined coverImage from cleaned data');
+        delete cleanedProfileData.coverImage;
+      }
+      
+      console.log('Final data being sent to Firestore:', cleanedProfileData);
+      
       if (profileDoc.exists()) {
-        await updateDoc(profileRef, profileData);
+        await updateDoc(profileRef, cleanedProfileData);
       } else {
         await setDoc(profileRef, {
-          ...profileData,
+          ...cleanedProfileData,
           createdAt: new Date(),
         });
       }
@@ -242,12 +308,56 @@ export default function ProfileSettingsPage() {
           success={success}
         />
 
+        {/* マイグレーション提案バナー */}
+        {showMigrationSuggestion && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-5 h-5 text-blue-600 mt-0.5">
+                ℹ️
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-blue-900 mb-1">
+                  プロフィール画像の最適化が利用可能
+                </h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  新しい画像処理システムにより、プロフィール画像をより高速で安全に表示できます。新しい画像をアップロードすることで自動的に最適化されます。
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMigrationSuggestion(false)}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    後で
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMigrationSuggestion(false)}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    非表示
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMigrationSuggestion(false)}
+                className="flex-shrink-0 text-blue-400 hover:text-blue-600"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <ImageUploadSection
             photoPreview={photoPreview}
             coverPreview={coverPreview}
-            onPhotoChange={handlePhotoChange}
+            photoUrls={photoUrls}
+            onPhotoUrlsChange={setPhotoUrls}
             onCoverChange={handleCoverChange}
+            disabled={saving}
           />
 
           <ProfileFormSection

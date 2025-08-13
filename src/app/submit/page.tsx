@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUrlValidation, getValidationStyle } from "@/hooks/useUrlValidation";
 import { useSubmitForm } from "@/hooks/useSubmitForm";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,14 +13,14 @@ import { AutosizeTextarea } from "@/components/AutosizeTextarea";
 import { ValidationStatus } from "@/components/ValidationStatus";
 import { ImageUploader } from "@/components/ui/ImageUploader";
 import { cx } from "@/lib/cx";
+import { Plus, X } from "lucide-react";
 
 
 
 interface CoachAdvice {
   refinedOverview: string;
-  storeBlurb140: string;
   headlineIdeas: string[];
-  valueBullets: string[];
+  goodPoints: string[];
 }
 
 interface CoachResponse {
@@ -30,13 +30,69 @@ interface CoachResponse {
   questionnaire: Array<{
     field: "problem" | "background" | "scenes" | "users" | "differentiation" | "extensions";
     question: string;
-    why: string;
   }>;
 }
 
 export default function SubmitPage() {
   const { user } = useAuth();
   const [coachAdvice, setCoachAdvice] = useState<CoachResponse | null>(null);
+  const [showCoachPrompt, setShowCoachPrompt] = useState(false);
+  const [isDescriptionFocused, setIsDescriptionFocused] = useState(false);
+  const [hasShownCoachPrompt, setHasShownCoachPrompt] = useState(false);
+  
+  // コンセプト詳細の選択状態管理（複数選択対応）
+  const [selectedSections, setSelectedSections] = useState<Set<string>>(new Set());
+  
+  // カスタムセクション管理
+  const [customSections, setCustomSections] = useState<{id: string, title: string}[]>([]);
+  const [customSectionData, setCustomSectionData] = useState<{[key: string]: string}>({});
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+
+  const toggleSection = (section: string) => {
+    setSelectedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(section)) {
+        newSet.delete(section);
+      } else {
+        newSet.add(section);
+      }
+      return newSet;
+    });
+  };
+
+  const addCustomSection = () => {
+    if (newSectionTitle.trim()) {
+      const newSection = {
+        id: `custom_${Date.now()}`,
+        title: newSectionTitle.trim()
+      };
+      setCustomSections(prev => [...prev, newSection]);
+      setNewSectionTitle('');
+      setShowAddForm(false);
+    }
+  };
+
+  const removeCustomSection = (sectionId: string) => {
+    setCustomSections(prev => prev.filter(section => section.id !== sectionId));
+    setSelectedSections(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(sectionId);
+      return newSet;
+    });
+    setCustomSectionData(prev => {
+      const newData = { ...prev };
+      delete newData[sectionId];
+      return newData;
+    });
+  };
+
+  const handleCustomSectionChange = (sectionId: string, value: string) => {
+    setCustomSectionData(prev => ({
+      ...prev,
+      [sectionId]: value
+    }));
+  };
   
   const {
     formData,
@@ -51,6 +107,22 @@ export default function SubmitPage() {
   } = useSubmitForm();
   
   const urlValidation = useUrlValidation(formData.url || "");
+  
+  // AIアドバイスプロンプト表示の条件管理
+  useEffect(() => {
+    const hasBasicInfo = formData.title?.trim() && formData.category?.trim() && formData.description?.trim();
+    const hasMinimumDescription = formData.description?.trim().length >= 50;
+    const hasNotUsedCoach = !coachAdvice;
+    const isNotTyping = !isDescriptionFocused;
+    const hasNotShownBefore = !hasShownCoachPrompt;
+    
+    if (hasBasicInfo && hasMinimumDescription && hasNotUsedCoach && isNotTyping && hasNotShownBefore) {
+      setShowCoachPrompt(true);
+      setHasShownCoachPrompt(true);
+    } else if (!hasBasicInfo || !hasMinimumDescription || !hasNotUsedCoach || !hasNotShownBefore) {
+      setShowCoachPrompt(false);
+    }
+  }, [formData.title, formData.category, formData.description, coachAdvice, isDescriptionFocused, hasShownCoachPrompt]);
   
   // Extract complex conditional logic to constants  
   const submitButtonText = submitSuccess ? "✅ 投稿完了！リダイレクト中..." :
@@ -79,9 +151,9 @@ export default function SubmitPage() {
           <h1 className="text-2xl font-bold text-foreground mb-6">作品を投稿</h1>
           
           <form onSubmit={(e) => handleSubmit(e, urlValidation)} className="space-y-8">
-            {/* ① 基本情報（必須） */}
+            {/* ① 基本情報 */}
             <div className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">① 基本情報（必須）</h2>
+              <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">① 基本情報</h2>
               
               {/* URL */}
               <Field
@@ -132,11 +204,11 @@ export default function SubmitPage() {
                   className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
                 />
                 
-                {/* AIアドバイス: ヘッドライン案 */}
+                {/* AIアドバイス: タイトル案 */}
                 {coachAdvice && coachAdvice.advice.headlineIdeas.length > 0 && (
                   <div className="px-3 py-2">
                     <div className="flex items-start justify-between mb-1">
-                      <p className="text-xs font-medium text-red-600">💡 AIからのヘッドライン案</p>
+                      <p className="text-xs font-medium text-red-600">💡 AIからのタイトル案</p>
                       <button
                         type="button"
                         onClick={() => {
@@ -179,6 +251,7 @@ export default function SubmitPage() {
                 onImagesChange={(images) => handleInputChange("images", images)}
                 maxImages={5}
                 disabled={isSubmitting}
+                mode="post"
               />
               {errors.images && (
                 <p className="text-error text-sm mt-1">
@@ -186,112 +259,6 @@ export default function SubmitPage() {
                 </p>
               )}
             </div>
-
-                        {/* 作品概要 */}
-            <Field
-              id="submit-description"
-              label="作品概要"
-              required
-              error={errors.description}
-            >
-              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
-                <AutosizeTextarea
-                  id="submit-description"
-                  name="description"
-                  value={formData.description || ""}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  placeholder=""
-                  rows={4}
-                  minHeight="96px"
-                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
-                />
-                
-                {/* AIアドバイス: 推奨概要文 */}
-                {coachAdvice && coachAdvice.advice.refinedOverview && (
-                  <div className="px-3 py-2">
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="text-xs font-medium text-red-600">💡 AIからの推奨概要文</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCoachAdvice({
-                            ...coachAdvice,
-                            advice: {
-                              ...coachAdvice.advice,
-                              refinedOverview: ""
-                            }
-                          });
-                        }}
-                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
-                        title="削除"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <p className="text-xs">{coachAdvice.advice.refinedOverview}</p>
-                  </div>
-                )}
-
-                {/* AIアドバイス: 一覧向け紹介文 */}
-                {coachAdvice && coachAdvice.advice.storeBlurb140 && (
-                  <div className="px-3 py-2">
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="text-xs font-medium text-red-600">💡 AIからの一覧向け紹介文（140文字）</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCoachAdvice({
-                            ...coachAdvice,
-                            advice: {
-                              ...coachAdvice.advice,
-                              storeBlurb140: ""
-                            }
-                          });
-                        }}
-                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
-                        title="削除"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <p className="text-xs">{coachAdvice.advice.storeBlurb140}</p>
-                  </div>
-                )}
-
-                {/* AIアドバイス: 便益ポイント */}
-                {coachAdvice && coachAdvice.advice.valueBullets.length > 0 && (
-                  <div className="px-3 py-2">
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="text-xs font-medium text-red-600">💡 AIからの便益ポイント</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCoachAdvice({
-                            ...coachAdvice,
-                            advice: {
-                              ...coachAdvice.advice,
-                              valueBullets: []
-                            }
-                          });
-                        }}
-                        className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
-                        title="削除"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <ul className="space-y-0.5">
-                      {coachAdvice.advice.valueBullets.map((bullet, index) => (
-                        <li key={index} className="flex items-start gap-1">
-                          <span className="text-gray-600 text-xs">•</span>
-                          <span className="flex-1 text-xs">{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </Field>
 
             {/* カテゴリー */}
             <Field
@@ -374,46 +341,48 @@ export default function SubmitPage() {
                 </p>
               )}
             </div>
+
             </div>
 
             {/* ② コンセプト詳細 */}
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">② コンセプト詳細</h2>
-
-            {/* 課題・背景 */}
-            <Field
-              id="submit-problem-background"
-              label="課題・背景"
-              help="何を解決したかったか、どうして作ろうと思ったか"
-              error={errors.problemBackground}
-            >
-              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
-                <AutosizeTextarea
-                  id="submit-problem-background"
-                  name="problemBackground"
-                  value={formData.problemBackground || ""}
-                  onChange={(e) => handleInputChange("problemBackground", e.target.value)}
-                  placeholder=""
-                  rows={3}
-                  minHeight="72px"
-                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
-                />
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">② 説明文</h2>
               
-                
-                {/* AIアドバイス: 課題・背景に関する質問 */}
-                {coachAdvice && coachAdvice.questionnaire
-                  .filter(q => q.field === "problem" || q.field === "background")
-                  .map((q, index) => (
-                    <div key={index} className="px-3 py-2">
+              {/* 作品概要 */}
+              <Field
+                id="submit-description"
+                label="作品概要"
+                required
+                error={errors.description}
+              >
+                <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                  <AutosizeTextarea
+                    id="submit-description"
+                    name="description"
+                    value={formData.description || ""}
+                    onChange={(e) => handleInputChange("description", e.target.value)}
+                    onFocus={() => setIsDescriptionFocused(true)}
+                    onBlur={() => setIsDescriptionFocused(false)}
+                    placeholder=""
+                    rows={4}
+                    minHeight="96px"
+                    className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                  />
+                  
+                  {/* AIアドバイス: 概要文提案 */}
+                  {coachAdvice && coachAdvice.advice.refinedOverview && (
+                    <div className="px-3 py-2">
                       <div className="flex items-start justify-between mb-1">
-                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
+                        <p className="text-xs font-medium text-red-600">💡 AIからの概要文提案</p>
                         <button
                           type="button"
                           onClick={() => {
-                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
                             setCoachAdvice({
                               ...coachAdvice,
-                              questionnaire: updatedQuestionnaire
+                              advice: {
+                                ...coachAdvice.advice,
+                                refinedOverview: ""
+                              }
                             });
                           }}
                           className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
@@ -422,48 +391,24 @@ export default function SubmitPage() {
                           ×
                         </button>
                       </div>
-                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
-                      <div className="text-xs text-gray-600">{q.why}</div>
+                      <p className="text-sm whitespace-pre-wrap">{coachAdvice.advice.refinedOverview}</p>
                     </div>
-                  ))
-                }
-              </div>
-            </Field>
+                  )}
 
-            {/* 想定シーン・利用者 */}
-            <Field
-              id="submit-use-case"
-              label="想定シーン・利用者"
-              help="誰がどんな場面で使うと便利か"
-              error={errors.useCase}
-            >
-              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
-                <AutosizeTextarea
-                  id="submit-use-case"
-                  name="useCase"
-                  value={formData.useCase || ""}
-                  onChange={(e) => handleInputChange("useCase", e.target.value)}
-                  placeholder=""
-                  rows={3}
-                  minHeight="72px"
-                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
-                />
-              
-                
-                {/* AIアドバイス: 想定シーン・利用者に関する質問 */}
-                {coachAdvice && coachAdvice.questionnaire
-                  .filter(q => q.field === "scenes" || q.field === "users")
-                  .map((q, index) => (
-                    <div key={index} className="px-3 py-2">
+                  {/* AIアドバイス: Goodポイント */}
+                  {coachAdvice && coachAdvice.advice.goodPoints && coachAdvice.advice.goodPoints.length > 0 && (
+                    <div className="px-3 py-2">
                       <div className="flex items-start justify-between mb-1">
-                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
+                        <p className="text-xs font-medium text-red-600">💡 Goodポイント</p>
                         <button
                           type="button"
                           onClick={() => {
-                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
                             setCoachAdvice({
                               ...coachAdvice,
-                              questionnaire: updatedQuestionnaire
+                              advice: {
+                                ...coachAdvice.advice,
+                                goodPoints: []
+                              }
                             });
                           }}
                           className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
@@ -472,115 +417,332 @@ export default function SubmitPage() {
                           ×
                         </button>
                       </div>
-                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
-                      <div className="text-xs text-gray-600">{q.why}</div>
+                      <ul className="space-y-0.5">
+                        {coachAdvice.advice.goodPoints.map((point, index) => (
+                          <li key={index} className="flex items-start gap-1">
+                            <span className="text-gray-600 text-xs">•</span>
+                            <span className="flex-1 text-xs">{point}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  ))
-                }
-              </div>
-            </Field>
+                  )}
+                </div>
+              </Field>
 
-            {/* 差別化ポイント */}
-            <Field
-              id="submit-unique-points"
-              label="差別化ポイント"
-              help="他と違う工夫・独自性（UI/UX、使い方の発想、組み合わせ方など）"
-              error={errors.uniquePoints}
-            >
-              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
-                <AutosizeTextarea
-                  id="submit-unique-points"
-                  name="uniquePoints"
-                  value={formData.uniquePoints || ""}
-                  onChange={(e) => handleInputChange("uniquePoints", e.target.value)}
-                  placeholder=""
-                  rows={3}
-                  minHeight="72px"
-                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
-                />
-              
-                
-                {/* AIアドバイス: 差別化ポイントに関する質問 */}
-                {coachAdvice && coachAdvice.questionnaire
-                  .filter(q => q.field === "differentiation")
-                  .map((q, index) => (
-                    <div key={index} className="px-3 py-2">
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
-                            setCoachAdvice({
-                              ...coachAdvice,
-                              questionnaire: updatedQuestionnaire
-                            });
-                          }}
-                          className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
-                          title="削除"
-                        >
-                          ×
-                        </button>
+              <p className="text-sm text-muted-foreground">
+                作品をより詳しく紹介したい項目があれば、下記から選択してください。
+              </p>
+
+              {/* 選択ボタン群（常に表示、選択されたボタンは状態表示） */}
+              <div className="flex flex-wrap gap-3">
+                {/* 固定の4つのボタン */}
+                <button
+                  type="button"
+                  onClick={() => toggleSection('problemBackground')}
+                  className={`px-4 py-2 border rounded-md transition-colors font-medium ${
+                    selectedSections.has('problemBackground')
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border hover:bg-muted/50 text-foreground'
+                  }`}
+                >
+                  課題・背景
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('useCase')}
+                  className={`px-4 py-2 border rounded-md transition-colors font-medium ${
+                    selectedSections.has('useCase')
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border hover:bg-muted/50 text-foreground'
+                  }`}
+                >
+                  想定シーン・利用者
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('uniquePoints')}
+                  className={`px-4 py-2 border rounded-md transition-colors font-medium ${
+                    selectedSections.has('uniquePoints')
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border hover:bg-muted/50 text-foreground'
+                  }`}
+                >
+                  差別化ポイント
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSection('futureIdeas')}
+                  className={`px-4 py-2 border rounded-md transition-colors font-medium ${
+                    selectedSections.has('futureIdeas')
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border hover:bg-muted/50 text-foreground'
+                  }`}
+                >
+                  応用・発展アイデア
+                </button>
+
+                {/* カスタムセクションのボタン */}
+                {customSections.map((section) => (
+                  <div key={section.id} className="relative group">
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(section.id)}
+                      className={`px-4 py-2 border rounded-md transition-colors font-medium ${
+                        selectedSections.has(section.id)
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/30 border-border hover:bg-muted/50 text-foreground'
+                      }`}
+                    >
+                      {section.title}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeCustomSection(section.id)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                      title="削除"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+
+                {/* 追加ボタン */}
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                  className="px-4 py-2 border border-dashed border-border rounded-md hover:bg-muted/50 transition-colors font-medium text-muted-foreground hover:text-foreground flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  項目を追加
+                </button>
+              </div>
+
+              {/* カスタムセクション追加フォーム */}
+              {showAddForm && (
+                <div className="mt-4 p-4 border border-border rounded-md bg-muted/20">
+                  <h4 className="font-medium text-foreground mb-3">新しい項目を追加</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="new-section-title" className="block text-sm font-medium text-foreground mb-1">
+                        項目名 <span className="text-error">*</span>
+                      </label>
+                      <input
+                        id="new-section-title"
+                        type="text"
+                        value={newSectionTitle}
+                        onChange={(e) => setNewSectionTitle(e.target.value)}
+                        placeholder="例：技術的課題、使用技術、開発期間など"
+                        className="w-full px-3 py-2 bg-input border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newSectionTitle.trim()) {
+                            addCustomSection();
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={addCustomSection}
+                        disabled={!newSectionTitle.trim()}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        追加
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setNewSectionTitle('');
+                        }}
+                        className="px-4 py-2 bg-muted text-muted-foreground rounded-md hover:bg-muted/80 transition-colors"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 選択された項目の入力フォーム（複数表示対応） */}
+              {selectedSections.size > 0 && (
+                <div className="space-y-6 mt-6">
+                  {selectedSections.has('problemBackground') && (
+                    <Field
+                      id="submit-problem-background"
+                      label="課題・背景"
+                      help="何を解決したかったか、どうして作ろうと思ったか"
+                      error={errors.problemBackground}
+                    >
+                      <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                        <AutosizeTextarea
+                          id="submit-problem-background"
+                          name="problemBackground"
+                          value={formData.problemBackground || ""}
+                          onChange={(e) => handleInputChange("problemBackground", e.target.value)}
+                          placeholder="どのような課題を解決したかったか、作ろうと思ったきっかけなどを記入してください"
+                          rows={3}
+                          minHeight="72px"
+                          className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                        />
                       </div>
-                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
-                      <div className="text-xs text-gray-600">{q.why}</div>
-                    </div>
-                  ))
-                }
-              </div>
-            </Field>
+                    </Field>
+                  )}
 
-            {/* 応用・発展アイデア */}
-            <Field
-              id="submit-future-ideas"
-              label="応用・発展アイデア"
-              help="今後の改良案や応用の方向性"
-              error={errors.futureIdeas}
-            >
-              <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
-                <AutosizeTextarea
-                  id="submit-future-ideas"
-                  name="futureIdeas"
-                  value={formData.futureIdeas || ""}
-                  onChange={(e) => handleInputChange("futureIdeas", e.target.value)}
-                  placeholder=""
-                  rows={3}
-                  minHeight="72px"
-                  className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
-                />
-              
-                
-                {/* AIアドバイス: 応用・発展アイデアに関する質問 */}
-                {coachAdvice && coachAdvice.questionnaire
-                  .filter(q => q.field === "extensions")
-                  .map((q, index) => (
-                    <div key={index} className="px-3 py-2">
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="font-medium text-red-600 text-xs">❓ AIからの質問</div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
-                            setCoachAdvice({
-                              ...coachAdvice,
-                              questionnaire: updatedQuestionnaire
-                            });
-                          }}
-                          className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2 text-sm"
-                          title="削除"
-                        >
-                          ×
-                        </button>
+                  {selectedSections.has('useCase') && (
+                    <Field
+                      id="submit-use-case"
+                      label="想定シーン・利用者"
+                      help="誰がどんな場面で使うと便利か"
+                      error={errors.useCase}
+                    >
+                      <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                        <AutosizeTextarea
+                          id="submit-use-case"
+                          name="useCase"
+                          value={formData.useCase || ""}
+                          onChange={(e) => handleInputChange("useCase", e.target.value)}
+                          placeholder="どのような人がどんな場面で使うと便利かを記入してください"
+                          rows={3}
+                          minHeight="72px"
+                          className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                        />
                       </div>
-                      <div className="font-medium mb-0.5 text-xs">{q.question}</div>
-                      <div className="text-xs text-gray-600">{q.why}</div>
-                    </div>
-                  ))
-                }
-              </div>
-            </Field>
+                    </Field>
+                  )}
 
+                  {selectedSections.has('uniquePoints') && (
+                    <Field
+                      id="submit-unique-points"
+                      label="差別化ポイント"
+                      help="他と違う工夫・独自性（UI/UX、使い方の発想、組み合わせ方など）"
+                      error={errors.uniquePoints}
+                    >
+                      <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                        <AutosizeTextarea
+                          id="submit-unique-points"
+                          name="uniquePoints"
+                          value={formData.uniquePoints || ""}
+                          onChange={(e) => handleInputChange("uniquePoints", e.target.value)}
+                          placeholder="他の作品と異なる工夫や独自性について記入してください"
+                          rows={3}
+                          minHeight="72px"
+                          className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                        />
+                      </div>
+                    </Field>
+                  )}
+
+                  {selectedSections.has('futureIdeas') && (
+                    <Field
+                      id="submit-future-ideas"
+                      label="応用・発展アイデア"
+                      help="今後の改良案や応用の方向性"
+                      error={errors.futureIdeas}
+                    >
+                      <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                        <AutosizeTextarea
+                          id="submit-future-ideas"
+                          name="futureIdeas"
+                          value={formData.futureIdeas || ""}
+                          onChange={(e) => handleInputChange("futureIdeas", e.target.value)}
+                          placeholder="今後の改良案や応用の方向性について記入してください"
+                          rows={3}
+                          minHeight="72px"
+                          className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                        />
+                      </div>
+                    </Field>
+                  )}
+
+                  {/* カスタムセクションのフォーム */}
+                  {customSections.map((section) => (
+                    selectedSections.has(section.id) && (
+                      <Field
+                        key={section.id}
+                        id={`submit-custom-${section.id}`}
+                        label={section.title}
+                      >
+                        <div className="w-full bg-input border border-black rounded-md focus-within:ring-2 focus-within:ring-ring">
+                          <AutosizeTextarea
+                            id={`submit-custom-${section.id}`}
+                            name={`custom-${section.id}`}
+                            value={customSectionData[section.id] || ""}
+                            onChange={(e) => handleCustomSectionChange(section.id, e.target.value)}
+                            placeholder={`${section.title}について記入してください`}
+                            rows={3}
+                            minHeight="72px"
+                            className="w-full px-3 py-2 bg-transparent border-none outline-none text-input-foreground"
+                          />
+                        </div>
+                      </Field>
+                    )
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* AIからの質問（統一表示エリア） */}
+            {coachAdvice && coachAdvice.questionnaire && coachAdvice.questionnaire.length > 0 && (
+              <div className="bg-background border border-border rounded-lg shadow-md p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-bold text-foreground">❓ AIからの質問</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoachAdvice({
+                        ...coachAdvice,
+                        questionnaire: []
+                      });
+                    }}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                    title="すべて削除"
+                  >
+                    すべて削除
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  作品をより魅力的に伝えるためのAIからの質問です。回答は任意ですが、答えることで作品の価値がより明確になります。
+                </p>
+                <div className="space-y-3">
+                  {coachAdvice.questionnaire.map((q, index) => (
+                    <div key={index} className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                            質問 {index + 1}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {q.field === 'problem' ? '課題' :
+                             q.field === 'background' ? '背景' :
+                             q.field === 'scenes' ? '想定シーン' :
+                             q.field === 'users' ? '利用者' :
+                             q.field === 'differentiation' ? '差別化' :
+                             q.field === 'extensions' ? '応用' : q.field}
+                          </span>
+                        </div>
+                        <div className="font-medium text-foreground">{q.question}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedQuestionnaire = coachAdvice.questionnaire.filter((_, i) => i !== index);
+                          setCoachAdvice({
+                            ...coachAdvice,
+                            questionnaire: updatedQuestionnaire
+                          });
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm ml-3"
+                        title="この質問を削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 運営取材の受け入れ */}
             <div>
@@ -638,6 +800,49 @@ export default function SubmitPage() {
           appUrl={formData.url}
           onAdviceGenerated={setCoachAdvice}
         />
+        
+        {/* AIアドバイス促進オーバーレイ */}
+        {showCoachPrompt && (
+          <div className="fixed inset-0 z-40 pointer-events-none">
+            {/* 薄暗いオーバーレイ（右下のボタン以外） */}
+            <div 
+              className="absolute inset-0 bg-black/30 pointer-events-auto"
+              onClick={() => setShowCoachPrompt(false)}
+            />
+            
+            {/* プロンプトメッセージ */}
+            <div className="absolute bottom-32 right-6 bg-white rounded-lg shadow-lg p-4 max-w-sm pointer-events-auto border-2 border-blue-200">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 text-sm">🤖</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 mb-1">AIアドバイスを試してみませんか？</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    作品の魅力をより効果的に伝えるアドバイスを生成できます。
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCoachPrompt(false)}
+                      className="text-xs px-3 py-1 text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      後で
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCoachPrompt(false)}
+                  className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+              
+              {/* 矢印 */}
+              <div className="absolute bottom-[-8px] right-8 w-4 h-4 bg-white border-r-2 border-b-2 border-blue-200 transform rotate-45"></div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

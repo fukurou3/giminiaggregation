@@ -26,14 +26,12 @@ interface CoachResponse {
   timestamp: string;
   advice: {
     refinedOverview: string;
-    storeBlurb140: string;
     headlineIdeas: string[];
-    valueBullets: string[];
+    goodPoints: string[];
   };
   questionnaire: Array<{
     field: "problem" | "background" | "scenes" | "users" | "differentiation" | "extensions";
     question: string;
-    why: string;
   }>;
   retryAfter?: number;
 }
@@ -224,7 +222,7 @@ export function FloatingCoachButton(props: FloatingCoachButtonProps) {
         return {
           icon: <MessageSquare className="h-5 w-5" />,
           text: "AIアドバイス",
-          className: "bg-muted/50 text-muted-foreground opacity-50 border-muted cursor-not-allowed",
+          className: "bg-gray-200 text-gray-400 opacity-50 border-gray-300 cursor-not-allowed",
           disabled: true
         };
       } else {
@@ -241,7 +239,7 @@ export function FloatingCoachButton(props: FloatingCoachButtonProps) {
     return {
       icon: <MessageSquare className="h-5 w-5" />,
       text: "AIアドバイス",
-      className: "bg-accent text-accent-foreground hover:bg-accent/90 border-accent-foreground/20",
+      className: "bg-white text-black hover:bg-gray-50 border-gray-300",
       disabled: false
     };
   };

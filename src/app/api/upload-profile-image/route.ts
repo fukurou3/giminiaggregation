@@ -34,6 +34,9 @@ const bucket = storage.bucket(env.GOOGLE_CLOUD_STORAGE_BUCKET!);
 
 export async function POST(request: NextRequest) {
   try {
+    // DEPRECATION WARNING - この API は非推奨です
+    console.warn('[DEPRECATED] upload-profile-image API is deprecated. Use unified image pipeline with avatar mode instead.');
+    
     // レート制限チェック
     const ip = getClientIP(request);
     if (!(await checkRateLimit(ip))) {
@@ -99,9 +102,12 @@ export async function POST(request: NextRequest) {
       expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7日後
     });
 
+    // レスポンスに非推奨警告を含める
     return createSuccessResponse({
       url: signedUrl,
       fileName,
+      deprecated: true,
+      migrationNote: 'この API は非推奨です。新しい統合画像パイプライン（avatar mode）をご利用ください。'
     });
   } catch (error) {
     logError(error, { action: 'upload-profile-image' });

@@ -2,6 +2,12 @@ import imageCompression from 'browser-image-compression';
 import { removeExifData } from './exifRemover';
 import type { ImageValidationResult } from '@/types/Upload';
 
+// 定数定義 (サーバーサイドと同期)
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (フロントエンド制限)
+const MAX_PIXELS = 25 * 1024 * 1024; // 25MP (DoS対策)
+const MAX_FRAMES = 300; // フレーム数上限
+const SUPPORTED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
+
 export interface ImageProcessingOptions {
   maxSizeMB?: number;
   maxWidthOrHeight?: number;
@@ -29,8 +35,9 @@ export const processImage = async (
     try {
       processedFile = await removeExifData(processedFile, { quality: 0.95 });
     } catch (error) {
-      console.warn(`EXIF removal failed for ${file.name}:`, error);
-      // EXIFの除去に失敗した場合も処理を続行
+      console.error(`EXIF removal failed for ${file.name}:`, error);
+      // セキュリティ強化: EXIF除去失敗時は即エラー（未サニタイズのアップロード禁止）
+      throw new Error(`画像のメタデータ除去に失敗しました: ${file.name}`);
     }
   }
 
@@ -147,8 +154,7 @@ export const cropToAspectRatio = async (
 };
 
 export const validateImageFile = (file: File): boolean => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  return allowedTypes.includes(file.type);
+  return SUPPORTED_FORMATS.includes(file.type);
 };
 
 export const validateImageFileDetailed = (file: File): ImageValidationResult => {
@@ -156,13 +162,12 @@ export const validateImageFileDetailed = (file: File): ImageValidationResult => 
   const warnings: string[] = [];
 
   // ファイル形式チェック
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.type.toLowerCase())) {
+  if (!SUPPORTED_FORMATS.includes(file.type.toLowerCase())) {
     errors.push(`サポートされていないファイル形式です: ${file.type}`);
   }
 
-  // ファイルサイズチェック（個別制限: 10MB）
-  const maxFileSize = 10 * 1024 * 1024;
+  // ファイルサイズチェック
+  const maxFileSize = MAX_FILE_SIZE;
   if (file.size > maxFileSize) {
     errors.push(`ファイルサイズが大きすぎます: ${formatFileSize(file.size)} (最大: ${formatFileSize(maxFileSize)})`);
   }

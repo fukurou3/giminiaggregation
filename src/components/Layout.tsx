@@ -1,10 +1,9 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { Navbar } from './Navbar';
 import Footer from './Footer';
 import { ProfileSetup } from './ProfileSetup';
-import { ProfileEditModal } from './ProfileEditModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
@@ -15,7 +14,6 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { loading } = useAuth();
   const { userProfile, isProfileLoading, needsProfileSetup, refreshProfile } = useUserProfile();
-  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
 
   if (loading || isProfileLoading) {
     return (
@@ -36,17 +34,11 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar onProfileEdit={() => setShowProfileEditModal(true)} />
+      <Navbar />
       <main className="flex-1">
         {children}
       </main>
       <Footer />
-      
-      {/* プロフィール編集モーダル */}
-      <ProfileEditModal 
-        isOpen={showProfileEditModal} 
-        onClose={() => setShowProfileEditModal(false)} 
-      />
     </div>
   );
 }

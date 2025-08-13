@@ -15,16 +15,12 @@ interface ProfileErrorProps {
   error?: string;
   publicId: string;
   onGoHome: () => void;
-  onGoToMyPage: () => void;
-  showMyPageButton: boolean;
 }
 
 export function ProfileError({ 
   error, 
   publicId, 
-  onGoHome, 
-  onGoToMyPage, 
-  showMyPageButton 
+  onGoHome
 }: ProfileErrorProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -42,14 +38,6 @@ export function ProfileError({
           >
             ホームに戻る
           </button>
-          {showMyPageButton && (
-            <button
-              onClick={onGoToMyPage}
-              className="w-full px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
-            >
-              マイページを見る
-            </button>
-          )}
         </div>
       </div>
     </div>
