@@ -10,11 +10,15 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { loginWithGoogle, logout } from '@/lib/auth';
 import { auth } from '@/lib/firebase';
 import { Settings } from 'lucide-react';
-import { getAvatarDisplayUrl } from '@/lib/utils/imageUrlHelpers';
+import { getAvatarDisplayUrl, convertToCdnUrl } from '@/lib/utils/imageUrlHelpers';
 
 export function Navbar() {
   const { isAuthenticated } = useAuth();
   const { userProfile } = useUserProfile();
+  
+  // デバッグ用ログ
+  console.log('Navbar userProfile:', userProfile);
+  console.log('photoURL:', userProfile?.photoURL);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -139,11 +143,12 @@ export function Navbar() {
                   {userProfile?.photoURL ? (
                     <div className="w-7 h-7 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
                       <Image
-                        src={getAvatarDisplayUrl(userProfile.photoURL, 'small') || userProfile.photoURL}
+                        src={getAvatarDisplayUrl(userProfile.photoURL, 'small') || convertToCdnUrl(userProfile.photoURL)}
                         alt={userProfile.username || 'User'}
                         width={28}
                         height={28}
                         className="object-cover w-full h-full"
+                        onError={() => console.error('Failed to load profile image:', userProfile.photoURL)}
                       />
                     </div>
                   ) : (

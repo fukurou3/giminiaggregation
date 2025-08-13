@@ -21,18 +21,26 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
     username: userProfile?.username || '',
   });
   const [profileImages, setProfileImages] = useState<string[]>([]);
+  
+  // Debug: Track profileImages state changes
+  useEffect(() => {
+    console.log('ProfileEditModal - profileImages state changed:', profileImages);
+  }, [profileImages]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   // モーダルが開かれたときにフォームをリセット
   useEffect(() => {
+    console.log('ProfileEditModal - Modal useEffect triggered:', { isOpen, userProfile });
     if (isOpen && userProfile) {
       setFormData({
         publicId: userProfile.publicId,
         username: userProfile.username,
       });
       // 既存のプロフィール画像があれば表示
-      setProfileImages(userProfile.photoURL ? [userProfile.photoURL] : []);
+      const initialImages = userProfile.photoURL ? [userProfile.photoURL] : [];
+      console.log('ProfileEditModal - Modal opened, setting initial images:', initialImages);
+      setProfileImages(initialImages);
       setError('');
     }
   }, [isOpen, userProfile]);
@@ -86,6 +94,11 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
     setError('');
 
     try {
+      console.log('ProfileEditModal - Before update:');
+      console.log('- profileImages:', profileImages);
+      console.log('- profileImages.length:', profileImages.length);
+      console.log('- userProfile.photoURL:', userProfile.photoURL);
+      
       // 新しい画像パイプライン用のユーザープロフィール更新
       // profileImagesから新しい画像URLを取得
       const updateData = {
@@ -144,7 +157,10 @@ export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
             </label>
             <ImageUploader
               images={profileImages}
-              onImagesChange={setProfileImages}
+              onImagesChange={(urls) => {
+                console.log('ProfileEditModal - onImagesChange callback received URLs:', urls);
+                setProfileImages(urls);
+              }}
               maxImages={1}
               disabled={isSubmitting}
               mode="avatar"

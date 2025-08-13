@@ -45,7 +45,7 @@ export function analyzeImageUrl(url: string): ImageUrlInfo {
 }
 
 /**
- * Convert GCS URL to CDN URL
+ * Convert GCS URL to Firebase Storage HTTPS URL
  */
 export function convertToCdnUrl(gcsUrl: string): string {
   // If already a CDN URL, return as-is
@@ -53,13 +53,12 @@ export function convertToCdnUrl(gcsUrl: string): string {
     return gcsUrl;
   }
   
-  // Convert gs://bucket/public/path to CDN URL
-  // This would be configured based on your CDN setup
+  // Convert gs://bucket/public/path to Firebase Storage HTTPS URL
   const bucketMatch = gcsUrl.match(/^gs:\/\/([^\/]+)\/(.+)$/);
   if (bucketMatch) {
     const [, bucket, path] = bucketMatch;
-    // Example CDN transformation - adjust based on your CDN configuration
-    return `https://cdn.yourdomain.com/${path}`;
+    // Convert to Firebase Storage public URL
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(path)}?alt=media`;
   }
   
   return gcsUrl;
@@ -74,20 +73,22 @@ export function getOptimizedAvatarUrl(
 ): string | undefined {
   if (!url) return undefined;
   
-  const urlInfo = analyzeImageUrl(url);
+  // Ensure we have HTTPS URL first
+  const httpsUrl = convertToCdnUrl(url);
+  const urlInfo = analyzeImageUrl(httpsUrl);
   
   // For new CDN URLs, we can request specific sizes
-  if (!urlInfo.isLegacy && url.includes('/public/avatars/')) {
+  if (!urlInfo.isLegacy && httpsUrl.includes('/public/avatars/')) {
     // Extract hash and construct size-specific URL
-    const hashMatch = url.match(/\/([a-f0-9]+)(_\d+)?\.webp$/);
+    const hashMatch = httpsUrl.match(/\/([a-f0-9]+)(_\d+)?\.webp$/);
     if (hashMatch) {
       const hash = hashMatch[1];
-      return url.replace(/\/[a-f0-9]+(_\d+)?\.webp$/, `/${hash}_${size}.webp`);
+      return httpsUrl.replace(/\/[a-f0-9]+(_\d+)?\.webp$/, `/${hash}_${size}.webp`);
     }
   }
   
-  // For legacy URLs, return as-is
-  return url;
+  // For legacy URLs or if size optimization fails, return converted HTTPS URL
+  return httpsUrl;
 }
 
 /**
@@ -108,11 +109,14 @@ export function getAvatarDisplayUrl(
 ): string | undefined {
   if (!url) return undefined;
   
+  // First convert gs:// URLs to HTTPS URLs
+  const httpsUrl = convertToCdnUrl(url);
+  
   const sizeMap = {
     small: 256,
     medium: 256,
     large: 512
   } as const;
   
-  return getOptimizedAvatarUrl(url, sizeMap[size]);
+  return getOptimizedAvatarUrl(httpsUrl, sizeMap[size]);
 }

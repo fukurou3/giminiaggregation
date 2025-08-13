@@ -1,7 +1,7 @@
 import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, ArrowLeft, Settings } from "lucide-react";
 import Image from "next/image";
 import { UserProfile } from "@/types/User";
-import { getAvatarDisplayUrl } from "@/lib/utils/imageUrlHelpers";
+import { getAvatarDisplayUrl, convertToCdnUrl } from "@/lib/utils/imageUrlHelpers";
 
 interface ProfileInfoSectionProps {
   profile: UserProfile;
@@ -35,7 +35,7 @@ export function ProfileInfoSection({
         <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-background overflow-hidden bg-muted flex-shrink-0">
           {photoURL ? (
             <Image
-              src={getAvatarDisplayUrl(photoURL, 'small') || photoURL}
+              src={getAvatarDisplayUrl(photoURL, 'small') || convertToCdnUrl(photoURL)}
               alt={displayName || "プロフィール画像"}
               fill
               className="object-cover"

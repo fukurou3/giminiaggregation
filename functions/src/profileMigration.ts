@@ -1,8 +1,8 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
-import { Storage } from '@google-cloud/storage';
-import * as sharp from 'sharp';
-import * as crypto from 'crypto';
+// Using Firebase Admin SDK for storage access
+import sharp from 'sharp';
+import { createHash } from 'crypto';
 
 interface MigrationResult {
   uid: string;
@@ -19,11 +19,6 @@ interface MigrationResult {
  * Callable function for admin use
  */
 export const migrateProfileImages = functions
-  .runWith({
-    timeoutSeconds: 540,
-    memory: '2GB',
-    maxInstances: 5
-  })
   .https
   .onCall(async (data, context) => {
     // Verify admin access
@@ -37,8 +32,7 @@ export const migrateProfileImages = functions
 
     try {
       const db = admin.firestore();
-      const storage = new Storage();
-      const bucket = storage.bucket();
+      const bucket = admin.storage().bucket();
 
       // Get user profiles with legacy profile images
       let query = db.collection('userProfiles')
@@ -72,7 +66,6 @@ export const migrateProfileImages = functions
           const migrationResult = await migrateUserProfile(
             uid, 
             profile, 
-            storage, 
             bucket, 
             dryRun
           );
@@ -135,7 +128,6 @@ export const migrateProfileImages = functions
 async function migrateUserProfile(
   uid: string,
   profile: any,
-  storage: any,
   bucket: any,
   dryRun: boolean
 ): Promise<MigrationResult> {
@@ -210,7 +202,7 @@ async function migrateUserProfile(
     const processedImages = await processAvatarImage(fileBuffer);
     
     // Generate content hash
-    const contentHash = crypto.createHash('sha256').update(fileBuffer).digest('hex').substring(0, 16);
+    const contentHash = createHash('sha256').update(fileBuffer).digest('hex').substring(0, 16);
     
     // Upload processed images
     const uploadPromises = processedImages.map(async (imageData, index) => {
@@ -234,7 +226,8 @@ async function migrateUserProfile(
         }
       });
 
-      return `gs://${bucket.name}/${fileName}`;
+      // Return public HTTPS URL instead of gs:// URL
+      return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
     });
 
     const uploadedUrls = await Promise.all(uploadPromises);

@@ -1,7 +1,7 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 
-admin.initializeApp();
+// Firebase Admin is initialized in index.ts
 
 export const toggleFavorite = functions.https.onCall(async (data, context) => {
   const uid = context.auth?.uid;

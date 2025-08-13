@@ -3,6 +3,7 @@
 import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { convertToCdnUrl } from '@/lib/utils/imageUrlHelpers';
 
 interface ImageGalleryProps {
   images?: string[];
@@ -107,7 +108,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
               <div key={`${imageUrl}-${index}`} className="w-80 flex-shrink-0">
                 <div className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden border border-black/20">
                   <Image
-                    src={imageUrl}
+                    src={convertToCdnUrl(imageUrl)}
                     alt={`${title} - 画像 ${index + 1}`}
                     fill
                     loading="lazy"

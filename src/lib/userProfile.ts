@@ -59,6 +59,8 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     
     if (docSnap.exists()) {
       const data = docSnap.data();
+      console.log('getUserProfile - Raw Firestore data:', data);
+      console.log('getUserProfile - photoURL from Firestore:', data.photoURL);
       let profile: UserProfile = {
         uid,
         publicId: data.publicId,
@@ -354,6 +356,7 @@ export async function updateUserProfileDirect(uid: string, profileData: any): Pr
     updateData.isSetupComplete = true;
 
     console.log('updateUserProfileDirect - Final data:', updateData);
+    console.log('updateUserProfileDirect - photoURL being saved:', updateData.photoURL);
 
     await updateDoc(docRef, updateData);
   } catch (error) {

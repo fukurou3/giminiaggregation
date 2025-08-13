@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/v0/b/giminiaggregation.firebasestorage.app/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'giminiaggregation.firebasestorage.app',
+        port: '',
+        pathname: '/public/**',
+      },
     ],
   },
 };

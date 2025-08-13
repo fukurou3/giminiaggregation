@@ -68,7 +68,9 @@ export const uploadImageToStorage = async (
       const tmpDownloadURL = await getDownloadURL(snapshot.ref);
       
       // Step 3: Cloud Functionsによる処理完了を待機
+      console.log('Waiting for processing with:', { sessionId, fileName, userId });
       const processedResult = await waitForProcessing(sessionId, fileName, userId);
+      console.log('Processing completed with result:', processedResult);
       
       return processedResult;
     } catch (error) {
@@ -131,16 +133,23 @@ const waitForProcessing = async (
       }
       
       const result = await response.json();
+      console.log('Processing API response:', result);
       
       if (result.status === 'processed') {
+        console.log('Image processed successfully:', { 
+          url: result.publicUrl, 
+          hasMultipleUrls: !!result.publicUrls 
+        });
+        
         return {
           url: result.publicUrl,
+          urls: result.publicUrls, // Include all URLs if available
           metadata: {
             originalName: fileName,
-            fileSize: result.metadata.size,
+            fileSize: result.metadata?.size || 0,
             dimensions: {
-              width: result.metadata.width,
-              height: result.metadata.height
+              width: result.metadata?.width || 0,
+              height: result.metadata?.height || 0
             },
             uploadedAt: result.processedAt,
             uploadedBy: userId
@@ -283,6 +292,7 @@ export const uploadMultipleImages = async (
           });
         }
         
+        console.log('Upload result for file:', file.name, 'Result:', result);
         return result.url;
       } catch (error) {
         console.error(`Failed to upload image ${file.name}:`, error);

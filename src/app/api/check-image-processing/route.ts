@@ -52,9 +52,13 @@ export async function POST(request: NextRequest) {
       const doc = processedSnapshot.docs[0];
       const data = doc.data();
       
+      // Handle both single URL (post mode) and multiple URLs (avatar mode)
+      const publicUrl = data.publicUrl || (data.publicUrls && data.publicUrls[0]) || '';
+      
       return NextResponse.json({
         status: 'processed',
-        publicUrl: data.publicUrl,
+        publicUrl,
+        publicUrls: data.publicUrls, // Include all URLs if available
         contentHash: data.contentHash,
         metadata: data.metadata,
         processedAt: data.processedAt?.toDate?.()?.toISOString() || new Date().toISOString()

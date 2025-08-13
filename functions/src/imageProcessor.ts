@@ -1,8 +1,8 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
-import { Storage } from '@google-cloud/storage';
-import * as sharp from 'sharp';
-import * as crypto from 'crypto';
+// Using Firebase Admin SDK for storage access
+import sharp from 'sharp';
+import { createHash } from 'crypto';
 import * as path from 'path';
 
 // 定数定義
@@ -54,11 +54,6 @@ interface ProcessingResult {
  * Monitors /tmp/ uploads and processes them to /public/
  */
 export const processUploadedImage = functions
-  .runWith({
-    timeoutSeconds: 540, // 9 minutes
-    memory: '2GB',
-    maxInstances: 10
-  })
   .storage
   .object()
   .onFinalize(async (object) => {
@@ -86,8 +81,8 @@ export const processUploadedImage = functions
     console.log(`Processing image: ${filePath} (mode: ${mode})`);
     
     try {
-      const storage = new Storage();
-      const bucket = storage.bucket(bucketName!);
+      // Use Firebase Admin SDK to get the default bucket
+      const bucket = admin.storage().bucket(bucketName!);
       const file = bucket.file(filePath);
       
       // Download file for processing
@@ -117,8 +112,7 @@ export const processUploadedImage = functions
       
       // Cleanup tmp file even on error
       try {
-        const storage = new Storage();
-        const bucket = storage.bucket(bucketName!);
+        const bucket = admin.storage().bucket(bucketName!);
         const file = bucket.file(filePath);
         await scheduleFailedFileCleanup(file, filePath);
       } catch (cleanupError) {
@@ -158,7 +152,7 @@ async function processImageBuffer(buffer: Buffer, originalPath: string, mode: 'p
     }
 
     // 5. Generate content hash
-    const contentHash = crypto.createHash('sha256').update(buffer).digest('hex').substring(0, 16);
+    const contentHash = createHash('sha256').update(buffer).digest('hex').substring(0, 16);
     
     // 6. Process image based on mode
     const modeConfig = PROCESSING_MODES[mode];
@@ -315,8 +309,7 @@ async function uploadToPublicStorage(
   contentHash: string, 
   mode: 'post' | 'avatar' = 'post'
 ): Promise<string> {
-  const storage = new Storage();
-  const bucket = storage.bucket(); // Use default bucket
+  const bucket = admin.storage().bucket(); // Use default Firebase Storage bucket
   
   // Create mode-specific path structure
   const fileName = mode === 'avatar' 
@@ -338,7 +331,8 @@ async function uploadToPublicStorage(
     }
   });
 
-  return `gs://${bucket.name}/${fileName}`;
+  // Return public HTTPS URL instead of gs:// URL
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
 }
 
 /**

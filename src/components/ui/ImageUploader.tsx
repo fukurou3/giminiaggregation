@@ -57,8 +57,11 @@ export const ImageUploader = ({
 
   const updateImages = useCallback((items: ImageItem[]) => {
     const urls = items.filter(item => item.url && !item.uploading).map(item => item.url);
+    console.log('ImageUploader - updateImages called with items:', items);
+    console.log('ImageUploader - filtered URLs:', urls);
     isInternalUpdateRef.current = true;
     onImagesChange(urls);
+    console.log('ImageUploader - onImagesChange called with URLs:', urls);
     // 次のレンダリング後にフラグをリセット
     setTimeout(() => {
       isInternalUpdateRef.current = false;
@@ -101,12 +104,15 @@ export const ImageUploader = ({
         setUploadProgress
       );
 
+      console.log('ImageUploader - Upload completed:', uploadedUrls);
+      
       // アップロード完了後、画像アイテムを更新（競合状態を回避）
       setImageItems(prev => {
         const updated = [...prev];
         newItems.forEach((item, index) => {
           const itemIndex = updated.findIndex(i => i.id === item.id);
           if (itemIndex !== -1) {
+            console.log(`ImageUploader - Updating item ${item.id} with URL:`, uploadedUrls[index]);
             updated[itemIndex] = {
               ...item,
               url: uploadedUrls[index],
@@ -115,10 +121,14 @@ export const ImageUploader = ({
             };
           }
         });
-        // 親への通知フラグを設定（非同期で安全に実行）
-        shouldUpdateParentRef.current = true;
+        console.log('ImageUploader - Updated items:', updated);
         return updated;
       });
+      
+      // 即座に親に通知（upload完了後の直接呼び出し）
+      const finalUrls = uploadedUrls.filter(url => url && url !== '');
+      console.log('ImageUploader - Notifying parent immediately with URLs:', finalUrls);
+      onImagesChange(finalUrls);
 
     } catch (error) {
       console.error('Upload failed:', error);
@@ -141,15 +151,20 @@ export const ImageUploader = ({
     }
     
     setUploadProgress(0);
-  }, [user, processImages, isWorkerSupported]);
+  }, [user, processImages, isWorkerSupported, mode]);
 
 
   // imageItems変更時の親への安全な通知（競合状態防止）
+  // Note: 主な通知は直接呼び出しで行うが、削除や並び替え時の安全な通知のために残す
   useEffect(() => {
+    console.log('ImageUploader - useEffect checking shouldUpdateParentRef:', shouldUpdateParentRef.current);
+    console.log('ImageUploader - current imageItems:', imageItems);
     if (shouldUpdateParentRef.current) {
       const validItems = imageItems.filter(item => item.url && !item.uploading);
+      console.log('ImageUploader - valid items found:', validItems);
       updateImages(validItems);
       shouldUpdateParentRef.current = false;
+      console.log('ImageUploader - parent update completed');
     }
   }, [imageItems, updateImages]);
 

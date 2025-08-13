@@ -68,17 +68,6 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const sectionHeader = (
-    <SectionHeader
-      icon={Tag}
-      iconGradient={{ from: 'green-500', to: 'blue-500' }}
-      title="今週のおすすめ"
-      titleSize="lg"
-      description="注目のジャンル・タグ"
-      loading={loading}
-    />
-  );
-
   if (allPosts.length === 0) {
     return null;
   }
@@ -86,7 +75,14 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
   return (
     <section className="space-y-6">
       {/* Header */}
-      {sectionHeader}
+      <SectionHeader
+        icon={Tag}
+        iconGradient={{ from: 'green-500', to: 'blue-500' }}
+        title="今週のおすすめ"
+        titleSize="lg"
+        description="注目のジャンル・タグ"
+        loading={loading}
+      />
 
       {/* 矢印付き横スクロールリスト */}
       <div className="relative -mx-4 sm:-mx-6 lg:-mx-8">
@@ -117,15 +113,27 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
           onScroll={checkScrollButtons}
         >
           <div className="flex gap-6 pb-4 px-4 sm:px-6 lg:px-8 min-w-max">
-            {allPosts.map((post) => (
-              <div key={post.id} className="w-72 flex-shrink-0">
-                <BaseCard 
-                  post={post}
-                  size="medium"
-                  layout="vertical"
-                  showViews={false}
-                  showCategory={false}
-                />
+            {topicHighlights.map((highlight) => (
+              <div key={highlight.topic.id} className="flex flex-col gap-4">
+                {/* 副タイトル */}
+                <h3 className="text-lg font-semibold text-foreground px-2">
+                  {highlight.topic.name}
+                </h3>
+                
+                {/* この副タイトルに属する作品群 */}
+                <div className="flex gap-6">
+                  {highlight.featuredPosts.map((post) => (
+                    <div key={post.id} className="w-72 flex-shrink-0">
+                      <BaseCard 
+                        post={post}
+                        size="medium"
+                        layout="vertical"
+                        showViews={false}
+                        showCategory={false}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

@@ -1,16 +1,12 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
-import { Storage } from '@google-cloud/storage';
+// Using Firebase Admin SDK for storage access
 
 /**
  * Daily cleanup of tmp files and monitoring
  * Scheduled to run daily at 2:00 AM JST
  */
 export const dailyTmpCleanup = functions
-  .runWith({
-    timeoutSeconds: 540,
-    memory: '1GB'
-  })
   .pubsub
   .schedule('0 2 * * *')  // Daily at 2:00 AM JST
   .timeZone('Asia/Tokyo')
@@ -18,8 +14,8 @@ export const dailyTmpCleanup = functions
     console.log('Starting daily tmp cleanup job');
     
     try {
-      const storage = new Storage();
-      const bucket = storage.bucket();
+      const bucket = admin.storage().bucket();
+  
       const db = admin.firestore();
       
       // 1. Clean up scheduled failed files
@@ -225,10 +221,6 @@ async function monitorTmpMetrics(bucket: any, db: admin.firestore.Firestore): Pr
  * Manual cleanup trigger (for emergency use)
  */
 export const manualTmpCleanup = functions
-  .runWith({
-    timeoutSeconds: 540,
-    memory: '1GB'
-  })
   .https
   .onCall(async (data, context) => {
     // Verify admin access
@@ -239,8 +231,8 @@ export const manualTmpCleanup = functions
     console.log('Manual tmp cleanup triggered by admin');
     
     try {
-      const storage = new Storage();
-      const bucket = storage.bucket();
+      const bucket = admin.storage().bucket();
+  
       const db = admin.firestore();
       
       const results = {
