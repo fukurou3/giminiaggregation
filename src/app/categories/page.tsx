@@ -11,6 +11,7 @@ import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useMobileSidebar } from '@/hooks/useMobileSidebar';
 import { useStickyHeader } from '@/hooks/useStickyHeader';
 import { CATEGORY_MASTERS } from '@/lib/constants/categories';
+import { Spinner } from '@/components/ui/Spinner';
 
 export default function CategoriesPage() {
   const searchParams = useSearchParams();
@@ -85,32 +86,7 @@ export default function CategoriesPage() {
   const selectedCategoryPosts = getSelectedCategoryPosts(selectedCategory);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="flex">
-          {/* Left Sidebar - Loading */}
-          <div className="w-48 flex-shrink-0">
-            <div className="bg-muted animate-pulse h-screen"></div>
-          </div>
-          {/* Main Content - Loading */}
-          <div className="flex-1">
-            <div className="max-w-screen-xl mx-auto px-4 py-8">
-              <div className="space-y-4 mt-4 md:mt-0">
-                <div className="bg-muted animate-pulse rounded-lg h-12 w-1/3"></div>
-                <div className="bg-muted animate-pulse rounded-lg h-6 w-1/2"></div>
-                <div className="grid gap-6 auto-fit-category-cards">
-                  {[...Array(20)].map((_, i) => (
-                    <div key={i} className="bg-muted animate-pulse rounded-xl h-80"></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Right Smart Spacer - Loading */}
-          <div className="w-48 flex-shrink-0" />
-        </div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   return (

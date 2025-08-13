@@ -5,6 +5,7 @@ import { useFetch } from '@/lib/api';
 import Image from 'next/image';
 import { ColumnSummary } from '@/types/Column';
 import { formatDate } from '@/lib/utils/date';
+import { Spinner } from '@/components/ui/Spinner';
 
 type SortOrder = 'views' | 'date-asc' | 'date-desc';
 
@@ -34,14 +35,7 @@ export default function ColumnsPage() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">コラムを読み込み中...</p>
-        </div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   if (error) {

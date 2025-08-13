@@ -100,16 +100,33 @@ const waitForProcessing = async (
   
   while (Date.now() - startTime < timeoutMs) {
     try {
+      // 認証トークンを取得
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('認証が必要です');
+      }
+      
+      const token = await currentUser.getIdToken();
+      
       // Firestoreから処理結果を確認
       const response = await fetch('/api/check-image-processing', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ sessionId, fileName, userId })
       });
       
       if (!response.ok) {
+        // 認証エラーの場合は即座に終了
+        if (response.status === 401 || response.status === 403) {
+          throw new ImageUploadError(
+            'AUTH_ERROR',
+            '認証に失敗しました。ログインを確認してください。',
+            { sessionId, fileName, status: response.status }
+          );
+        }
         throw new Error(`Processing check failed: ${response.status}`);
       }
       
@@ -139,9 +156,17 @@ const waitForProcessing = async (
       
       // まだ処理中の場合は待機
       await new Promise(resolve => setTimeout(resolve, pollInterval));
+      
     } catch (error) {
+      console.error('Processing check error:', error);
+      
+      // 認証エラーまたは致命的エラーの場合は即座に終了
+      if (error instanceof ImageUploadError && error.code === 'AUTH_ERROR') {
+        throw error;
+      }
+      
+      // タイムアウトチェック
       if (Date.now() - startTime > timeoutMs - pollInterval) {
-        // タイムアウト直前の場合はエラーを投げる
         throw new ImageUploadError(
           'PROCESSING_TIMEOUT',
           '画像処理がタイムアウトしました。しばらく待ってから再試行してください。',
@@ -150,6 +175,7 @@ const waitForProcessing = async (
       }
       
       // 一時的なエラーの場合は待機して再試行
+      console.log(`Temporary error, retrying in ${pollInterval}ms...`);
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
   }

@@ -38,7 +38,7 @@ export interface UploadProgress {
 }
 
 export interface UploadError extends Error {
-  readonly code: 'VALIDATION_FAILED' | 'UPLOAD_FAILED' | 'PROCESSING_FAILED' | 'NETWORK_ERROR';
+  readonly code: 'VALIDATION_FAILED' | 'UPLOAD_FAILED' | 'PROCESSING_FAILED' | 'NETWORK_ERROR' | 'AUTH_ERROR' | 'PROCESSING_TIMEOUT';
   readonly details?: Record<string, unknown>;
 }
 

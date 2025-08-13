@@ -9,6 +9,7 @@ import { PostGrid } from '@/components/ui/PostGrid'
 import { useFetch } from '@/lib/api/useApi'
 import { createPostFilter } from '@/lib/utils/postFilters'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { Spinner } from '@/components/ui/Spinner'
 
 export default function RankingPage() {
   const searchParams = useSearchParams()
@@ -76,36 +77,7 @@ export default function RankingPage() {
   );
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <section className="space-y-6">
-            <SectionHeader
-            icon={TrendingUp}
-            iconGradient={{ from: 'orange-500', to: 'red-500' }}
-            title="ランキング"
-            titleSize="lg"
-            rightElement={dropdownElement}
-            loading={loading}
-          />
-
-            {/* Loading skeleton */}
-            {/* 大画面：グリッドカード */}
-            <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(20)].map((_, i) => (
-                <div key={i} className="bg-muted animate-pulse rounded-xl h-80"></div>
-              ))}
-            </div>
-            {/* 小画面：横長リスト */}
-            <div className="md:hidden space-y-3">
-              {[...Array(20)].map((_, i) => (
-                <div key={i} className="bg-muted animate-pulse rounded-lg h-24"></div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </div>
-    )
+    return <Spinner />;
   }
 
   return (

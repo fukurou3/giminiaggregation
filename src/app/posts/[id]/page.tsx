@@ -14,18 +14,12 @@ import { findCategoryById } from '@/lib/constants/categories';
 import Link from 'next/link';
 import { RelatedPostsSection } from '@/components/sections/RelatedPostsSection';
 import { useRelatedPosts } from '@/hooks/useRelatedPosts';
+import { Spinner } from '@/components/ui/Spinner';
 import type { Post } from '@/types/Post';
 import type { UserProfile } from '@/types/UserProfile';
 
 // ローディングコンポーネント
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center py-20">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-      <p className="text-muted-foreground">投稿を読み込み中...</p>
-    </div>
-  </div>
-);
+const LoadingSpinner = () => <Spinner />;
 
 // エラーコンポーネント
 interface ErrorStateProps {

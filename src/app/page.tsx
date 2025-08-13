@@ -5,6 +5,7 @@ import { useFetch } from '@/lib/api';
 import { TrendingSection } from '@/components/sections/TrendingSection';
 import { ColumnSection } from '@/components/sections/ColumnSection';
 import { TopicHighlightSection } from '@/components/sections/TopicHighlightSection';
+import { Spinner } from '@/components/ui/Spinner';
 import { getTopicHighlights } from '@/lib/api/home';
 import { TopicHighlight } from '@/types/Topic';
 import { Post } from '@/types/Post';
@@ -41,11 +42,7 @@ export default function HomePage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   return (

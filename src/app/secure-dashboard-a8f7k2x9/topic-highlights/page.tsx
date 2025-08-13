@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Spinner } from '@/components/ui/Spinner';
 
 interface TopicHighlightConfig {
   id: string;
@@ -186,14 +187,7 @@ export default function TopicHighlightsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-2 text-gray-600">読み込み中...</p>
-        </div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   return (

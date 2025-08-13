@@ -8,6 +8,7 @@ import { useFetch } from '@/lib/api';
 import { TagSearchResult } from '@/types/Tag';
 import { Post } from '@/types/Post';
 import { sortPostsByLikes } from '@/lib/utils/postFilters';
+import { Spinner } from '@/components/ui/Spinner';
 
 interface TagSearchResponse {
   data: TagSearchResult & { posts: Post[] };
@@ -71,30 +72,7 @@ export default function TagSearchPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background px-4 py-8">
-        <div className="max-w-screen-xl mx-auto">
-          <div className="space-y-6">
-            <div className="animate-pulse">
-              <div className="h-12 bg-muted rounded-lg w-1/3 mb-4"></div>
-              <div className="h-6 bg-muted rounded-lg w-1/2 mb-8"></div>
-            </div>
-            {/* 大画面：グリッドカード */}
-            <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(12)].map((_, i) => (
-                <div key={i} className="bg-muted animate-pulse rounded-xl h-80"></div>
-              ))}
-            </div>
-            {/* 小画面：横長リスト */}
-            <div className="md:hidden space-y-3">
-              {[...Array(12)].map((_, i) => (
-                <div key={i} className="bg-muted animate-pulse rounded-lg h-24"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   if (error || !tag) {

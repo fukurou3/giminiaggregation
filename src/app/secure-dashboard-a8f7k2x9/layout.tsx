@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { loginWithGoogle } from '@/lib/auth';
+import { Spinner } from '@/components/ui/Spinner';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -61,14 +62,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">認証確認中...</p>
-        </div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   if (!user) {
