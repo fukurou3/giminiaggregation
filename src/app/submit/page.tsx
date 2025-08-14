@@ -177,7 +177,7 @@ export default function SubmitPage() {
         <div className="bg-background border border-border rounded-lg shadow-md p-6">
           <h1 className="text-2xl font-bold text-foreground mb-6">作品を投稿</h1>
           
-          <form onSubmit={(e) => handleSubmit(e, urlValidation, customSectionData, customSections)} className="space-y-8">
+          <form onSubmit={(e) => handleSubmit(e, urlValidation, customSectionData, customSections, selectedSections)} className="space-y-8">
             {/* ① 基本情報 */}
             <div className="space-y-6">
               <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">① 基本情報</h2>
@@ -185,9 +185,9 @@ export default function SubmitPage() {
               {/* URL */}
               <Field
                 id="submit-url"
-                label="Gemini共有リンク"
+                label="共有リンク"
                 required
-                help="共有URLを貼り付け"
+                help="Gemini共有リンクまたはChatGPT Canvas共有リンクを貼り付け"
                 error={errors.url}
               >
                 <div className="relative">
@@ -197,7 +197,7 @@ export default function SubmitPage() {
                     type="url"
                     value={formData.url || ""}
                     onChange={(e) => handleInputChange("url", e.target.value)}
-                    placeholder="https://gemini.google.com/share/xxxxx"
+                    placeholder="https://gemini.google.com/share/xxxxx または https://chatgpt.com/canvas/shared/xxxxx"
                     className={cx(
                       "w-full px-3 py-2 pr-10 bg-input border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground transition-colors",
                       getValidationStyle(urlValidation.status).borderColor

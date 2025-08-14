@@ -97,8 +97,21 @@ export function ProfileTabsSection({
               )}
             </div>
           ) : (
-            <PostGrid
-              posts={posts}
+            <>
+              {/* デバッグ: 投稿データをログ出力 */}
+              {console.log('ProfileTabsSection Posts Debug:', {
+                postsCount: posts.length,
+                firstPost: posts[0] ? {
+                  id: posts[0].id,
+                  title: posts[0].title,
+                  thumbnail: posts[0].thumbnail,
+                  hasThumbnail: !!posts[0].thumbnail,
+                  thumbnailType: typeof posts[0].thumbnail,
+                  allKeys: Object.keys(posts[0])
+                } : null
+              })}
+              <PostGrid
+                posts={posts}
               layout="grid"
               responsive={layoutPhase === 'phase4'}
               showViews={false}
@@ -106,6 +119,7 @@ export function ProfileTabsSection({
               className={layoutPhase !== 'phase4' ? 'grid-cols-[repeat(auto-fill,minmax(280px,1fr))]' : ''}
               gridCols={{ sm: 2, md: 3, lg: 3, xl: 4 }}
             />
+            </>
           )
         ) : (
           // お気に入りタブ

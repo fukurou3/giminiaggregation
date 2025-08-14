@@ -110,8 +110,8 @@ export async function GET(request: NextRequest) {
 
         const convertedData = convertTimestamps(data);
         
-        // 削除された投稿をスキップ
-        if (convertedData.isDeleted === true) {
+        // 削除された投稿または非表示の投稿をスキップ
+        if (convertedData.isDeleted === true || convertedData.isHidden === true) {
           return null;
         }
         
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    // nullの投稿（削除された投稿）をフィルタリング
+    // nullの投稿（削除または非表示の投稿）をフィルタリング
     posts = posts.filter(post => post !== null);
 
     // カテゴリフィルターを適用
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Posts GET Error:', error);
     return createErrorResponse(
-      'internal_error',
+      'server_error',
       'サーバーエラーが発生しました'
     );
   }
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
       let errorMessages = 'バリデーションエラーが発生しました';
       try {
         // Zod v3の新しい形式に対応
-        const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+        const issues = validationResult.error?.issues || [];
         if (Array.isArray(issues) && issues.length > 0) {
           const errors = issues.map(issue => 
             `${issue.path?.join('.') || 'unknown'}: ${issue.message}`
@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
     // ユーザープロフィールを取得
     const userProfile = await getUserProfile(uid);
     if (!userProfile) {
-      return createErrorResponse('user_not_found', 'ユーザーが見つかりません', 404);
+      return createErrorResponse('not_found', 'ユーザーが見つかりません', 404);
     }
 
     // Gemini URLのバリデーション
@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
     return createSuccessResponse({
       id: newPostRef.id,
       message: '投稿が作成されました'
-    }, 201);
+    }, '投稿が作成されました', 201);
 
   } catch (error: any) {
     console.error('Posts POST Error:', error);
@@ -333,8 +333,7 @@ export async function POST(request: NextRequest) {
     const mappedError = mapFirestoreError(error);
     return createErrorResponse(
       mappedError.code, 
-      mappedError.message, 
-      mappedError.status
+      mappedError.message
     );
   }
 }

@@ -24,11 +24,11 @@ export const uploadImageToStorage = async (
   // 認証状態を確認
   const currentUser = auth.currentUser;
   if (!currentUser) {
-    throw new ImageUploadError('認証が必要です。ログインしてください。', 'auth_required');
+    throw new ImageUploadError('AUTH_ERROR', '認証が必要です。ログインしてください。');
   }
   
   if (currentUser.uid !== userId) {
-    throw new ImageUploadError('ユーザーIDが一致しません。', 'user_mismatch');
+    throw new ImageUploadError('AUTH_ERROR', 'ユーザーIDが一致しません。');
   }
   
 
@@ -148,7 +148,6 @@ const waitForProcessing = async (
         
         return {
           url: result.publicUrl,
-          urls: result.publicUrls, // Include all URLs if available
           metadata: {
             originalName: fileName,
             fileSize: result.metadata?.size || 0,
@@ -217,7 +216,7 @@ const checkRateLimits = async (userId: string, fileCount: number): Promise<void>
     if (!response.ok) {
       const errorData = await response.json();
       throw new ImageUploadError(
-        'RATE_LIMITED',
+        'NETWORK_ERROR',
         errorData.message || 'レート制限に達しています',
         { userId, fileCount }
       );
@@ -227,7 +226,7 @@ const checkRateLimits = async (userId: string, fileCount: number): Promise<void>
     
     if (!result.allowed) {
       throw new ImageUploadError(
-        'RATE_LIMITED',
+        'NETWORK_ERROR',
         result.message || 'アップロード制限に達しています',
         { userId, fileCount, remaining: result.remaining }
       );

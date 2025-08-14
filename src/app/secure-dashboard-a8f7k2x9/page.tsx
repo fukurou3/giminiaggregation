@@ -1,20 +1,41 @@
 'use client';
 
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AdminPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading, isAdmin } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-    });
+    if (!loading) {
+      if (!user) {
+        // 未ログインの場合はホームページにリダイレクト
+        router.push('/');
+        return;
+      }
+      
+      if (!isAdmin) {
+        // 管理者でない場合もホームページにリダイレクト
+        router.push('/');
+        return;
+      }
+    }
+  }, [user, loading, isAdmin, router]);
 
-    return () => unsubscribe();
-  }, []);
+  // ローディング中またはリダイレクト中
+  if (loading || !user || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">認証を確認中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -22,6 +43,11 @@ export default function AdminPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">管理者画面</h1>
           <p className="text-gray-600 mt-2">サイトの設定を管理できます</p>
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="text-sm text-green-700">
+              <span className="font-medium">管理者として認証済み:</span> {user.email}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -76,14 +102,6 @@ export default function AdminPage() {
             </p>
           </div>
         </div>
-
-        {user && (
-          <div className="bg-white p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">ログイン中:</span> {user.email || 'Unknown'}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

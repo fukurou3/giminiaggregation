@@ -105,6 +105,18 @@ export async function POST(
     // Firestoreに保存
     const docRef = await addDoc(reportsRef, reportData);
 
+    // 通報者に受付通知を送信
+    await addDoc(collection(db, 'userNotifications'), {
+      userId: user.uid,
+      title: '通報を受け付けました',
+      message: 'ご報告いただいた内容を確認しております。運営側で適切に対応させていただきます。結果については別途ご連絡いたします。',
+      type: 'info',
+      read: false,
+      createdAt: serverTimestamp(),
+      relatedReportId: docRef.id,
+      relatedReportType: 'post'
+    });
+
     return NextResponse.json({
       success: true,
       reportId: docRef.id,

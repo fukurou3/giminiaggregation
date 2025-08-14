@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateGeminiUrl, ValidationResult } from '@/lib/validators/urlValidator';
+import { validateShareUrl, ValidationResult } from '@/lib/validators/urlValidator';
 import { getClientIP, CORS_HEADERS } from '@/lib/api/utils';
 import { checkRateLimit } from '@/lib/api/rateLimiter';
 import { logInfo, logError } from '@/lib/logger';
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // URLバリデーションを実行
-    const result = await validateGeminiUrl(url);
+    const result = await validateShareUrl(url);
     
     // 結果をキャッシュに保存（有効な場合のみ）
     if (result.isValid) {

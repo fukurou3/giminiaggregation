@@ -65,10 +65,18 @@ export async function GET(request: NextRequest) {
     }
 
     const snapshot = await getDocs(auditQuery);
-    let logs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    let logs = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        adminEmail: data.adminEmail || '',
+        action: data.action || '',
+        targetId: data.targetId || '',
+        details: data.details || {},
+        timestamp: data.timestamp,
+        ...data
+      };
+    });
 
     // クライアントサイドでの検索フィルタリング
     if (filters.searchQuery) {
@@ -100,13 +108,13 @@ export async function GET(request: NextRequest) {
 }
 
 // 監査ログ統計情報を計算
-function calculateAuditStats(logs: Record<string, unknown>[]) {
+function calculateAuditStats(logs: any[]) {
   const total = logs.length;
   const byAction: Record<string, number> = {};
   const byAdmin: Record<string, number> = {};
   const byDate: Record<string, number> = {};
 
-  logs.forEach((log: Record<string, unknown>) => {
+  logs.forEach((log: any) => {
     // アクション別集計
     byAction[log.action] = (byAction[log.action] || 0) + 1;
 

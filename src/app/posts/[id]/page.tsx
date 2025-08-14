@@ -6,15 +6,23 @@ import { findCategoryById } from '@/lib/constants/categories';
 import type { Post } from '@/types/Post';
 import PostDetailClient from './PostDetailClient';
 import { StructuredData } from '@/components/seo/StructuredData';
+import { cookies } from 'next/headers';
+import { notFound } from 'next/navigation';
+import { isServerAdmin } from '@/lib/serverAuth';
 
 // Firestoreから投稿データを取得
-async function getPost(id: string): Promise<Post | null> {
+async function getPost(id: string, isAdmin: boolean = false): Promise<Post | null> {
   try {
     const docRef = doc(db, 'posts', id);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
       const data = docSnap.data();
+      
+      // 非表示または削除された投稿をチェック（管理者は除く）
+      if ((data.isHidden || data.isDeleted) && !isAdmin) {
+        return null; // 一般ユーザーは非表示/削除された投稿は取得不可
+      }
       
       // Convert Firestore timestamps to ISO strings for client components
       const convertTimestamps = (obj: any): any => {
@@ -47,7 +55,8 @@ async function getPost(id: string): Promise<Post | null> {
 // OGPメタデータを生成（サーバーサイド）
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const post = await getPost(id);
+  const isAdmin = await isServerAdmin();
+  const post = await getPost(id, isAdmin);
   
   if (!post) {
     return {
@@ -158,12 +167,32 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 // メインコンポーネント（サーバーコンポーネント）
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const post = await getPost(id);
+  const isAdmin = await isServerAdmin();
+  const post = await getPost(id, isAdmin);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://giminiaggregation.vercel.app';
+
+  // 投稿が存在しない、または非表示/削除されている場合は404
+  if (!post) {
+    notFound();
+  }
 
   return (
     <>
       {/* {post && <StructuredData post={post} siteUrl={siteUrl} />} */}
+      {/* 管理者向け警告表示 */}
+      {isAdmin && (post.isHidden || post.isDeleted) && (
+        <div className="bg-red-50 border border-red-200 p-4 mx-4 mt-4 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="text-red-600 font-bold">⚠️ 管理者表示</div>
+            <div className="text-sm text-red-700">
+              {post.isHidden && '非表示'}
+              {post.isHidden && post.isDeleted && '・'}
+              {post.isDeleted && '削除済み'}
+              の投稿です。一般ユーザーには表示されません。
+            </div>
+          </div>
+        </div>
+      )}
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen">読み込み中...</div>}>
         <PostDetailClient postId={id} />
       </Suspense>

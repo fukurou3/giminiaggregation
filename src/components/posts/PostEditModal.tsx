@@ -4,12 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Edit3, Check, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUrlValidation, getValidationStyle } from '@/hooks/useUrlValidation';
 import { ThumbnailUploader } from '@/components/ui/ThumbnailUploader';
 import { ImageUploader } from '@/components/ui/ImageUploader';
 import { TagInput } from '@/components/ui/TagInput';
 import { Field } from '@/components/Field';
 import { AutosizeTextarea } from '@/components/AutosizeTextarea';
+import { ValidationStatus } from '@/components/ValidationStatus';
 import { CATEGORY_MASTERS, findCategoryById } from '@/lib/constants/categories';
+import { cx } from '@/lib/cx';
 import type { Post } from '@/types/Post';
 
 interface PostEditModalProps {
@@ -60,6 +63,9 @@ export function PostEditModal({ isOpen, onClose, post, onUpdate }: PostEditModal
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // URL検証
+  const urlValidation = useUrlValidation(formData.url || "");
 
   // 説明文セクション管理
   const [selectedSections, setSelectedSections] = useState<Set<string>>(new Set());
@@ -187,72 +193,59 @@ export function PostEditModal({ isOpen, onClose, post, onUpdate }: PostEditModal
     if (!user || !post) return;
 
     // バリデーション
-    if (!formData.title.trim()) {
-      setError('タイトルを入力してください');
+    const { validatePostFormBasic } = await import('@/lib/utils/postValidation');
+    const validation = validatePostFormBasic(formData);
+    if (!validation.isValid) {
+      setError(validation.error!);
       return;
     }
 
-    if (!formData.description.trim()) {
-      setError('作品概要を入力してください');
-      return;
-    }
-
-    if (!formData.url.trim()) {
-      setError('作品URLを入力してください');
-      return;
+    // URL検証
+    if (formData.url && formData.url.trim()) {
+      if (urlValidation.isValidating) {
+        setError('URLの確認中です。しばらくお待ちください。');
+        return;
+      }
+      
+      if (urlValidation.isValid !== true) {
+        const errorMessage = urlValidation.message || 
+          '有効なGemini共有リンクまたはChatGPT Canvas共有リンクを入力してください。';
+        setError(errorMessage);
+        return;
+      }
     }
 
     setIsSubmitting(true);
     setError('');
 
     try {
-      // blob URLをFirebase Storage URLに変換
-      let finalThumbnail = formData.thumbnail;
-      let finalPrImages = formData.prImages || [];
+      // 画像のアップロード処理（blob URLをFirebase Storage URLに変換）
+      const { uploadThumbnailIfNeeded, uploadPrImagesIfNeeded } = await import('@/lib/utils/imageUploadHelpers');
       
-      // サムネイル画像のアップロード
-      if (finalThumbnail && finalThumbnail.startsWith('blob:')) {
-        const response = await fetch(finalThumbnail);
-        const blob = await response.blob();
-        const file = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
-        
-        const { uploadImageToStorage } = await import('@/lib/utils/storageUtils');
-        const uploadResult = await uploadImageToStorage(file, {
-          userId: user.uid,
-          folder: 'post-images',
-          mode: 'thumbnail'
-        });
-        finalThumbnail = uploadResult.url;
+      const finalThumbnail = await uploadThumbnailIfNeeded(formData.thumbnail, user.uid);
+      const finalPrImages = await uploadPrImagesIfNeeded(formData.prImages, user.uid);
+
+      // 選択されたセクションのみのデータを準備
+      const finalFormData = { ...formData };
+      
+      // 選択されていないセクション、または選択されていても内容が空のセクションのデータを除外
+      if (!selectedSections.has('problemBackground') || !finalFormData.problemBackground?.trim()) {
+        delete finalFormData.problemBackground;
       }
-      
-      // PR画像のアップロード
-      if (finalPrImages.length > 0) {
-        const uploadPromises = finalPrImages.map(async (imageUrl, index) => {
-          if (imageUrl.startsWith('blob:')) {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            const file = new File([blob], `pr-image-${index}.jpg`, { type: 'image/jpeg' });
-            
-            const { uploadImageToStorage } = await import('@/lib/utils/storageUtils');
-            const uploadResult = await uploadImageToStorage(file, {
-              userId: user.uid,
-              folder: 'post-images',
-              mode: 'pr'
-            });
-            return uploadResult.url;
-          }
-          return imageUrl;
-        });
-        
-        finalPrImages = await Promise.all(uploadPromises);
+      if (!selectedSections.has('useCase') || !finalFormData.useCase?.trim()) {
+        delete finalFormData.useCase;
+      }
+      if (!selectedSections.has('uniquePoints') || !finalFormData.uniquePoints?.trim()) {
+        delete finalFormData.uniquePoints;
+      }
+      if (!selectedSections.has('futureIdeas') || !finalFormData.futureIdeas?.trim()) {
+        delete finalFormData.futureIdeas;
       }
 
-      // カスタムセクションデータを整理
-      const finalCustomSections = customSections.map(section => ({
-        id: section.id,
-        title: section.title,
-        content: customSectionData[section.id] || ''
-      }));
+      // カスタムセクションデータを処理（選択されたもののみ）
+      const { processCustomSections } = await import('@/lib/utils/customSectionHelpers');
+      const filteredCustomSections = customSections.filter(section => selectedSections.has(section.id));
+      const finalCustomSections = processCustomSections(filteredCustomSections, customSectionData) || [];
 
       const response = await fetch(`/api/posts/${post.id}`, {
         method: 'PUT',
@@ -261,7 +254,7 @@ export function PostEditModal({ isOpen, onClose, post, onUpdate }: PostEditModal
           'Authorization': `Bearer ${await user.getIdToken()}`,
         },
         body: JSON.stringify({
-          ...formData,
+          ...finalFormData,
           thumbnail: finalThumbnail,
           prImages: finalPrImages,
           customSections: finalCustomSections,
@@ -321,19 +314,33 @@ export function PostEditModal({ isOpen, onClose, post, onUpdate }: PostEditModal
             {/* URL */}
             <Field
               id="edit-url"
-              label="Gemini共有リンク"
+              label="共有リンク"
               required
-              help="共有URLを貼り付け"
+              help="Gemini共有リンクまたはChatGPT Canvas共有リンクを貼り付け"
             >
-              <input
-                id="edit-url"
-                name="url"
-                type="url"
-                value={formData.url}
-                onChange={(e) => handleInputChange("url", e.target.value)}
-                placeholder="https://gemini.google.com/share/xxxxx"
-                className="w-full px-3 py-2 bg-input border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground transition-colors"
-              />
+              <div className="relative">
+                <input
+                  id="edit-url"
+                  name="url"
+                  type="url"
+                  value={formData.url}
+                  onChange={(e) => handleInputChange("url", e.target.value)}
+                  placeholder="https://gemini.google.com/share/xxxxx または https://chatgpt.com/canvas/shared/xxxxx"
+                  className={cx(
+                    "w-full px-3 py-2 pr-10 bg-input border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground transition-colors",
+                    getValidationStyle(urlValidation.status).borderColor
+                  )}
+                />
+                <ValidationStatus
+                  status={urlValidation.status}
+                  message={urlValidation.message}
+                  onRetry={urlValidation.retry}
+                  ogpData={urlValidation.ogpData}
+                />
+              </div>
+              {urlValidation.isValid === false && formData.url && formData.url.trim() && (
+                <p className="text-sm text-red-600 mt-1">{urlValidation.message}</p>
+              )}
             </Field>
 
             {/* 作品タイトル */}
@@ -738,13 +745,30 @@ export function PostEditModal({ isOpen, onClose, post, onUpdate }: PostEditModal
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !formData.title.trim() || !formData.description.trim() || !formData.url.trim()}
+              disabled={
+                isSubmitting || 
+                urlValidation.isValidating || 
+                !formData.title.trim() || 
+                !formData.description.trim() || 
+                !formData.url.trim() ||
+                (formData.url && formData.url.trim() && urlValidation.isValid === false)
+              }
               className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
                   <span>更新中...</span>
+                </>
+              ) : urlValidation.isValidating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>🔍 URLを確認中...</span>
+                </>
+              ) : formData.url && formData.url.trim() && urlValidation.isValid === false ? (
+                <>
+                  <X size={16} />
+                  <span>❌ 有効なURLを入力してください</span>
                 </>
               ) : (
                 <>

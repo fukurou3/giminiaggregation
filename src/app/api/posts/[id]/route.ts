@@ -188,7 +188,7 @@ export async function PUT(
     // バリデーション
     if (!title?.trim()) {
       return createErrorResponse(
-        'bad_request',
+        'invalid_request',
         'タイトルを入力してください',
         400
       );
@@ -196,7 +196,7 @@ export async function PUT(
 
     if (!description?.trim()) {
       return createErrorResponse(
-        'bad_request',
+        'invalid_request',
         '作品概要を入力してください',
         400
       );
@@ -204,7 +204,7 @@ export async function PUT(
 
     if (!url?.trim()) {
       return createErrorResponse(
-        'bad_request',
+        'invalid_request',
         '作品URLを入力してください',
         400
       );
@@ -215,7 +215,7 @@ export async function PUT(
       new URL(url);
     } catch {
       return createErrorResponse(
-        'bad_request',
+        'invalid_request',
         '有効なURLを入力してください',
         400
       );

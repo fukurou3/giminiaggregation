@@ -6,14 +6,14 @@ const VALIDATION_CONFIG = {
 
 // Error messages
 const ERROR_MESSAGES = {
-  INVALID_FORMAT: 'Geminiの共有リンク形式ではありません',
-  NOT_FOUND: 'このCanvasリンクは存在しないようです',
+  INVALID_FORMAT: 'Gemini共有リンクまたはChatGPT Canvas共有リンク形式ではありません',
+  NOT_FOUND: 'このリンクは存在しないようです',
   NOT_ACCESSIBLE: '共有設定が限定公開か、削除されているようです',
   SERVER_ERROR: 'サーバーエラーが発生しました',
   TIMEOUT: '確認がタイムアウトしました。もう一度お試しください',
   CONNECTION_FAILED: '接続に失敗しました。ネットワークを確認してください',
-  CANVAS_NOT_ACCESSIBLE: 'このCanvasリンクは存在しないか、アクセスできません',
-  VALID: '有効なCanvasリンクです',
+  CANVAS_NOT_ACCESSIBLE: 'このリンクは存在しないか、アクセスできません',
+  VALID: '有効な共有リンクです',
 } as const;
 
 export interface ValidationResult {
@@ -32,9 +32,18 @@ export function isValidGeminiURL(url: string): boolean {
   return geminiUrlPattern.test(url);
 }
 
-export async function validateGeminiUrl(url: string): Promise<ValidationResult> {
+export function isValidChatGPTCanvasURL(url: string): boolean {
+  const chatgptCanvasPattern = /^https:\/\/chatgpt\.com\/canvas\/shared\/[a-zA-Z0-9_-]+$/;
+  return chatgptCanvasPattern.test(url);
+}
+
+export function isValidShareURL(url: string): boolean {
+  return isValidGeminiURL(url) || isValidChatGPTCanvasURL(url);
+}
+
+export async function validateShareUrl(url: string): Promise<ValidationResult> {
   // まず形式チェック
-  if (!isValidGeminiURL(url)) {
+  if (!isValidShareURL(url)) {
     return {
       isValid: false,
       status: 'invalid_format',
@@ -81,7 +90,7 @@ export async function validateGeminiUrl(url: string): Promise<ValidationResult> 
       }
     }
 
-    // OGP取得とCanvas存在確認のためのGETリクエスト
+    // OGP取得とコンテンツ存在確認のためのGETリクエスト
     const ogpResult = await fetchOGPData(url, controller);
     
     // OGPデータが取得できない場合は存在しないと判定
@@ -156,23 +165,46 @@ async function fetchOGPData(url: string, controller: AbortController): Promise<V
       ogpData.image = imageMatch[1].trim();
     }
 
-    // 実際のCanvas投稿の存在をチェック
-    const hasValidCanvas = 
-      // 有効なOGPタイトルが存在し、デフォルトのGeminiページでない
-      (ogpData.title && 
-       ogpData.title !== 'Gemini' && 
-       ogpData.title.trim() !== '' &&
-       !ogpData.title.includes('Google AI') &&
-       !ogpData.title.includes('404')) ||
-      // 特定の投稿IDが含まれている（存在しない場合は一般的なページ）
-      html.includes('"conversationId"') ||
-      html.includes('"shareId"') ||
-      // Canvasの具体的なコンテンツを示すマーカー
-      html.includes('canvas-content') ||
-      html.includes('streamlit-container');
+    // 実際の共有コンテンツの存在をチェック
+    const isGeminiUrl = url.includes('gemini.google.com') || url.includes('g.co/gemini');
+    const isChatGPTUrl = url.includes('chatgpt.com/canvas/shared');
+    
+    let hasValidContent = false;
+    
+    if (isGeminiUrl) {
+      // Gemini用のコンテンツチェック
+      hasValidContent = 
+        // 有効なOGPタイトルが存在し、デフォルトのGeminiページでない
+        (ogpData.title && 
+         ogpData.title !== 'Gemini' && 
+         ogpData.title.trim() !== '' &&
+         !ogpData.title.includes('Google AI') &&
+         !ogpData.title.includes('404')) ||
+        // 特定の投稿IDが含まれている（存在しない場合は一般的なページ）
+        html.includes('"conversationId"') ||
+        html.includes('"shareId"') ||
+        // Canvasの具体的なコンテンツを示すマーカー
+        html.includes('canvas-content') ||
+        html.includes('streamlit-container');
+    } else if (isChatGPTUrl) {
+      // ChatGPT Canvas用のコンテンツチェック
+      hasValidContent = 
+        // 有効なOGPタイトルが存在し、デフォルトのChatGPTページでない
+        (ogpData.title && 
+         ogpData.title !== 'ChatGPT' && 
+         ogpData.title.trim() !== '' &&
+         !ogpData.title.includes('404') &&
+         !ogpData.title.includes('Not Found')) ||
+        // ChatGPT Canvasの具体的なコンテンツを示すマーカー
+        html.includes('canvas-shared') ||
+        html.includes('shared-canvas') ||
+        html.includes('__NEXT_DATA__') ||
+        // OpenAI関連のメタデータ
+        html.includes('openai.com');
+    }
 
-    if (!hasValidCanvas) {
-      console.warn('有効なCanvas投稿が検出されませんでした:', url);
+    if (!hasValidContent) {
+      console.warn('有効な共有コンテンツが検出されませんでした:', url);
       return undefined; // OGPデータを返さない = 無効と判定
     }
 
@@ -182,3 +214,6 @@ async function fetchOGPData(url: string, controller: AbortController): Promise<V
     return undefined;
   }
 }
+
+// 後方互換性のため
+export const validateGeminiUrl = validateShareUrl;

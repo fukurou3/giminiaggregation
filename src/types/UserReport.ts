@@ -18,10 +18,12 @@ export interface UserReport {
   targetUserId: string;
   reason: UserReportReason;
   description: string;
-  createdAt: any;
+  createdAt: { toDate?: () => Date; seconds?: number } | Date;
   status: UserReportStatus;
   adminNotes?: string;
-  updatedAt?: any;
+  adminAction?: string; // 実行されたアクション
+  processedBy?: string; // 処理した管理者
+  updatedAt?: { toDate?: () => Date; seconds?: number } | Date;
 }
 
 export interface CreateUserReportRequest {

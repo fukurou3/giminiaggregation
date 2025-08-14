@@ -120,6 +120,7 @@ export async function GET(
             const data = doc.data();
             return (
               doc.id !== postId && // 現在の投稿除外
+              !data.isHidden && !data.isDeleted && // 非表示・削除作品除外
               (data.tagIds || []).some((tagId: string) => currentPost.tagIds.includes(tagId)) // タグマッチ
             );
           })
@@ -187,7 +188,10 @@ export async function GET(
       
       const categoryPosts = await Promise.all(
         categorySnapshot.docs
-          .filter(doc => !existingIds.has(doc.id)) // 既に追加済みの投稿を除外
+          .filter(doc => {
+            const data = doc.data();
+            return !existingIds.has(doc.id) && !data.isHidden && !data.isDeleted; // 既に追加済み・非表示・削除作品を除外
+          })
           .map(async (doc) => {
             const data = doc.data();
             
@@ -253,7 +257,10 @@ export async function GET(
       
       const popularPosts = await Promise.all(
         popularSnapshot.docs
-          .filter(doc => !existingIds.has(doc.id)) // 既に追加済みの投稿を除外
+          .filter(doc => {
+            const data = doc.data();
+            return !existingIds.has(doc.id) && !data.isHidden && !data.isDeleted; // 既に追加済み・非表示・削除作品を除外
+          })
           .map(async (doc) => {
             const data = doc.data();
             

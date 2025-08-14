@@ -156,7 +156,18 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
               width: '120px',
               height: '72px'
             }}>
-            {(post.thumbnail) ? (
+            {(() => {
+            console.log('BaseCard thumbnail debug:', {
+              postId: post.id,
+              title: post.title,
+              thumbnail: post.thumbnail,
+              thumbnailType: typeof post.thumbnail,
+              thumbnailLength: post.thumbnail?.length,
+              trimmed: post.thumbnail?.trim(),
+              hasContent: !!(post.thumbnail && post.thumbnail.trim())
+            });
+            return post.thumbnail && post.thumbnail.trim();
+          })() ? (
               <img 
                 src={post.thumbnail} 
                 alt={post.title}
@@ -284,7 +295,18 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             gridRow: '1',
             aspectRatio: '5/3'
           }}>
-          {(post.thumbnail) ? (
+          {(() => {
+            console.log('BaseCard thumbnail debug:', {
+              postId: post.id,
+              title: post.title,
+              thumbnail: post.thumbnail,
+              thumbnailType: typeof post.thumbnail,
+              thumbnailLength: post.thumbnail?.length,
+              trimmed: post.thumbnail?.trim(),
+              hasContent: !!(post.thumbnail && post.thumbnail.trim())
+            });
+            return post.thumbnail && post.thumbnail.trim();
+          })() ? (
             <img 
               src={post.thumbnail} 
               alt={post.title}

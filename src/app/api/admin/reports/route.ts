@@ -27,6 +27,8 @@ interface UnifiedReport {
   createdAt: any;
   updatedAt?: any;
   adminNotes?: string;
+  adminAction?: string; // 実行されたアクション
+  processedBy?: string; // 処理した管理者
   targetContentId?: string;
   targetContentType?: 'post' | 'comment' | 'profile';
   reportType: 'user' | 'post';
@@ -50,10 +52,15 @@ interface ReportStats {
 // 通報一覧取得
 export async function GET(request: NextRequest) {
   try {
+    console.log('GET /api/admin/reports - Starting...');
+    
     const user = await authenticateAdmin(request);
     if (!user) {
+      console.log('GET /api/admin/reports - Admin authentication failed');
       return NextResponse.json({ error: '管理者権限が必要です' }, { status: 403 });
     }
+    
+    console.log('GET /api/admin/reports - Admin authenticated:', user.uid);
 
     const url = new URL(request.url);
     const filters: ReportFilters = {
@@ -63,6 +70,8 @@ export async function GET(request: NextRequest) {
     };
 
     // userReportsとpostReportsの両方から取得
+    console.log('GET /api/admin/reports - Creating queries...');
+    
     const userReportsQuery = query(
       collection(db, 'userReports'),
       orderBy('createdAt', 'desc')
@@ -73,6 +82,8 @@ export async function GET(request: NextRequest) {
       orderBy('createdAt', 'desc')
     );
 
+    console.log('GET /api/admin/reports - Fetching reports from Firestore...');
+    
     // 各コレクションから取得（エラーハンドリング付き）
     const [userSnapshot, postSnapshot] = await Promise.all([
       getDocs(userReportsQuery).catch(err => {
@@ -84,12 +95,17 @@ export async function GET(request: NextRequest) {
         return { docs: [] };
       })
     ]);
+    
+    console.log('GET /api/admin/reports - Fetched userReports:', userSnapshot.docs.length);
+    console.log('GET /api/admin/reports - Fetched postReports:', postSnapshot.docs.length);
 
     // userReportsを変換
     const userReports: UnifiedReport[] = userSnapshot.docs.map(userDoc => ({
       id: userDoc.id,
       reportType: 'user' as const,
-      ...userDoc.data()
+      ...userDoc.data(),
+      adminAction: userDoc.data().adminAction,
+      processedBy: userDoc.data().processedBy
     })) as UnifiedReport[];
 
     // postReportsを変換（targetUserIdをauthorIdから取得）
@@ -113,6 +129,8 @@ export async function GET(request: NextRequest) {
           createdAt: reportData.createdAt,
           updatedAt: reportData.updatedAt,
           adminNotes: reportData.adminNotes,
+          adminAction: reportData.adminAction,
+          processedBy: reportData.processedBy,
           targetContentId: reportData.targetPostId,
           targetContentType: 'post' as const
         } as UnifiedReport;
@@ -174,6 +192,11 @@ export async function POST(request: NextRequest) {
 
     const processRequest = await request.json();
     
+    // 処理メモの必須チェック
+    if (!processRequest.processingNotes || !processRequest.processingNotes.trim()) {
+      return NextResponse.json({ error: '処理メモは必須です' }, { status: 400 });
+    }
+    
     // 通報ドキュメントを取得（userReportsまたはpostReportsから）
     let reportRef = doc(db, 'userReports', processRequest.reportId);
     let reportSnap = await getDoc(reportRef);
@@ -197,7 +220,9 @@ export async function POST(request: NextRequest) {
     batch.update(reportRef, {
       status: '対応済み',
       updatedAt: now,
-      adminNotes: processRequest.processingNotes || ''
+      adminNotes: processRequest.processingNotes || '',
+      adminAction: processRequest.action,
+      processedBy: user.email || user.uid
     });
 
     // AdminActionに基づく実際の処理を実行
@@ -296,6 +321,22 @@ function calculateReportStats(reports: UnifiedReport[]): ReportStats {
   };
 }
 
+// 通知テンプレート定義
+const NOTIFICATION_TEMPLATES = {
+  content_hide: {
+    title: 'コンテンツが非表示になりました',
+    message: 'あなたの投稿が利用規約に違反するため非表示にいたしました。今後は利用規約をご確認の上、適切なコンテンツの投稿をお願いいたします。'
+  },
+  user_warning: {
+    title: '利用規約違反に関する警告',
+    message: 'あなたの行為が利用規約に違反することが確認されました。今後同様の行為が続いた場合、アカウントの利用停止等の処置を講じる場合があります。利用規約をご確認の上、適切にご利用ください。'
+  },
+  user_ban_permanent: {
+    title: 'アカウント永久停止のお知らせ',
+    message: '重大かつ継続的な利用規約違反により、あなたのアカウントを永久停止いたします。今後サービスをご利用いただくことはできません。'
+  }
+};
+
 // 管理者アクションを実行
 async function executeAdminAction(
   processRequest: any, 
@@ -315,19 +356,20 @@ async function executeAdminAction(
           hiddenAt: timestamp,
           hiddenReason: 'admin_action'
         });
-      }
-      break;
-      
-    case 'content_delete':
-      if (reportType === 'post' && targetContentId) {
-        // 投稿を削除状態にする
-        const postRef = doc(db, 'posts', targetContentId);
-        batch.update(postRef, {
-          isDeleted: true,
-          deletedAt: timestamp,
-          deletedBy: 'admin',
-          deletedReason: 'admin_action'
-        });
+        
+        // 対象ユーザーに通知
+        if (targetUserId) {
+          const notificationRef = doc(collection(db, 'userNotifications'));
+          const template = NOTIFICATION_TEMPLATES.content_hide;
+          batch.set(notificationRef, {
+            userId: targetUserId,
+            title: template.title,
+            message: template.message,
+            type: 'warning',
+            read: false,
+            createdAt: timestamp
+          });
+        }
       }
       break;
       
@@ -335,34 +377,14 @@ async function executeAdminAction(
       if (targetUserId) {
         // ユーザーに警告を送信
         const notificationRef = doc(collection(db, 'userNotifications'));
+        const template = NOTIFICATION_TEMPLATES.user_warning;
         batch.set(notificationRef, {
           userId: targetUserId,
-          title: '運営からの警告',
-          message: '利用規約に違反する行為が確認されました。今後ご注意ください。',
+          title: template.title,
+          message: template.message,
           type: 'warning',
           read: false,
           createdAt: timestamp
-        });
-      }
-      break;
-      
-    case 'user_suspend_3days':
-    case 'user_suspend_7days':
-    case 'user_suspend_30days':
-      if (targetUserId) {
-        const days = action === 'user_suspend_3days' ? 3 : 
-                    action === 'user_suspend_7days' ? 7 : 30;
-        
-        // ユーザーを一時停止
-        const userRef = doc(db, 'users', targetUserId);
-        const suspendUntil = new Date();
-        suspendUntil.setDate(suspendUntil.getDate() + days);
-        
-        batch.update(userRef, {
-          isSuspended: true,
-          suspendedUntil: suspendUntil,
-          suspendedAt: timestamp,
-          suspendedReason: 'admin_action'
         });
       }
       break;
@@ -375,6 +397,18 @@ async function executeAdminAction(
           isBanned: true,
           bannedAt: timestamp,
           bannedReason: 'admin_action'
+        });
+        
+        // 対象ユーザーに通知
+        const notificationRef = doc(collection(db, 'userNotifications'));
+        const template = NOTIFICATION_TEMPLATES.user_ban_permanent;
+        batch.set(notificationRef, {
+          userId: targetUserId,
+          title: template.title,
+          message: template.message,
+          type: 'error',
+          read: false,
+          createdAt: timestamp
         });
       }
       break;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { isValidGeminiURL } from '@/lib/validators/urlValidator';
+import { isValidShareURL } from '@/lib/validators/urlValidator';
 
 export interface ValidationState {
   isValidating: boolean;
@@ -34,12 +34,12 @@ export function useUrlValidation(url: string, debounceMs: number = 500) {
     }
 
     // フロント側での形式チェック
-    if (!isValidGeminiURL(urlToValidate)) {
+    if (!isValidShareURL(urlToValidate)) {
       setValidationState({
         isValidating: false,
         isValid: false,
         status: 'invalid_format',
-        message: 'Geminiの共有リンク形式ではありません'
+        message: 'Gemini共有リンクまたはChatGPT Canvas共有リンク形式ではありません'
       });
       return;
     }

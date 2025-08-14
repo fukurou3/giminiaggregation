@@ -24,7 +24,7 @@ interface UseSubmitFormReturn {
   handleInputChange: (field: keyof PostFormData, value: string | boolean | string[]) => void;
   validateForm: () => boolean;
   isButtonDisabled: (urlValidation: UrlValidation) => boolean;
-  handleSubmit: (e: React.FormEvent, urlValidation: UrlValidation, customSectionData?: {[key: string]: string}, customSections?: {id: string, title: string}[]) => Promise<void>;
+  handleSubmit: (e: React.FormEvent, urlValidation: UrlValidation, customSectionData?: {[key: string]: string}, customSections?: {id: string, title: string}[], selectedSections?: Set<string>) => Promise<void>;
 }
 
 export function useSubmitForm(): UseSubmitFormReturn {
@@ -93,7 +93,7 @@ export function useSubmitForm(): UseSubmitFormReturn {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent, urlValidation: UrlValidation, customSectionData?: {[key: string]: string}, customSections?: {id: string, title: string}[]): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent, urlValidation: UrlValidation, customSectionData?: {[key: string]: string}, customSections?: {id: string, title: string}[], selectedSections?: Set<string>): Promise<void> => {
     e.preventDefault();
     
     if (!user) {
@@ -113,7 +113,7 @@ export function useSubmitForm(): UseSubmitFormReturn {
       
       if (urlValidation.isValid !== true) {
         const errorMessage = urlValidation.message || 
-          "有効なGemini共有リンクを入力してください。";
+          "有効なGemini共有リンクまたはChatGPT Canvas共有リンクを入力してください。";
         alert(errorMessage);
         return;
       }
@@ -121,61 +121,37 @@ export function useSubmitForm(): UseSubmitFormReturn {
 
     setIsSubmitting(true);
     try {
-      // blob URLをFirebase Storage URLに変換
-      let finalThumbnail = formData.thumbnail;
-      let finalPrImages = formData.prImages || [];
+      // 画像のアップロード処理（blob URLをFirebase Storage URLに変換）
+      const { uploadThumbnailIfNeeded, uploadPrImagesIfNeeded } = await import('@/lib/utils/imageUploadHelpers');
       
-      // サムネイル画像のアップロード
-      if (finalThumbnail && finalThumbnail.startsWith('blob:')) {
-
-        const response = await fetch(finalThumbnail);
-        const blob = await response.blob();
-        const file = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
-        
-        const { uploadImageToStorage } = await import('@/lib/utils/storageUtils');
-        const uploadResult = await uploadImageToStorage(file, {
-          userId: user.uid,
-          folder: 'post-images',
-          mode: 'thumbnail'
-        });
-        finalThumbnail = uploadResult.url;
-
+      const finalThumbnail = await uploadThumbnailIfNeeded(formData.thumbnail, user.uid);
+      const finalPrImages = await uploadPrImagesIfNeeded(formData.prImages, user.uid);
+      
+      // 選択されたセクションのみのデータを準備
+      const filteredFormData = { ...formData };
+      
+      // 選択されていないセクション、または選択されていても内容が空のセクションのデータを除外
+      if (selectedSections) {
+        if (!selectedSections.has('problemBackground') || !filteredFormData.problemBackground?.trim()) {
+          delete filteredFormData.problemBackground;
+        }
+        if (!selectedSections.has('useCase') || !filteredFormData.useCase?.trim()) {
+          delete filteredFormData.useCase;
+        }
+        if (!selectedSections.has('uniquePoints') || !filteredFormData.uniquePoints?.trim()) {
+          delete filteredFormData.uniquePoints;
+        }
+        if (!selectedSections.has('futureIdeas') || !filteredFormData.futureIdeas?.trim()) {
+          delete filteredFormData.futureIdeas;
+        }
       }
-      
-      // PR画像のアップロード
-      if (finalPrImages.length > 0) {
 
-        const uploadPromises = finalPrImages.map(async (imageUrl, index) => {
-          if (imageUrl.startsWith('blob:')) {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            const file = new File([blob], `pr-image-${index}.jpg`, { type: 'image/jpeg' });
-            
-            const { uploadImageToStorage } = await import('@/lib/utils/storageUtils');
-            const uploadResult = await uploadImageToStorage(file, {
-              userId: user.uid,
-              folder: 'post-images',
-              mode: 'pr'
-            });
-            return uploadResult.url;
-          }
-          return imageUrl;
-        });
-        
-        finalPrImages = await Promise.all(uploadPromises);
-
-      }
-      
-      // カスタムセクションデータを処理
-      const processedCustomSections = customSections && customSectionData 
-        ? customSections
-            .filter(section => customSectionData[section.id]?.trim()) // 内容があるもののみ
-            .map(section => ({
-              id: section.id,
-              title: section.title,
-              content: customSectionData[section.id].trim()
-            }))
-        : undefined;
+      // カスタムセクションデータを処理（選択されたもののみ）
+      const { processCustomSections } = await import('@/lib/utils/customSectionHelpers');
+      const filteredCustomSections = selectedSections && customSections && customSectionData
+        ? customSections.filter(section => selectedSections.has(section.id))
+        : customSections;
+      const processedCustomSections = processCustomSections(filteredCustomSections, customSectionData);
       
       // Firebase認証トークンを取得
       const token = await user.getIdToken();
@@ -188,7 +164,7 @@ export function useSubmitForm(): UseSubmitFormReturn {
         },
         body: JSON.stringify({
           formData: {
-            ...formData,
+            ...filteredFormData,
             thumbnail: finalThumbnail,
             prImages: finalPrImages,
             customSections: processedCustomSections,

@@ -84,44 +84,66 @@ export async function GET(
       );
       
       const postsSnapshot = await getDocs(postsQuery);
-      posts = postsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        
-        // 削除された投稿をスキップ
-        if (data.isDeleted === true) {
-          return null;
-        }
-        
-        return {
-          id: doc.id,
-          title: data.title || '',
-          url: data.url || '',
-          description: data.description || '',
-          tags: data.tags || [],
-          tagIds: data.tagIds || [],
-          category: data.category || 'その他',
-          categoryId: data.categoryId || 'other',
-          customCategory: data.customCategory || undefined,
-          thumbnailUrl: data.thumbnailUrl || '',
-          authorId: data.authorId || '',
-          authorUsername: data.authorUsername || '匿名ユーザー',
-          authorPublicId: data.authorPublicId || '',
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || undefined,
-          likes: data.likes || 0,
-          favoriteCount: data.favoriteCount || 0, // TODO: シャードから取得するように修正が必要
-          views: data.views || 0,
-          featured: data.featured || false,
-          isPublic: data.isPublic !== false,
-          ogpTitle: data.ogpTitle || null,
-          ogpDescription: data.ogpDescription || null,
-          ogpImage: data.ogpImage || null,
-        } as Post;
-      })
-      .filter(post => post !== null) // 削除された投稿を除外
-      // 一時的にクライアント側ソートを復活（インデックス作成まで）
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, 20);
+      // 投稿データをマッピングしてお気に入り数を動的に計算
+      posts = await Promise.all(
+        postsSnapshot.docs.map(async (doc) => {
+          const data = doc.data();
+          
+          // 削除された投稿をスキップ
+          if (data.isDeleted === true) {
+            return null;
+          }
+          
+          // シャードからお気に入り数を取得
+          const { getFavoriteCount } = await import('@/lib/favorites');
+          const actualFavoriteCount = await getFavoriteCount(doc.id);
+          
+          // 全Timestampフィールドを安全に変換する関数（ISO文字列に変換）
+          const convertTimestamps = (obj: any): any => {
+            if (obj && typeof obj === 'object') {
+              if (obj.toDate && typeof obj.toDate === 'function') {
+                return obj.toDate().toISOString();
+              }
+              if (Array.isArray(obj)) {
+                return obj.map(convertTimestamps);
+              }
+              const converted: any = {};
+              for (const [key, value] of Object.entries(obj)) {
+                converted[key] = convertTimestamps(value);
+              }
+              return converted;
+            }
+            return obj;
+          };
+
+          const convertedData = convertTimestamps(data);
+          
+          const result = {
+            id: doc.id,
+            favoriteCount: actualFavoriteCount, // 実際のお気に入り数で上書き
+            ...convertedData,
+          };
+          
+          // デバッグ: サムネイル情報をログ出力
+          console.log('Profile API Post Debug:', {
+            postId: doc.id,
+            title: result.title,
+            thumbnail: result.thumbnail,
+            hasThumbnail: !!result.thumbnail,
+            thumbnailLength: result.thumbnail?.length,
+            originalThumbnail: data.thumbnail,
+            allFields: Object.keys(data)
+          });
+          
+          return result;
+        })
+      );
+
+      // nullの投稿（削除された投稿）をフィルタリング
+      posts = posts.filter(post => post !== null)
+        // 一時的にクライアント側ソートを復活（インデックス作成まで）
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 20);
     } catch (postsError) {
       console.error('Posts fetch error:', postsError);
       posts = [];

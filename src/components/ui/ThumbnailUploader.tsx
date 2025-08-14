@@ -244,6 +244,22 @@ export const ThumbnailUploader = ({
               className="w-full h-full object-cover"
             />
             
+            {/* 変更ボタン */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (!disabled && fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                  fileInputRef.current.click();
+                }
+              }}
+              className="absolute top-2 left-2 z-10 bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition-colors text-sm"
+              disabled={disabled}
+            >
+              変更
+            </button>
+
             {/* 削除ボタン */}
             <button
               onClick={removeImage}
@@ -299,17 +315,19 @@ export const ThumbnailUploader = ({
             </p>
 
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleFileInputChange}
-              disabled={disabled}
-            />
           </div>
         )}
       </div>
+
+      {/* 共通のファイル選択input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleFileInputChange}
+        disabled={disabled}
+      />
     </div>
   );
 };

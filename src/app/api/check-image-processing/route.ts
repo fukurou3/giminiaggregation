@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       message: '画像を処理中です...'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Image processing check error:', error);
     
     if (error.code === 'auth/id-token-expired') {
