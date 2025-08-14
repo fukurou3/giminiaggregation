@@ -1,17 +1,6 @@
 import { Category } from "@/types/Post";
 
-export interface CategoryOption {
-  value: string;
-  label: string;
-  description: string;
-}
-
-export interface CategoryConfig {
-  name: string;
-  description: string;
-}
-
-// Core category configurations with new ID-based structure
+// Core category configurations with ID-based structure
 export const CATEGORY_MASTERS: Category[] = [
   { id: "business", name: "ビジネス・業務支援", description: "業務効率化、生産性向上、プロジェクト管理など", icon: "💼", sortOrder: 1 },
   { id: "education", name: "学習・教育", description: "勉強支援ツール、教育用コンテンツ、スキルアップ", icon: "🎓", sortOrder: 2 },
@@ -25,27 +14,38 @@ export const CATEGORY_MASTERS: Category[] = [
   { id: "other", name: "その他／未分類", description: "分類不能なもの、ニッチ系", icon: "📦", sortOrder: 10 }
 ] as const;
 
-// Legacy configurations for backward compatibility
-const CATEGORY_CONFIGS: CategoryConfig[] = CATEGORY_MASTERS.map(cat => ({
-  name: cat.name,
-  description: cat.description
-}));
-
-// Generate CategoryOption array from configs (for backward compatibility)
-export const CATEGORIES: CategoryOption[] = CATEGORY_CONFIGS.map(config => ({
-  value: config.name,
-  label: config.name,
-  description: config.description
-}));
-
-export const findCategoryByValue = (value: string): CategoryOption | undefined => {
-  return CATEGORIES.find(cat => cat.value === value);
-};
-
+// Helper functions for category operations
 export const findCategoryById = (id: string): Category | undefined => {
   return CATEGORY_MASTERS.find(cat => cat.id === id);
 };
 
 export const findCategoryByName = (name: string): Category | undefined => {
   return CATEGORY_MASTERS.find(cat => cat.name === name);
+};
+
+// Get all category IDs as a typed array
+export const CATEGORY_IDS = CATEGORY_MASTERS.map(cat => cat.id) as string[];
+
+// Legacy support - will be removed in future versions
+export interface CategoryOption {
+  value: string;
+  label: string;
+  description: string;
+}
+
+export interface CategoryConfig {
+  name: string;
+  description: string;
+}
+
+// @deprecated Use CATEGORY_MASTERS with findCategoryById instead
+export const CATEGORIES: CategoryOption[] = CATEGORY_MASTERS.map(cat => ({
+  value: cat.name,
+  label: cat.name,
+  description: cat.description
+}));
+
+// @deprecated Use findCategoryByName instead  
+export const findCategoryByValue = (value: string): CategoryOption | undefined => {
+  return CATEGORIES.find(cat => cat.value === value);
 };

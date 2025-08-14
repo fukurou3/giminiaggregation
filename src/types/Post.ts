@@ -12,9 +12,9 @@ export type Post = {
   authorId: string;
   authorUsername: string;  // ユーザーの公開ハンドル
   authorPublicId: string;  // ユーザーのpublicID（URL用）
-  thumbnailUrl?: string; // 後方互換性のため保持
-  images?: string[]; // Firebase Storage URLs配列
-  imageOrder?: number[]; // 画像表示順序
+  // 最新画像スキーマ
+  thumbnail: string; // サムネイル画像URL（必須）
+  prImages?: string[]; // PR画像URL配列
   ogpTitle?: string;
   ogpDescription?: string;
   ogpImage?: string;

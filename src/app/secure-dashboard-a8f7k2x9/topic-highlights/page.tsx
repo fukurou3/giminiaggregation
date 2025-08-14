@@ -172,7 +172,7 @@ export default function TopicHighlightsPage() {
     return post ? post.title : `投稿ID: ${postId}`;
   };
 
-  // デバッグ用: API呼び出しをテスト
+
   const testApi = async () => {
     try {
       console.log('Testing API...');

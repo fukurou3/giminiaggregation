@@ -26,37 +26,39 @@ async function docToPost(doc: DocumentData): Promise<Post> {
     title: data.title || '',
     description: data.description || '',
     url: data.url || '',
-    thumbnailUrl: data.thumbnailUrl || data.ogpImage || '',
+    thumbnail: data.thumbnail || data.ogpImage || '',
+    prImages: data.prImages || [],
+    ogpTitle: data.ogpTitle,
+    ogpDescription: data.ogpDescription,
+    ogpImage: data.ogpImage,
     tagIds: data.tagIds || [],
     categoryId: data.categoryId || '',
+    customCategory: data.customCategory,
     authorId: data.authorId || '',
     authorUsername: data.authorUsername || '',
+    authorPublicId: data.authorPublicId || '',
     createdAt: data.createdAt?.toDate() || new Date(),
     updatedAt: data.updatedAt?.toDate() || new Date(),
     views: data.views || 0,
     likes: data.likes || 0,
     favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
     isPublic: data.isPublic !== false,
-    featured: data.featured || false
+    featured: data.featured || false,
+    problemBackground: data.problemBackground,
+    useCase: data.useCase,
+    uniquePoints: data.uniquePoints,
+    futureIdeas: data.futureIdeas,
+    acceptInterview: data.acceptInterview || false
   };
 }
 
 export async function GET() {
   try {
-    console.log('API: Getting admin topic highlights...');
-    
     // 管理者が設定したハイライト設定を取得
     const configRef = collection(db, 'adminTopicHighlights');
-    
-    // まずすべてのドキュメントを取得してログ出力
     const allDocsSnapshot = await getDocs(configRef);
-    console.log('API: Total documents in adminTopicHighlights:', allDocsSnapshot.size);
     
-    allDocsSnapshot.docs.forEach(doc => {
-      console.log('API: Document data:', doc.id, doc.data());
-    });
-    
-    // アクティブなもののみフィルタリング（クライアントサイドで）
+    // アクティブなもののみフィルタリング
     const activeConfigs = allDocsSnapshot.docs.filter(doc => {
       const data = doc.data();
       return data.isActive === true;
@@ -64,10 +66,7 @@ export async function GET() {
       return (a.data().order || 0) - (b.data().order || 0);
     });
 
-    console.log('API: Active configs found:', activeConfigs.length);
-
     if (activeConfigs.length === 0) {
-      console.log('API: No active configs, returning auto highlights');
       return NextResponse.json({ highlights: [], useAutoHighlights: true });
     }
 
@@ -78,8 +77,6 @@ export async function GET() {
           id: configDoc.id,
           ...configDoc.data()
         } as AdminTopicHighlightConfig;
-        
-        console.log('API: Processing config:', config.id, config.title);
 
         // 指定された投稿IDから投稿を取得
         const posts: Post[] = [];
@@ -87,8 +84,12 @@ export async function GET() {
           try {
             const postRef = doc(db, 'posts', postId);
             const postDoc = await getDoc(postRef);
-            if (postDoc.exists() && postDoc.data().isPublic !== false) {
-              posts.push(await docToPost(postDoc));
+            if (postDoc.exists()) {
+              const postData = postDoc.data();
+              if (postData.isPublic !== false) {
+                const post = await docToPost(postDoc);
+                posts.push(post);
+              }
             }
           } catch (error) {
             console.error(`Error fetching post ${postId}:`, error);

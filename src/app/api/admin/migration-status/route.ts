@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       return createSuccessResponse(result);
     }
 
-    return createErrorResponse('bad_request', '無効なアクションです', 400);
+    return createErrorResponse('invalid_request', '無効なアクションです', 400);
 
   } catch (error) {
     console.error('Migration action error:', error);

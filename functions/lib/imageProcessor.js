@@ -59,6 +59,16 @@ const PROCESSING_MODES = {
         aspectRatio: 1, // 1:1 for square avatars
         maxDimension: 512,
         outputSizes: [256, 512] // Multiple sizes for avatars
+    },
+    thumbnail: {
+        aspectRatio: 5 / 3, // 5:3 for thumbnails
+        maxDimension: 800,
+        outputSizes: [800] // Single size for thumbnails
+    },
+    pr: {
+        aspectRatio: null, // No cropping for PR images
+        maxDimension: 1600,
+        outputSizes: [1600] // Single size for PR images
     }
 };
 // Magic bytes for image verification
@@ -84,13 +94,26 @@ exports.processUploadedImage = functions
     // Extract mode from file path (tmp/sessionId/mode_filename.jpg)
     const pathParts = filePath.split('/');
     let mode = 'post'; // Default to post mode
+    console.log(`Analyzing file path: ${filePath}`);
+    console.log(`Path parts:`, pathParts);
     if (pathParts.length >= 3) {
         const fileName = pathParts[2];
+        console.log(`File name: ${fileName}`);
         if (fileName.startsWith('avatar_')) {
             mode = 'avatar';
         }
+        else if (fileName.startsWith('thumbnail_')) {
+            mode = 'thumbnail';
+        }
+        else if (fileName.startsWith('pr_')) {
+            mode = 'pr';
+            console.log('PR mode detected from filename!');
+        }
         else if (fileName.startsWith('post_')) {
             mode = 'post';
+        }
+        else {
+            console.log(`Warning: Filename ${fileName} doesn't match any known prefix, defaulting to post mode`);
         }
     }
     console.log(`Processing image: ${filePath} (mode: ${mode})`);
@@ -100,8 +123,33 @@ exports.processUploadedImage = functions
         const file = bucket.file(filePath);
         // Download file for processing
         const [fileBuffer] = await file.download();
-        // Process the image with mode
-        const result = await processImageBuffer(fileBuffer, filePath, mode);
+        // Get crop metadata from file custom metadata
+        let cropMeta;
+        let metadataMode;
+        try {
+            const [metadata] = await file.getMetadata();
+            if (metadata.metadata) {
+                // Check for explicit mode in metadata
+                if (metadata.metadata.mode) {
+                    metadataMode = metadata.metadata.mode;
+                    console.log(`Found mode in metadata: ${metadataMode}`);
+                    // Override the filename-based mode if metadata mode exists
+                    if (metadataMode === 'pr' || metadataMode === 'avatar' || metadataMode === 'thumbnail' || metadataMode === 'post') {
+                        mode = metadataMode;
+                        console.log(`Mode overridden to: ${mode}`);
+                    }
+                }
+                if (metadata.metadata.cropMeta) {
+                    cropMeta = JSON.parse(metadata.metadata.cropMeta);
+                    console.log(`Found crop metadata for ${filePath}:`, cropMeta);
+                }
+            }
+        }
+        catch (metaError) {
+            console.log(`No crop metadata found for ${filePath}:`, metaError);
+        }
+        // Process the image with mode and crop metadata
+        const result = await processImageBuffer(fileBuffer, filePath, mode, cropMeta);
         if (result.success && (result.publicUrl || result.publicUrls) && result.contentHash) {
             // Save metadata to Firestore
             await saveImageMetadata(filePath, result);
@@ -135,7 +183,7 @@ exports.processUploadedImage = functions
 /**
  * Process image buffer with security checks and conversion
  */
-async function processImageBuffer(buffer, originalPath, mode = 'post') {
+async function processImageBuffer(buffer, originalPath, mode = 'post', cropMeta) {
     try {
         // 1. Basic security checks
         const securityCheck = await performSecurityChecks(buffer);
@@ -165,13 +213,13 @@ async function processImageBuffer(buffer, originalPath, mode = 'post') {
             const processedUrls = [];
             const sizeUrlMap = {};
             for (const size of modeConfig.outputSizes) {
-                const processedBuffer = await processImageToWebP(buffer, metadata, mode, size);
+                const processedBuffer = await processImageToWebP(buffer, metadata, mode, size, cropMeta);
                 const publicUrl = await uploadToPublicStorage(processedBuffer, `${contentHash}_${size}`, mode);
                 processedUrls.push(publicUrl);
                 sizeUrlMap[size] = publicUrl;
             }
             // Get metadata from the largest size
-            const largestBuffer = await processImageToWebP(buffer, metadata, mode, Math.max(...modeConfig.outputSizes));
+            const largestBuffer = await processImageToWebP(buffer, metadata, mode, Math.max(...modeConfig.outputSizes), cropMeta);
             const finalMetadata = await (0, sharp_1.default)(largestBuffer).metadata();
             return {
                 success: true,
@@ -189,7 +237,7 @@ async function processImageBuffer(buffer, originalPath, mode = 'post') {
         }
         else {
             // Post mode: single size (backward compatibility)
-            const processedBuffer = await processImageToWebP(buffer, metadata, mode);
+            const processedBuffer = await processImageToWebP(buffer, metadata, mode, undefined, cropMeta);
             const publicUrl = await uploadToPublicStorage(processedBuffer, contentHash, mode);
             const finalMetadata = await (0, sharp_1.default)(processedBuffer).metadata();
             return {
@@ -237,7 +285,7 @@ async function performSecurityChecks(buffer) {
 /**
  * Process image to WebP with mode-specific aspect ratio and size
  */
-async function processImageToWebP(buffer, metadata, mode = 'post', targetSize) {
+async function processImageToWebP(buffer, metadata, mode = 'post', targetSize, cropMeta) {
     const { width, height } = metadata;
     if (!width || !height) {
         throw new Error('Invalid image dimensions');
@@ -245,21 +293,51 @@ async function processImageToWebP(buffer, metadata, mode = 'post', targetSize) {
     const modeConfig = PROCESSING_MODES[mode];
     const targetAspectRatio = modeConfig.aspectRatio;
     const maxDimension = targetSize || modeConfig.maxDimension;
-    // Calculate crop dimensions for target aspect ratio
-    const currentRatio = width / height;
-    let cropWidth = width;
-    let cropHeight = height;
-    let left = 0;
-    let top = 0;
-    if (currentRatio > targetAspectRatio) {
-        // Image is wider than target ratio - crop width
-        cropWidth = Math.round(height * targetAspectRatio);
-        left = Math.round((width - cropWidth) / 2);
+    // Use crop metadata if available, otherwise calculate crop dimensions for target aspect ratio
+    let cropWidth;
+    let cropHeight;
+    let left;
+    let top;
+    // PR mode: no cropping, use original dimensions
+    if (mode === 'pr') {
+        console.log(`PR mode detected - maintaining original dimensions: ${width}x${height}`);
+        cropWidth = width;
+        cropHeight = height;
+        left = 0;
+        top = 0;
     }
-    else if (currentRatio < targetAspectRatio) {
-        // Image is taller than target ratio - crop height
-        cropHeight = Math.round(width / targetAspectRatio);
-        top = Math.round((height - cropHeight) / 2);
+    else if (cropMeta && cropMeta.w > 0 && cropMeta.h > 0) {
+        // Use crop metadata from client
+        console.log(`Applying crop metadata: ${JSON.stringify(cropMeta)}`);
+        cropWidth = Math.min(cropMeta.w, width);
+        cropHeight = Math.min(cropMeta.h, height);
+        left = Math.max(0, Math.min(cropMeta.x, width - cropWidth));
+        top = Math.max(0, Math.min(cropMeta.y, height - cropHeight));
+    }
+    else if (targetAspectRatio) {
+        // Fallback to center crop with target aspect ratio
+        const currentRatio = width / height;
+        cropWidth = width;
+        cropHeight = height;
+        left = 0;
+        top = 0;
+        if (currentRatio > targetAspectRatio) {
+            // Image is wider than target ratio - crop width
+            cropWidth = Math.round(height * targetAspectRatio);
+            left = Math.round((width - cropWidth) / 2);
+        }
+        else if (currentRatio < targetAspectRatio) {
+            // Image is taller than target ratio - crop height
+            cropHeight = Math.round(width / targetAspectRatio);
+            top = Math.round((height - cropHeight) / 2);
+        }
+    }
+    else {
+        // No aspect ratio specified, use original dimensions
+        cropWidth = width;
+        cropHeight = height;
+        left = 0;
+        top = 0;
     }
     // Calculate resize dimensions
     let resizeWidth;
@@ -268,10 +346,34 @@ async function processImageToWebP(buffer, metadata, mode = 'post', targetSize) {
         // For avatar mode, both width and height should be the same (square)
         resizeWidth = resizeHeight = Math.min(maxDimension, Math.min(cropWidth, cropHeight));
     }
-    else {
-        // For post mode, maintain aspect ratio
+    else if (mode === 'pr') {
+        // For PR mode, maintain original aspect ratio
+        const currentRatio = cropWidth / cropHeight;
+        if (cropWidth > cropHeight) {
+            resizeWidth = Math.min(maxDimension, cropWidth);
+            resizeHeight = Math.round(resizeWidth / currentRatio);
+        }
+        else {
+            resizeHeight = Math.min(maxDimension, cropHeight);
+            resizeWidth = Math.round(resizeHeight * currentRatio);
+        }
+    }
+    else if (targetAspectRatio) {
+        // For modes with fixed aspect ratio (post, thumbnail)
         resizeWidth = Math.min(maxDimension, cropWidth);
         resizeHeight = Math.round(resizeWidth / targetAspectRatio);
+    }
+    else {
+        // Fallback: maintain original aspect ratio
+        const currentRatio = cropWidth / cropHeight;
+        if (cropWidth > cropHeight) {
+            resizeWidth = Math.min(maxDimension, cropWidth);
+            resizeHeight = Math.round(resizeWidth / currentRatio);
+        }
+        else {
+            resizeHeight = Math.min(maxDimension, cropHeight);
+            resizeWidth = Math.round(resizeHeight * currentRatio);
+        }
     }
     return (0, sharp_1.default)(buffer)
         .extract({ left, top, width: cropWidth, height: cropHeight })
@@ -293,9 +395,20 @@ async function processImageToWebP(buffer, metadata, mode = 'post', targetSize) {
 async function uploadToPublicStorage(buffer, contentHash, mode = 'post') {
     const bucket = admin.storage().bucket(); // Use default Firebase Storage bucket
     // Create mode-specific path structure
-    const fileName = mode === 'avatar'
-        ? `public/avatars/${contentHash}.webp`
-        : `public/posts/${contentHash}.webp`;
+    let fileName;
+    switch (mode) {
+        case 'avatar':
+            fileName = `public/avatars/${contentHash}.webp`;
+            break;
+        case 'thumbnail':
+            fileName = `public/thumbnails/${contentHash}.webp`;
+            break;
+        case 'pr':
+            fileName = `public/pr-images/${contentHash}.webp`;
+            break;
+        default: // 'post'
+            fileName = `public/posts/${contentHash}.webp`;
+    }
     const file = bucket.file(fileName);
     await file.save(buffer, {
         metadata: {

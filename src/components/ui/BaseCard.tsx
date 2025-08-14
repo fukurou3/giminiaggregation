@@ -99,9 +99,18 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
               width: '120px',
               height: '72px'
             }}>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-              <span className="text-muted-foreground font-medium text-xs">Canvas</span>
-            </div>
+            {(post.thumbnail) ? (
+              <img 
+                src={post.thumbnail} 
+                alt={post.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                <span className="text-muted-foreground font-medium text-xs">画像なし</span>
+              </div>
+            )}
           </div>
           
           {/* タイトル＋説明 - 右上 */}
@@ -203,9 +212,18 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             gridRow: '1',
             aspectRatio: '5/3'
           }}>
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-            <span className="text-muted-foreground font-medium text-xs">Canvas</span>
-          </div>
+          {(post.thumbnail) ? (
+            <img 
+              src={post.thumbnail} 
+              alt={post.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+              <span className="text-muted-foreground font-medium text-xs">画像なし</span>
+            </div>
+          )}
         </div>
         
         {/* タイトル */}

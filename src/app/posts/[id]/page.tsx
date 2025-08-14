@@ -84,7 +84,7 @@ export default function PostDetailPage() {
   );
 
   // 投稿詳細のロジック
-  const { isFavorited, handleFavorite, isUpdatingFavorite } = usePostDetail({
+  const { isFavorited, handleFavorite, isUpdatingFavorite, actualFavoriteCount } = usePostDetail({
     post,
     postId,
     refetch,
@@ -174,6 +174,7 @@ export default function PostDetailPage() {
                     isUpdatingFavorite={isUpdatingFavorite}
                     onFavoriteClick={handleFavorite}
                     userLoggedIn={!!user}
+                    favoriteCount={actualFavoriteCount}
                   />
                 </div>
               </div>
@@ -182,13 +183,16 @@ export default function PostDetailPage() {
         </div>
 
         {/* 画像ギャラリー */}
-        <Suspense fallback={<div className="bg-card rounded-xl h-64 animate-pulse" />}>
-          <ImageGallery
-            images={post.images}
-            thumbnailUrl={post.thumbnailUrl}
-            title={post.title}
-          />
-        </Suspense>
+        {/* 画像ギャラリー - 最新スキーマのみ */}
+        {post.thumbnail && (
+          <Suspense fallback={<div className="bg-card rounded-xl h-64 animate-pulse" />}>
+            <ImageGallery
+              thumbnail={post.thumbnail}
+              prImages={post.prImages}
+              title={post.title}
+            />
+          </Suspense>
+        )}
 
         {/* メインコンテンツ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

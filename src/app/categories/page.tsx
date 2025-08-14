@@ -15,7 +15,7 @@ import { Spinner } from '@/components/ui/Spinner';
 
 export default function CategoriesPage() {
   const searchParams = useSearchParams();
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [categoriesWithCounts, setCategoriesWithCounts] = useState(CATEGORY_MASTERS);
   
   // Custom hooks for cleaner component architecture
@@ -55,35 +55,46 @@ export default function CategoriesPage() {
     if (categoryParam && categories.length > 0) {
       const category = categories.find(cat => cat.id === categoryParam);
       if (category) {
-        setSelectedCategory(category.name);
+        setSelectedCategoryId(category.id);
       } else {
         // 無効なカテゴリIDの場合はクリア
-        setSelectedCategory('');
+        setSelectedCategoryId('');
       }
     } else {
       // categoryパラメータがない場合はカテゴリ一覧表示のためクリア
-      setSelectedCategory('');
+      setSelectedCategoryId('');
     }
   }, [searchParams, categories]);
 
   // カテゴリ選択時の処理
   const handleCategorySelect = (categoryName: string) => {
-    setSelectedCategory(categoryName);
-    setIsSidebarOpen(false);
-    // URLを更新（ブラウザ履歴に追加）
     const category = categories.find(cat => cat.name === categoryName);
     if (category) {
+      setSelectedCategoryId(category.id);
+      setIsSidebarOpen(false);
+      // URLを更新（ブラウザ履歴に追加）
       window.history.pushState({}, '', `/categories?category=${category.id}`);
     }
   };
 
   // カテゴリ一覧に戻る処理
   const handleBackToList = () => {
-    setSelectedCategory('');
+    setSelectedCategoryId('');
     window.history.pushState({}, '', '/categories');
   };
 
-  const selectedCategoryPosts = getSelectedCategoryPosts(selectedCategory);
+  const selectedCategoryPosts = getSelectedCategoryPosts(selectedCategoryId);
+  
+  // デバッグ用: カテゴリページのデータ構造を確認
+  console.log('Category Page Debug:', {
+    loading,
+    error,
+    categories: categories.slice(0, 2),
+    posts: posts.slice(0, 2),
+    selectedCategoryId,
+    selectedCategoryPosts: selectedCategoryPosts.slice(0, 2),
+    firstPost: posts[0]
+  });
 
   if (loading) {
     return <Spinner />;
@@ -112,7 +123,7 @@ export default function CategoriesPage() {
         {/* Left Sidebar Component */}
         <CategorySidebar
           categories={categories}
-          selectedCategory={selectedCategory}
+          selectedCategory={selectedCategoryId}
           onCategorySelect={handleCategorySelect}
           layoutPhase={layoutPhase}
           isMobile={isMobile}
@@ -143,9 +154,9 @@ export default function CategoriesPage() {
               maxWidth: layoutPhase === 'phase1' ? undefined : 'none'
             }}
           >
-{selectedCategory ? (
+{selectedCategoryId ? (
               <CategoryContent
-                selectedCategory={selectedCategory}
+                selectedCategory={selectedCategoryId}
                 selectedCategoryPosts={selectedCategoryPosts}
                 categories={categories}
                 layoutPhase={layoutPhase}

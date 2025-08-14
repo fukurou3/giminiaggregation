@@ -88,35 +88,30 @@ export async function GET(request: NextRequest) {
         const { getFavoriteCount } = await import('@/lib/favorites');
         const actualFavoriteCount = await getFavoriteCount(doc.id);
         
+        // 全Timestampフィールドを安全に変換する関数
+        const convertTimestamps = (obj: any): any => {
+          if (obj && typeof obj === 'object') {
+            if (obj.toDate && typeof obj.toDate === 'function') {
+              return obj.toDate();
+            }
+            if (Array.isArray(obj)) {
+              return obj.map(convertTimestamps);
+            }
+            const converted: any = {};
+            for (const [key, value] of Object.entries(obj)) {
+              converted[key] = convertTimestamps(value);
+            }
+            return converted;
+          }
+          return obj;
+        };
+
+        const convertedData = convertTimestamps(data);
+        
         return {
           id: doc.id,
-          title: data.title || '',
-          url: data.url || '',
-          description: data.description || '',
-          tags: data.tags || [],
-          tagIds: data.tagIds || [], // tagIds配列を追加
-          category: data.category || 'その他',
-          categoryId: data.categoryId || 'other', // categoryIdを追加
-          customCategory: data.customCategory || undefined,
-          thumbnailUrl: data.thumbnailUrl || '',
-          authorId: data.authorId || '',
-          authorUsername: data.authorUsername || '匿名ユーザー',
-          isPublic: data.isPublic !== false, // Default to true if not explicitly false
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || undefined,
-          likes: data.likes || 0,
-          favoriteCount: actualFavoriteCount, // 実際のお気に入り数を使用
-          views: data.views || 0,
-          featured: data.featured || false,
-          ogpTitle: data.ogpTitle || null,
-          ogpDescription: data.ogpDescription || null,
-          ogpImage: data.ogpImage || null,
-          // コンセプト詳細フィールド
-          problemBackground: data.problemBackground || undefined,
-          useCase: data.useCase || undefined,
-          uniquePoints: data.uniquePoints || undefined,
-          futureIdeas: data.futureIdeas || undefined,
-          acceptInterview: data.acceptInterview || false,
+          favoriteCount: actualFavoriteCount, // 実際のお気に入り数で上書き
+          ...convertedData,
         };
       })
     );
@@ -150,228 +145,173 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // ログ出力（監査用）
-    console.log(`Posts fetched: ${posts.length} items - IP: ${ip}`);
-
-    return createSuccessResponse(
-      { posts, total: posts.length },
-      `${posts.length}件の投稿を取得しました`
-    );
-
-  } catch (error) {
-    console.error('Posts fetch error:', error);
+    // デバッグ情報を追加
+    console.log('Posts API Debug:', {
+      totalPosts: posts.length,
+      queryLimit,
+      sortBy,
+      period,
+      featuredOnly,
+      categoryFilter,
+      categoryFilteredCount: categoryFilter ? posts.filter(p => p.categoryId === categoryFilter).length : 'N/A',
+      firstPost: posts[0] ? {
+        id: posts[0].id,
+        title: posts[0].title,
+        categoryId: posts[0].categoryId,
+        thumbnail: posts[0].thumbnail,
+        isPublic: posts[0].isPublic,
+        hasRequiredFields: !!(posts[0].thumbnail && posts[0].categoryId && posts[0].title)
+      } : null,
+      allCategoriesInPosts: [...new Set(posts.map(p => p.categoryId))].slice(0, 10)
+    });
     
+    return createSuccessResponse({ posts });
+  } catch (error) {
+    console.error('Posts GET Error:', error);
     return createErrorResponse(
-      'server_error',
-      '投稿の取得に失敗しました',
-      500
+      'internal_error',
+      'サーバーエラーが発生しました'
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // リクエストボディを取得
-    const body = await request.json();
-
-    // IPアドレスを取得（プロキシを考慮）
+    // IPアドレスを取得してレート制限チェック
     const ip = getClientIP(request);
-
-    // レート制限チェック
+    
     if (!(await checkRateLimit(ip))) {
       return createErrorResponse(
-        'rate_limited',
-        '投稿が多すぎます。しばらく待ってからお試しください',
+        'rate_limited', 
+        'リクエストが多すぎます。しばらく待ってからお試しください',
         429
       );
     }
 
-    // 基本的なバリデーション
-    if (!body.formData) {
-      return createErrorResponse(
-        'invalid_request',
-        '投稿データが提供されていません'
-      );
-    }
-
+    const body = await request.json();
+    
+    // デバッグ: リクエストボディをログに出力
+    console.log('POST Request Body:', JSON.stringify(body, null, 2));
+    console.log('Request Body Keys:', Object.keys(body || {}));
+    
+    // リクエストボディ構造を修正（formDataをフラットに展開）
+    const requestData = body.formData || body;
+    console.log('Extracted Form Data:', JSON.stringify(requestData, null, 2));
+    
     // Zodスキーマでバリデーション
-    const validationResult = postSchema.safeParse(body.formData);
+    const validationResult = postSchema.safeParse(requestData);
+    
     if (!validationResult.success) {
-      const errors = validationResult.error.issues.map(err => ({
-        field: err.path.join('.'),
-        message: err.message
-      }));
+      // Zodエラーの詳細ログ出力
+      console.error('Validation failed:', {
+        error: validationResult.error,
+        errorType: typeof validationResult.error,
+        issues: validationResult.error?.issues,
+        errors: validationResult.error?.errors,
+        message: validationResult.error?.message,
+        requestBody: body
+      });
+      
+      let errorMessages = 'バリデーションエラーが発生しました';
+      try {
+        // Zod v3の新しい形式に対応
+        const issues = validationResult.error?.issues || validationResult.error?.errors || [];
+        if (Array.isArray(issues) && issues.length > 0) {
+          const errors = issues.map(issue => 
+            `${issue.path?.join('.') || 'unknown'}: ${issue.message}`
+          );
+          errorMessages = `入力データが無効です: ${errors.join(', ')}`;
+        } else {
+          errorMessages = `入力データが無効です: ${validationResult.error?.message || String(validationResult.error)}`;
+        }
+      } catch (err) {
+        console.error('Error processing validation errors:', err);
+        errorMessages = 'バリデーションエラーの処理中にエラーが発生しました';
+      }
       
       return createErrorResponse(
         'validation_failed',
-        '入力データに不備があります',
-        400,
-        errors
-      );
-    }
-
-    const { userInfo } = body;
-    const formData = validationResult.data;
-
-    // AuthorizationヘッダーからIDトークンを取得
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return createErrorResponse('unauthorized', 'ログインが必要です', 401);
-    }
-    const idToken = authHeader.split('Bearer ')[1];
-
-    let uid: string;
-    try {
-      const decodedToken = await getAuth().verifyIdToken(idToken);
-      uid = decodedToken.uid;
-    } catch (error) {
-      console.error('Token verification error:', error);
-      return createErrorResponse('unauthorized', '無効なトークンです', 401);
-    }
-
-    // ユーザー情報の確認
-    if (!userInfo || !userInfo.uid || userInfo.uid !== uid) {
-      return createErrorResponse(
-        'unauthorized',
-        'トークンのユーザーIDと一致しません',
-        401
-      );
-    }
-
-    // ユーザープロフィールを取得
-    const userProfile = await getUserProfile(userInfo.uid);
-    if (!userProfile || !userProfile.isSetupComplete) {
-      return createErrorResponse(
-        'profile_incomplete',
-        'プロフィールの設定が完了していません',
+        errorMessages,
         400
       );
     }
 
-    // URL の再検証（サーバー側で二重チェック）
-    if (formData.url) {
-      const urlValidationResult = await validateGeminiUrl(formData.url);
-      if (!urlValidationResult.isValid) {
-        return createErrorResponse(
-          'invalid_url',
-          urlValidationResult.message || '無効なGemini共有リンクです'
-        );
-      }
+    const validatedData = validationResult.data;
+
+    // Firebase Authenticationでユーザーを検証
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return createErrorResponse('unauthorized', '認証が必要です', 401);
     }
 
-    // タグとカテゴリの処理
-    const tags = formData.tags || [];
-    const tagIds: string[] = [];
-    
-    // タグを作成または取得してIDを収集
-    if (tags.length > 0) {
-      const { createOrGetTag } = await import('@/lib/tags');
-      const tagPromises = tags.map((tagName: string) => 
-        createOrGetTag(tagName.trim(), false)
-      );
-      const createdTags = await Promise.all(tagPromises);
-      tagIds.push(...createdTags.map(tag => tag.id));
+    const idToken = authHeader.substring(7);
+    const decodedToken = await getAuth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    // ユーザープロフィールを取得
+    const userProfile = await getUserProfile(uid);
+    if (!userProfile) {
+      return createErrorResponse('user_not_found', 'ユーザーが見つかりません', 404);
     }
 
-    // カテゴリIDの取得
-    const { findCategoryByName } = await import('@/lib/constants/categories');
-    const categoryObj = findCategoryByName(formData.category);
-    
-    if (!categoryObj) {
+    // Gemini URLのバリデーション
+    if (!validateGeminiUrl(validatedData.url)) {
       return createErrorResponse(
-        'invalid_category',
-        '無効なカテゴリが指定されました'
+        'invalid_url',
+        'URLはGeminiのワークスペースURLである必要があります',
+        400
       );
     }
 
-    // 投稿データの準備
-    const sanitizedTitle = sanitizeHtml(formData.title);
-    const sanitizedDescription = sanitizeHtml(formData.description);
-    const sanitizedProblemBackground = formData.problemBackground ? sanitizeHtml(formData.problemBackground) : undefined;
-    const sanitizedUseCase = formData.useCase ? sanitizeHtml(formData.useCase) : undefined;
-    const sanitizedUniquePoints = formData.uniquePoints ? sanitizeHtml(formData.uniquePoints) : undefined;
-    const sanitizedFutureIdeas = formData.futureIdeas ? sanitizeHtml(formData.futureIdeas) : undefined;
+    // HTMLコンテンツのサニタイズ（説明など）
+    const sanitizedData = {
+      ...validatedData,
+      description: validatedData.description ? sanitizeHtml(validatedData.description) : '',
+      problemBackground: validatedData.problemBackground ? sanitizeHtml(validatedData.problemBackground) : undefined,
+      useCase: validatedData.useCase ? sanitizeHtml(validatedData.useCase) : undefined,
+      uniquePoints: validatedData.uniquePoints ? sanitizeHtml(validatedData.uniquePoints) : undefined,
+      futureIdeas: validatedData.futureIdeas ? sanitizeHtml(validatedData.futureIdeas) : undefined,
+    };
+
+    // undefinedフィールドを除去してFirestoreに投稿を保存
+    const cleanSanitizedData = Object.fromEntries(
+      Object.entries(sanitizedData).filter(([_, value]) => value !== undefined)
+    );
     
     const postData = {
-      title: sanitizedTitle,
-      url: formData.url,
-      description: sanitizedDescription,
-      tagIds: tagIds, // タグID配列
-      categoryId: categoryObj.id, // カテゴリID
-      ...(formData.category === 'その他' && (formData as any).customCategory
-        ? { customCategory: (formData as any).customCategory }
-        : {}),
-      thumbnailUrl: formData.thumbnailUrl || formData.images?.[0] || '', // 後方互換性のため最初の画像をthumbnailUrlに設定
-      images: formData.images || [],
-      imageOrder: formData.images?.map((_, index) => index) || [],
-      isPublic: formData.isPublic,
-      
-      // コンセプト詳細フィールド
-      ...(sanitizedProblemBackground ? { problemBackground: sanitizedProblemBackground } : {}),
-      ...(sanitizedUseCase ? { useCase: sanitizedUseCase } : {}),
-      ...(sanitizedUniquePoints ? { uniquePoints: sanitizedUniquePoints } : {}),
-      ...(sanitizedFutureIdeas ? { futureIdeas: sanitizedFutureIdeas } : {}),
-      acceptInterview: formData.acceptInterview || false,
-      
-      // システム自動設定項目
-      authorId: userInfo.uid,
-      authorUsername: userProfile.username,
+      ...cleanSanitizedData,
+      authorId: uid,
+      authorUsername: userProfile.username || userProfile.displayName || '匿名ユーザー',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       likes: 0,
-      favoriteCount: 0,
       views: 0,
-      featured: false,
-      
-      // OGPデータ（URL検証で取得したもの）
-      ogpTitle: body.ogpData?.title || null,
-      ogpDescription: body.ogpData?.description || null,
-      ogpImage: body.ogpData?.image || null,
+      isPublic: true,
     };
 
-      // Firestoreに保存
-      const docRef = await addDoc(collection(db, 'posts'), postData);
+    // 明示的にDocumentReferenceを作成
+    const newPostRef = doc(collection(db, 'posts'));
+    await setDoc(newPostRef, postData);
 
-      // 分散カウンター用のシャードを初期化
-      const SHARD_COUNT = env.FAVORITE_SHARD_COUNT;
-      const shardPromises = Array.from({ length: SHARD_COUNT }).map((_, idx) =>
-        setDoc(doc(db, `posts/${docRef.id}/favoriteShards/${idx}`), { count: 0 })
-      );
-      
-      // タグ統計の更新（非同期）
-      const updateTagsPromises = tagIds.map(async (tagId) => {
-        try {
-          const { updateTagStats, updateTagCategoryCount } = await import('@/lib/tags');
-          await updateTagStats(tagId, { count: 1 });
-          await updateTagCategoryCount(tagId, categoryObj.id, 1);
-        } catch (error) {
-          console.warn(`Failed to update tag stats for ${tagId}:`, error);
-        }
-      });
+    return createSuccessResponse({
+      id: newPostRef.id,
+      message: '投稿が作成されました'
+    }, 201);
 
-      await Promise.all([...shardPromises, ...updateTagsPromises]);
-
-    // ログ出力（デバッグ・監査用）
-    console.log(`Post created: ${docRef.id} by ${userInfo.uid} - IP: ${ip}`);
-
-    return createSuccessResponse(
-      { postId: docRef.id },
-      '投稿が正常に作成されました'
-    );
-
-  } catch (error) {
-    console.error('Post creation error:', error);
+  } catch (error: any) {
+    console.error('Posts POST Error:', error);
     
-    // Firestoreエラーの詳細分析
-    const { code, message } = error instanceof Error 
-      ? mapFirestoreError(error) 
-      : { code: 'server_error' as const, message: 'サーバーエラーが発生しました' };
+    // Firebase Admin認証エラーのハンドリング
+    if (error.code?.startsWith('auth/')) {
+      return createErrorResponse('unauthorized', '認証に失敗しました', 401);
+    }
 
-    return createErrorResponse(code, message, 500);
+    // Firestoreエラーのマッピング
+    const mappedError = mapFirestoreError(error);
+    return createErrorResponse(
+      mappedError.code, 
+      mappedError.message, 
+      mappedError.status
+    );
   }
-}
-
-// OPTIONS メソッド（プリフライトリクエスト）のハンドリング
-export async function OPTIONS() {
-  return createSuccessResponse(undefined, undefined, 200);
 }

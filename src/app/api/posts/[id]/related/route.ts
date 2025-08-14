@@ -40,10 +40,10 @@ function calculateRelatedScore(currentPost: Post, candidatePost: RelatedPost): n
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const postId = params.id;
+    const { id: postId } = await params;
     
     // IP アドレスを取得してレート制限チェック
     const ip = getClientIP(request);
@@ -83,9 +83,8 @@ export async function GET(
       authorId: currentPostData.authorId || '',
       authorUsername: currentPostData.authorUsername || '',
       authorPublicId: currentPostData.authorPublicId || '',
-      thumbnailUrl: currentPostData.thumbnailUrl,
-      images: currentPostData.images,
-      imageOrder: currentPostData.imageOrder,
+      thumbnail: currentPostData.thumbnail,
+      prImages: currentPostData.prImages,
       ogpTitle: currentPostData.ogpTitle,
       ogpDescription: currentPostData.ogpDescription,
       ogpImage: currentPostData.ogpImage,
@@ -142,9 +141,8 @@ export async function GET(
               authorId: data.authorId || '',
               authorUsername: data.authorUsername || '',
               authorPublicId: data.authorPublicId || '',
-              thumbnailUrl: data.thumbnailUrl,
-              images: data.images,
-              imageOrder: data.imageOrder,
+              thumbnail: data.thumbnail,
+              prImages: data.prImages,
               ogpTitle: data.ogpTitle,
               ogpDescription: data.ogpDescription,
               ogpImage: data.ogpImage,
@@ -208,9 +206,8 @@ export async function GET(
               authorId: data.authorId || '',
               authorUsername: data.authorUsername || '',
               authorPublicId: data.authorPublicId || '',
-              thumbnailUrl: data.thumbnailUrl,
-              images: data.images,
-              imageOrder: data.imageOrder,
+              thumbnail: data.thumbnail,
+              prImages: data.prImages,
               ogpTitle: data.ogpTitle,
               ogpDescription: data.ogpDescription,
               ogpImage: data.ogpImage,
@@ -275,9 +272,8 @@ export async function GET(
               authorId: data.authorId || '',
               authorUsername: data.authorUsername || '',
               authorPublicId: data.authorPublicId || '',
-              thumbnailUrl: data.thumbnailUrl,
-              images: data.images,
-              imageOrder: data.imageOrder,
+              thumbnail: data.thumbnail,
+              prImages: data.prImages,
               ogpTitle: data.ogpTitle,
               ogpDescription: data.ogpDescription,
               ogpImage: data.ogpImage,

@@ -36,6 +36,16 @@ export default function RankingPage() {
   // TODO: リリース前にincludeZeroLikes: falseに変更する
   const postFilter = createPostFilter(true); // 一時的にいいね数0の投稿も表示
   const posts = postFilter(postsResponse?.data?.posts || []);
+  
+  // デバッグ用: データ構造を確認
+  console.log('Ranking Page Debug:', {
+    loading,
+    apiEndpoint,
+    postsResponse,
+    rawPosts: postsResponse?.data?.posts,
+    filteredPosts: posts,
+    firstPost: posts[0]
+  });
 
   const dropdownElement = (
     <div className="relative">

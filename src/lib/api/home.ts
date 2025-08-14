@@ -92,20 +92,14 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
   try {
     // まず管理者設定を確認
     try {
-      console.log('Checking for admin highlights...');
-      
       // クライアントサイドでのみAPIを呼び出す
       if (typeof window !== 'undefined') {
         const response = await fetch('/api/admin/topic-highlights');
         if (response.ok) {
           const adminData = await response.json();
-          console.log('Admin highlights response:', adminData);
-          if (!adminData.useAutoHighlights && adminData.highlights.length > 0) {
-            console.log('Using admin highlights:', adminData.highlights);
+          if (!adminData.useAutoHighlights && adminData.highlights && adminData.highlights.length > 0) {
             return adminData.highlights;
           }
-        } else {
-          console.log('Admin highlights API failed:', response.status);
         }
       } else {
         // サーバーサイドでは直接Firestoreから取得
@@ -118,8 +112,6 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
         const configSnapshot = await getDocs(configQuery);
         
         if (!configSnapshot.empty) {
-          console.log('Found admin highlights on server side:', configSnapshot.docs.length);
-          
           // 設定に基づいてハイライトを構築
           const highlights: TopicHighlight[] = await Promise.all(
             configSnapshot.docs.map(async (configDoc) => {
@@ -160,7 +152,6 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
           
           const validHighlights = highlights.filter(h => h.featuredPosts.length > 0);
           if (validHighlights.length > 0) {
-            console.log('Returning admin highlights from server:', validHighlights);
             return validHighlights;
           }
         }
@@ -169,7 +160,6 @@ export async function getTopicHighlights(): Promise<TopicHighlight[]> {
       console.error('Admin highlights error:', error);
     }
 
-    console.log('Falling back to auto highlights');
     // 従来の自動ハイライト機能
     const topicsRef = collection(db, 'topics');
     const topicsQuery = query(topicsRef, orderBy('popularityScore', 'desc'), limit(5));

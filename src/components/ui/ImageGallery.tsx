@@ -6,19 +6,35 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { convertToCdnUrl } from '@/lib/utils/imageUrlHelpers';
 
 interface ImageGalleryProps {
-  images?: string[];
-  thumbnailUrl?: string;
+  // 最新スキーマのみ
+  thumbnail: string;
+  prImages?: string[];
   title: string;
   className?: string;
 }
 
 const ImageGallery = memo<ImageGalleryProps>(({ 
-  images, 
-  thumbnailUrl, 
+  thumbnail,
+  prImages,
   title, 
   className = '' 
 }) => {
-  const displayImages = images && images.length > 0 ? images : thumbnailUrl ? [thumbnailUrl] : [];
+  // 最新スキーマのみに対応した画像配列の構築
+  const buildDisplayImages = () => {
+    const allImages: string[] = [];
+    
+    // サムネイル画像を最初に追加
+    allImages.push(thumbnail);
+    
+    // PR画像を追加
+    if (prImages && prImages.length > 0) {
+      allImages.push(...prImages);
+    }
+    
+    return allImages;
+  };
+  
+  const displayImages = buildDisplayImages();
   const showNavigation = displayImages.length > 1;
   
   // スクロール管理のstate
@@ -105,21 +121,37 @@ const ImageGallery = memo<ImageGalleryProps>(({
             {/* 先頭に空白を追加 */}
             {displayImages.length > 0 && <div className="w-3 flex-shrink-0" />}
             {displayImages.map((imageUrl, index) => (
-              <div key={`${imageUrl}-${index}`} className="w-80 flex-shrink-0">
-                <div className="relative aspect-[5/3] bg-muted rounded-lg overflow-hidden border border-black/20">
-                  <Image
-                    src={convertToCdnUrl(imageUrl)}
-                    alt={`${title} - 画像 ${index + 1}`}
-                    fill
-                    loading="lazy"
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
+              index === 0 ? (
+                // サムネイル画像: 固定幅・5:3アスペクト比
+                <div key={`${imageUrl}-${index}`} className="w-80 flex-shrink-0">
+                  <div className="relative bg-muted rounded-lg overflow-hidden border border-black/20 aspect-[5/3]">
+                    <Image
+                      src={convertToCdnUrl(imageUrl)}
+                      alt={`${title} - 画像 ${index + 1}`}
+                      fill
+                      loading="lazy"
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // PR画像: 元の比率維持
+                <div key={`${imageUrl}-${index}`} className="flex-shrink-0">
+                  <div className="h-60 flex items-center">
+                    <img
+                      src={convertToCdnUrl(imageUrl)}
+                      alt={`${title} - 画像 ${index + 1}`}
+                      loading="lazy"
+                      className="max-h-full w-auto rounded-lg border border-black/20"
+                    />
+                  </div>
+                </div>
+              )
             ))}
             {/* 最後尾に空白を追加 */}
-            {displayImages.length > 0 && <div className="w-3 flex-shrink-0" />}$1</div>
+            {displayImages.length > 0 && <div className="w-3 flex-shrink-0" />}
+          </div>
         </div>
       </div>
     </div>

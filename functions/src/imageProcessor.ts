@@ -93,16 +93,24 @@ export const processUploadedImage = functions
     const pathParts = filePath.split('/');
     let mode: 'post' | 'avatar' | 'thumbnail' | 'pr' = 'post'; // Default to post mode
     
+    console.log(`Analyzing file path: ${filePath}`);
+    console.log(`Path parts:`, pathParts);
+    
     if (pathParts.length >= 3) {
       const fileName = pathParts[2];
+      console.log(`File name: ${fileName}`);
+      
       if (fileName.startsWith('avatar_')) {
         mode = 'avatar';
       } else if (fileName.startsWith('thumbnail_')) {
         mode = 'thumbnail';
       } else if (fileName.startsWith('pr_')) {
         mode = 'pr';
+        console.log('PR mode detected from filename!');
       } else if (fileName.startsWith('post_')) {
         mode = 'post';
+      } else {
+        console.log(`Warning: Filename ${fileName} doesn't match any known prefix, defaulting to post mode`);
       }
     }
 
@@ -118,11 +126,25 @@ export const processUploadedImage = functions
       
       // Get crop metadata from file custom metadata
       let cropMeta: CropMeta | undefined;
+      let metadataMode: string | undefined;
       try {
         const [metadata] = await file.getMetadata();
-        if (metadata.metadata && metadata.metadata.cropMeta) {
-          cropMeta = JSON.parse(metadata.metadata.cropMeta);
-          console.log(`Found crop metadata for ${filePath}:`, cropMeta);
+        if (metadata.metadata) {
+          // Check for explicit mode in metadata
+          if (metadata.metadata.mode) {
+            metadataMode = metadata.metadata.mode as string;
+            console.log(`Found mode in metadata: ${metadataMode}`);
+            // Override the filename-based mode if metadata mode exists
+            if (metadataMode === 'pr' || metadataMode === 'avatar' || metadataMode === 'thumbnail' || metadataMode === 'post') {
+              mode = metadataMode as 'post' | 'avatar' | 'thumbnail' | 'pr';
+              console.log(`Mode overridden to: ${mode}`);
+            }
+          }
+          
+          if (metadata.metadata.cropMeta) {
+            cropMeta = JSON.parse(metadata.metadata.cropMeta as string);
+            console.log(`Found crop metadata for ${filePath}:`, cropMeta);
+          }
         }
       } catch (metaError) {
         console.log(`No crop metadata found for ${filePath}:`, metaError);
@@ -305,6 +327,7 @@ async function processImageToWebP(
 
   // PR mode: no cropping, use original dimensions
   if (mode === 'pr') {
+    console.log(`PR mode detected - maintaining original dimensions: ${width}x${height}`);
     cropWidth = width;
     cropHeight = height;
     left = 0;

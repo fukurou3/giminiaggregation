@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { toggleFavorite, isFavorited as checkIsFavorited } from '@/lib/favorites';
+import { toggleFavorite, isFavorited as checkIsFavorited, getFavoriteCount } from '@/lib/favorites';
 import { useAuth } from '@/hooks/useAuth';
 import type { Post } from '@/types/Post';
 
@@ -15,6 +15,7 @@ interface UsePostDetailReturn {
   isFavorited: boolean;
   handleFavorite: () => Promise<void>;
   isUpdatingFavorite: boolean;
+  actualFavoriteCount: number;
 }
 
 export const usePostDetail = ({ 
@@ -25,6 +26,7 @@ export const usePostDetail = ({
   const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
+  const [actualFavoriteCount, setActualFavoriteCount] = useState(0);
 
   // ビュー数の更新とお気に入り状態の取得
   useEffect(() => {
@@ -43,6 +45,10 @@ export const usePostDetail = ({
           const fav = await checkIsFavorited(postId, user.uid);
           setIsFavorited(fav);
         }
+
+        // 実際のお気に入り数を取得
+        const count = await getFavoriteCount(postId);
+        setActualFavoriteCount(count);
       } catch (err) {
         console.error('View count update failed:', err);
       }
@@ -60,6 +66,10 @@ export const usePostDetail = ({
       await toggleFavorite(post.id, isFavorited, user.uid);
       refetch();
       setIsFavorited(!isFavorited);
+      
+      // お気に入り数を再取得
+      const count = await getFavoriteCount(post.id);
+      setActualFavoriteCount(count);
       
     } catch (error) {
       console.error('Favorite operation failed:', error);
@@ -97,5 +107,6 @@ export const usePostDetail = ({
     isFavorited,
     handleFavorite,
     isUpdatingFavorite,
+    actualFavoriteCount,
   };
 };

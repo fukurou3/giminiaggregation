@@ -26,26 +26,41 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
 
   const columns = columnsResponse?.data?.columns || [];
 
+  // 投稿促進メッセージを擬似コラムとして追加
+  const promotionSlide = {
+    id: 'promotion',
+    title: 'あなたの作品も共有しませんか？',
+    excerpt: 'あなたのGemini Canvas作品、ここで紹介してみませんか？投稿は簡単。たくさんの人と楽しさを共有しましょう。',
+    category: '投稿募集',
+    author: '',
+    createdAt: new Date(),
+    views: 0,
+    likes: 0,
+    slug: '',
+    coverImage: null
+  };
 
+  // コラムリストに投稿促進メッセージを追加
+  const allSlides = [...columns, promotionSlide];
 
   // Auto-play functionality
   useEffect(() => {
-    if (!isAutoPlaying || columns.length <= 1) return;
+    if (!isAutoPlaying || allSlides.length <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % columns.length);
-    }, 3000);
+      setCurrentIndex((prev) => (prev + 1) % allSlides.length);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, columns.length]);
+  }, [isAutoPlaying, allSlides.length]);
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % columns.length);
+    setCurrentIndex((prev) => (prev + 1) % allSlides.length);
     setIsAutoPlaying(false);
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + columns.length) % columns.length);
+    setCurrentIndex((prev) => (prev - 1 + allSlides.length) % allSlides.length);
     setIsAutoPlaying(false);
   };
 
@@ -109,7 +124,7 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
     );
   }
 
-  if (columns.length === 0) {
+  if (allSlides.length === 0) {
     return (
       <section className="space-y-6">
         <div className="flex items-center space-x-3">
@@ -130,7 +145,7 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
     );
   }
 
-  const currentSlideColumn = columns[currentIndex];
+  const currentSlide = allSlides[currentIndex];
 
   return (
     <section className="space-y-6">
@@ -156,89 +171,86 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
 
       {/* Carousel */}
       <div className="relative bg-background border border-border rounded-2xl overflow-hidden">
-        <div className="relative h-80 md:h-96">
+        <div className="relative h-48 md:h-64">
           {/* Background Image */}
           <div className="absolute inset-0 bg-gradient-to-r from-background/90 to-background/60">
             <div 
               className="w-full h-full bg-cover bg-center opacity-20"
               style={{
-                backgroundImage: currentSlideColumn.coverImage 
-                  ? `url(${currentSlideColumn.coverImage})` 
-                  : 'linear-gradient(to right, rgb(var(--primary)), rgb(var(--secondary)))'
+                backgroundImage: currentSlide.id === 'promotion' 
+                  ? 'linear-gradient(to right, rgb(var(--primary)), rgb(var(--secondary)))' 
+                  : currentSlide.coverImage 
+                    ? `url(${currentSlide.coverImage})` 
+                    : 'linear-gradient(to right, rgb(var(--primary)), rgb(var(--secondary)))'
               }}
             />
           </div>
 
           {/* Content */}
           <div className="relative h-full flex items-center">
-            <button
-              onClick={() => handleColumnClick(currentSlideColumn)}
-              className="w-full h-full px-8 md:px-12 text-left cursor-pointer group"
-            >
-              <div className="max-w-2xl">
-                {/* Category */}
-                <div className="inline-block mb-4">
-                  <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                    {currentSlideColumn.category}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4 line-clamp-2">
-                  {currentSlideColumn.title}
-                </h3>
-
-                {/* Excerpt */}
-                <p className="text-muted-foreground text-lg mb-6 line-clamp-3">
-                  {currentSlideColumn.excerpt}
-                </p>
-
-                {/* Meta Info */}
-                <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-6">
-                  <div className="flex items-center space-x-1">
-                    <Calendar size={16} />
-                    <span>{formatDate(currentSlideColumn.createdAt)}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span>by</span>
-                    <span className="font-medium">{currentSlideColumn.author}</span>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1">
-                      <Eye size={16} />
-                      <span>{currentSlideColumn.views}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Heart size={16} />
-                      <span>{currentSlideColumn.likes}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Read More Button */}
-                {/* クリックして詳細を表示するヒント */}
-                <div className="opacity-75 group-hover:opacity-100 transition-opacity">
-                  <p className="text-sm text-muted-foreground">
-                    📖 クリックして詳細を読む
+            {currentSlide.id === 'promotion' ? (
+              <div className="w-full h-full px-8 md:px-12 flex items-center justify-center">
+                <div className="text-center max-w-2xl">
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground mb-4">
+                    {currentSlide.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm md:text-base mb-6">
+                    {currentSlide.excerpt}
                   </p>
+                  
+                  <div className="flex justify-center gap-4 text-sm">
+                    <Link 
+                      href="/help" 
+                      className="text-blue-500 hover:underline font-medium"
+                    >
+                      Gemini Canvasとは？
+                    </Link>
+                    <Link 
+                      href="/submit" 
+                      className="text-blue-700 hover:underline font-semibold tracking-wide"
+                    >
+                      今すぐ投稿する
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </button>
+            ) : (
+              <button
+                onClick={() => handleColumnClick(currentSlide as ColumnSummary)}
+                className="w-full h-full px-8 md:px-12 text-left cursor-pointer group flex items-center"
+              >
+                <div className="max-w-2xl">
+
+
+                  {/* Title */}
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground mb-4 line-clamp-2">
+                    {currentSlide.title}
+                  </h3>
+
+                  {/* Excerpt */}
+                  <p className="text-muted-foreground text-sm md:text-base mb-6 line-clamp-3">
+                    {currentSlide.excerpt}
+                  </p>
+
+
+                </div>
+              </button>
+            )}
           </div>
 
           {/* Navigation Arrows */}
-          {columns.length > 1 && (
+          {allSlides.length > 1 && (
             <>
               <button
                 onClick={prevSlide}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-background/80 hover:bg-background border border-border rounded-full transition-colors"
+                className="absolute left-0 top-1/2 -translate-y-1/2 p-2 transition-colors"
                 onMouseEnter={() => setIsAutoPlaying(false)}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={nextSlide}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-background/80 hover:bg-background border border-border rounded-full transition-colors"
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-2 transition-colors"
                 onMouseEnter={() => setIsAutoPlaying(false)}
               >
                 <ChevronRight className="w-5 h-5" />
@@ -246,32 +258,25 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
             </>
           )}
         </div>
-
-        {/* Dots Indicator */}
-        {columns.length > 1 && (
-          <div className="flex justify-center space-x-2 p-4">
-            {columns.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  index === currentIndex ? 'bg-primary' : 'bg-muted-foreground/30'
-                }`}
-                onMouseEnter={() => setIsAutoPlaying(false)}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Auto-play indicator */}
-      {columns.length > 1 && isAutoPlaying && (
-        <div className="text-center">
-          <span className="text-xs text-muted-foreground">
-            自動再生中 • 3秒ごとに切り替わります
-          </span>
+      {/* Dots Indicator */}
+      {allSlides.length > 1 && (
+        <div className="flex justify-center space-x-2 pt-4">
+          {allSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                index === currentIndex ? 'bg-primary' : 'bg-muted-foreground/30'
+              }`}
+              onMouseEnter={() => setIsAutoPlaying(false)}
+            />
+          ))}
         </div>
       )}
+
+
 
     </section>
   );

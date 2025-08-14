@@ -16,7 +16,7 @@ export function Navbar() {
   const { isAuthenticated } = useAuth();
   const { userProfile } = useUserProfile();
   
-  // デバッグ用ログ
+
   console.log('Navbar userProfile:', userProfile);
   console.log('photoURL:', userProfile?.photoURL);
   const [showUserMenu, setShowUserMenu] = useState(false);

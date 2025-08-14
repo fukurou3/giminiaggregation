@@ -41,8 +41,13 @@ export const ImageUploader = ({
   const [isDragging, setIsDragging] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
-  const [dragRect, setDragRect] = useState<DOMRect | null>(null);
+
   const [overRect, setOverRect] = useState<DOMRect | null>(null);
+  
+  // 追加: モバイル用の Pointer DnD 状態
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const pointerIdRef = useRef<number | null>(null);
+  const [dragOverlayPos, setDragOverlayPos] = useState<{x:number;y:number;width:number;height:number} | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,11 +102,10 @@ export const ImageUploader = ({
 
   const updateImages = useCallback((items: ImageItem[]) => {
     const urls = items.filter(item => item.url && !item.uploading).map(item => item.url);
-    console.log('ImageUploader - updateImages called with items:', items);
-    console.log('ImageUploader - filtered URLs:', urls);
+
     isInternalUpdateRef.current = true;
     onImagesChange(urls);
-    console.log('ImageUploader - onImagesChange called with URLs:', urls);
+
     // 次のレンダリング後にフラグをリセット
     setTimeout(() => {
       isInternalUpdateRef.current = false;
@@ -110,7 +114,6 @@ export const ImageUploader = ({
 
   // 投稿前の軽量処理（ファイル保持のみ、アップロードは投稿時まで保留）
   const handleFileSelection = useCallback((filesToProcess: File[], newItems: ImageItem[]) => {
-    console.log('ImageUploader - Files selected for preview:', filesToProcess);
     
     // ファイルを保持し、投稿ボタンが押されるまでアップロードは実行しない
     setImageItems(prev => [...prev, ...newItems]);
@@ -124,14 +127,10 @@ export const ImageUploader = ({
   // imageItems変更時の親への安全な通知（競合状態防止）
   // Note: 主な通知は直接呼び出しで行うが、削除や並び替え時の安全な通知のために残す
   useEffect(() => {
-    console.log('ImageUploader - useEffect checking shouldUpdateParentRef:', shouldUpdateParentRef.current);
-    console.log('ImageUploader - current imageItems:', imageItems);
     if (shouldUpdateParentRef.current) {
       const validItems = imageItems.filter(item => item.url && !item.uploading);
-      console.log('ImageUploader - valid items found:', validItems);
       updateImages(validItems);
       shouldUpdateParentRef.current = false;
-      console.log('ImageUploader - parent update completed');
     }
   }, [imageItems, updateImages]);
 
@@ -190,9 +189,12 @@ export const ImageUploader = ({
         return {};
       }
 
-      // PRモードはクロップなし
+      // PRモードは元の比率を維持するメタデータを追加
       if (mode === 'pr') {
-        return {};
+        return {
+          cropMode: 'original', // 元の比率を維持することを示すフラグ
+          aspectRatio: 'original'
+        };
       }
 
       // 一枚目のみ5:3クロップメタデータを生成（postモードのみ）
@@ -274,19 +276,13 @@ export const ImageUploader = ({
   }, []);
 
   const handleFileSelect = useCallback(async (files: FileList | File[]) => {
-    console.log('ImageUploader - handleFileSelect called with files:', files);
-    console.log('ImageUploader - User exists:', !!user);
-    console.log('ImageUploader - Current imageItems:', imageItems);
     
     if (!user) {
-      console.log('ImageUploader - No user, returning early');
       return;
     }
 
     const fileArray = Array.from(files);
-    console.log('ImageUploader - File array:', fileArray);
     const validFiles = fileArray.filter(validateImageFile);
-    console.log('ImageUploader - Valid files:', validFiles);
     
     if (validFiles.length === 0) {
       alert('有効な画像ファイル（JPEG, PNG, WebP）を選択してください。\n対応形式: JPEG, PNG, WebP');
@@ -382,7 +378,8 @@ export const ImageUploader = ({
       const fallbackItems: ImageItem[] = fallbackFilesToProcess.map((file, index) => {
         const fallbackCropMeta = generateCropMeta(
           1000, 600, // デフォルト値
-          mode === 'avatar' ? 1 : 5/3
+          mode === 'avatar' ? 1 : 5/3,
+          mode // modeパラメータを追加
         );
         return {
           id: `uploading-${Date.now()}-${index}`,
@@ -399,7 +396,7 @@ export const ImageUploader = ({
       // フォールバック：軽量選択処理を使用
       handleFileSelection(fallbackFilesToProcess, fallbackItems);
     }
-  }, [user, maxImages, imageItems, generateInstantPreview, handleFileSelection]);
+  }, [user, maxImages, imageItems, generateInstantPreview, handleFileSelection, mode]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -424,21 +421,15 @@ export const ImageUploader = ({
   }, []);
 
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('ImageUploader - File input change triggered, files:', e.target.files);
-    console.log('ImageUploader - Current imageItems length:', imageItems.length);
     
     const files = e.target.files;
     if (files && files.length > 0) {
-      console.log('ImageUploader - Calling handleFileSelect with files:', Array.from(files));
       handleFileSelect(files);
-    } else {
-      console.log('ImageUploader - No files selected');
     }
     
     // ファイル入力を即座にリセット（再選択を可能にする）
     setTimeout(() => {
       if (fileInputRef.current) {
-        console.log('ImageUploader - Resetting file input value');
         fileInputRef.current.value = '';
       }
     }, 100);
@@ -565,18 +556,19 @@ export const ImageUploader = ({
                 ${!item.uploading && !disabled ? 'cursor-move' : ''}
                 transition-all duration-150
               `}
+              style={{
+                touchAction: !item.uploading && !disabled ? 'none' : 'auto'
+              }}
               draggable={!item.uploading && !disabled}
               onDragStart={(e) => {
                 e.dataTransfer.setDragImage(transparentImg, 0, 0);
                 setDraggedItemIndex(index);
                 setOverIndex(index);
-                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                setDragRect(rect);
               }}
               onDragEnd={() => {
                 setDraggedItemIndex(null);
                 setOverIndex(null);
-                setDragRect(null);
+
                 setOverRect(null);
               }}
               onDragOver={(e) => {
@@ -594,7 +586,7 @@ export const ImageUploader = ({
                 const dropIndex = overIndex;
                 setDraggedItemIndex(null);
                 setOverIndex(null);
-                setDragRect(null);
+
                 setOverRect(null);
                 if (
                   typeof dragIndex === 'number' &&
@@ -604,11 +596,70 @@ export const ImageUploader = ({
                   moveImage(dragIndex, dropIndex);
                 }
               }}
+              onPointerDown={(e) => {
+                // マウスは既存の onDragStart に任せる
+                if (e.pointerType === 'mouse' || item.uploading || disabled) return;
+
+                // タッチ/ペン → Pointer DnD 開始
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                pointerIdRef.current = e.pointerId;
+                setIsTouchDragging(true);
+                setDraggedItemIndex(index);
+                setOverIndex(index);
+
+                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                setOverRect(rect); // 既存のプレースホルダーに反映
+                setDragOverlayPos({ x: e.clientX - rect.width/2, y: e.clientY - rect.height/2, width: rect.width, height: rect.height });
+              }}
+              onPointerUp={(e) => {
+                if (!isTouchDragging || pointerIdRef.current !== e.pointerId) return;
+                (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+                setIsTouchDragging(false);
+
+                const dragIndex = draggedItemIndex;
+                const dropIndex = overIndex;
+                setDraggedItemIndex(null);
+                setOverIndex(null);
+                setOverRect(null);
+                setDragOverlayPos(null);
+                pointerIdRef.current = null;
+                if (typeof dragIndex === 'number' && typeof dropIndex === 'number' && dragIndex !== dropIndex) {
+                  moveImage(dragIndex, dropIndex);
+                }
+              }}
+              onPointerCancel={() => {
+                if (!isTouchDragging) return;
+                setIsTouchDragging(false);
+                setDraggedItemIndex(null);
+                setOverIndex(null);
+                setOverRect(null);
+                setDragOverlayPos(null);
+                pointerIdRef.current = null;
+              }}
+              onPointerMove={(e) => {
+                // タッチ中だけ追従（スクロール抑止）
+                if (!isTouchDragging || pointerIdRef.current !== e.pointerId) return;
+                e.preventDefault(); // 重要: ページスクロールを止める
+                schedule(() => {
+                  setDragOverlayPos(pos => pos ? { ...pos, x: e.clientX - pos.width/2, y: e.clientY - pos.height/2 } : pos);
+                  const best = getIndexFromPoint(e.clientX, e.clientY);
+                  if (!best) return;
+                  setOverIndex(best.idx);
+                  setOverRect(best.rect);
+                });
+              }}
             >
               {/* 順番番号とドラッグハンドル */}
               <div className="absolute top-2 left-2 z-10">
                 {!item.uploading && !disabled ? (
-                  <div className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+                  <div 
+                    className="bg-black/70 text-white text-sm font-bold px-2 py-1 rounded flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity duration-200 cursor-move select-none"
+                    style={{ 
+                      touchAction: 'none',
+                      WebkitTouchCallout: 'none',
+                      WebkitUserSelect: 'none'
+                    }}
+                  >
                     <GripVertical size={12} />
                     {index + 1}
                   </div>
@@ -622,9 +673,13 @@ export const ImageUploader = ({
               {/* 削除ボタン - 常時表示 */}
               {!item.uploading && (
                 <button
-                  onClick={() => removeImage(item.id)}
-                  className="absolute top-2 right-2 z-10 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImage(item.id);
+                  }}
+                  className="absolute top-2 right-2 z-10 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors select-none"
                   disabled={disabled}
+                  style={{ touchAction: 'manipulation' }}
                 >
                   <X size={16} />
                 </button>
@@ -688,6 +743,32 @@ export const ImageUploader = ({
               }}
             />
           )}
+          
+          {/* 追従オーバーレイ（モバイルPointer用） */}
+          {isTouchDragging && dragOverlayPos && draggedItemIndex != null && (
+            <div
+              aria-hidden
+              className="fixed z-[9999] pointer-events-none rounded-lg shadow-lg overflow-hidden"
+              style={{
+                left: dragOverlayPos.x,
+                top: dragOverlayPos.y,
+                width: dragOverlayPos.width,
+                height: dragOverlayPos.height,
+                transform: 'translateZ(0)', // レイヤ昇格で滑らかに
+              }}
+            >
+              {/* 中身はカードの見た目を簡易に再現 */}
+              {imageItems[draggedItemIndex]?.previewUrl || imageItems[draggedItemIndex]?.url ? (
+                <img
+                  src={imageItems[draggedItemIndex]!.previewUrl || imageItems[draggedItemIndex]!.url!}
+                  alt=""
+                  className="w-full h-full object-cover opacity-90"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted" />
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -701,13 +782,9 @@ export const ImageUploader = ({
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
             onClick={() => {
-              console.log('ImageUploader - Add button clicked, disabled:', disabled);
-              if (!disabled && fileInputRef.current) {
-                console.log('ImageUploader - Resetting and clicking file input');
+                if (!disabled && fileInputRef.current) {
                 fileInputRef.current.value = '';
                 fileInputRef.current.click();
-              } else {
-                console.log('ImageUploader - Cannot click file input, disabled:', disabled, 'fileInputRef.current:', !!fileInputRef.current);
               }
             }}
             disabled={disabled}

@@ -14,8 +14,8 @@ export interface TagGenerationInput {
  */
 export interface CoachInput {
   title: string;
-  category: string;
-  tags: string[];
+  categoryId: string;
+  tagIds: string[];
   overview: string;
   optional: {
     problem?: string;
@@ -69,7 +69,7 @@ export function buildTagGenerationPrompt(input: TagGenerationInput): string {
  * コーチングアドバイスのプロンプトを構築
  */
 export function buildCoachPrompt(input: CoachInput): string {
-  const { title, category, tags, overview, optional, appUrl, locale } = input;
+  const { title, categoryId, tagIds, overview, optional, appUrl, locale } = input;
   
   const systemPrompt = `
 あなたは投稿前の"お節介編集者"です。
@@ -126,8 +126,8 @@ JSONのみで返してください：
     : "\n任意項目: (未入力)";
   
   const userInput = `タイトル: ${title}
-カテゴリ: ${category}
-タグ: ${tags.join(', ') || '(未入力)'}
+カテゴリ: ${categoryId}
+タグ: ${tagIds.join(', ') || '(未入力)'}
 作品概要: ${overview}${optionalText}
 作品URL: ${appUrl || '(未入力)'}`;
 

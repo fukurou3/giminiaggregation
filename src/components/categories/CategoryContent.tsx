@@ -28,6 +28,20 @@ export const CategoryContent = React.memo<CategoryContentProps>(function Categor
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const selectedCategoryData = categories.find(cat => cat.name === selectedCategory);
 
+  // デバッグ情報を追加
+  console.log('CategoryContent Debug:', {
+    selectedCategory,
+    selectedCategoryData,
+    selectedCategoryPostsCount: selectedCategoryPosts.length,
+    categoriesCount: categories.length,
+    firstPost: selectedCategoryPosts[0] ? {
+      id: selectedCategoryPosts[0].id,
+      title: selectedCategoryPosts[0].title,
+      categoryId: selectedCategoryPosts[0].categoryId,
+      thumbnail: selectedCategoryPosts[0].thumbnail
+    } : null
+  });
+
   // ソートされた作品リスト
   const sortedPosts = useMemo(() => {
     if (sortBy === 'favorites') {

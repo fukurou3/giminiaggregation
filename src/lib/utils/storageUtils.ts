@@ -7,7 +7,7 @@ import { ImageUploadError } from './uploadErrors';
 export interface UploadImageOptions {
   userId: string;
   folder?: string;
-  mode?: 'post' | 'avatar';
+  mode?: 'post' | 'avatar' | 'thumbnail' | 'pr';
   metadata?: Array<{
     cropMeta?: any;
   }>;
@@ -31,20 +31,19 @@ export const uploadImageToStorage = async (
     throw new ImageUploadError('ユーザーIDが一致しません。', 'user_mismatch');
   }
   
-  console.log('Upload auth check passed:', {
-    currentUserId: currentUser.uid,
-    requestedUserId: userId,
-    isAuthenticated: !!currentUser,
-    tokenExists: !!await currentUser.getIdToken()
-  });
+
   
   // 二段階アップロード: まず/tmpディレクトリに非公開でアップロード
   const sessionId = uuidv4();
   const fileExtension = file.name.split('.').pop() || 'jpg';
   
   // モード依存のファイル名プレフィックス
-  const filePrefix = mode === 'avatar' ? 'avatar_' : 'post_';
+  const filePrefix = mode === 'avatar' ? 'avatar_' : 
+                     mode === 'thumbnail' ? 'thumbnail_' :
+                     mode === 'pr' ? 'pr_' : 'post_';
   const fileName = `${filePrefix}${uuidv4()}.${fileExtension}`;
+  
+
   const tmpFilePath = `tmp/${sessionId}/${fileName}`;
 
   let lastError: Error | null = null;
@@ -79,9 +78,8 @@ export const uploadImageToStorage = async (
       const tmpDownloadURL = await getDownloadURL(snapshot.ref);
       
       // Step 3: Cloud Functionsによる処理完了を待機
-      console.log('Waiting for processing with:', { sessionId, fileName, userId });
+
       const processedResult = await waitForProcessing(sessionId, fileName, userId);
-      console.log('Processing completed with result:', processedResult);
       
       return processedResult;
     } catch (error) {
@@ -144,13 +142,9 @@ const waitForProcessing = async (
       }
       
       const result = await response.json();
-      console.log('Processing API response:', result);
       
       if (result.status === 'processed') {
-        console.log('Image processed successfully:', { 
-          url: result.publicUrl, 
-          hasMultipleUrls: !!result.publicUrls 
-        });
+
         
         return {
           url: result.publicUrl,
@@ -308,7 +302,7 @@ export const uploadMultipleImages = async (
           });
         }
         
-        console.log('Upload result for file:', file.name, 'Result:', result);
+
         return result.url;
       } catch (error) {
         console.error(`Failed to upload image ${file.name}:`, error);

@@ -29,9 +29,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadTopicHighlights = async () => {
       try {
-        console.log('HomePage: Loading topic highlights...');
         const topics = await getTopicHighlights();
-        console.log('HomePage: Loaded topics:', topics);
         setTopicHighlights(topics);
       } catch (error) {
         console.error('Failed to load topic highlights:', error);
@@ -69,26 +67,7 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Call to Action */}
-        <section className="text-center py-12">
-          <h2 className="text-xl font-bold text-foreground mb-3">
-            あなたの作品も共有しませんか？
-          </h2>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto text-sm">
-            あなたのGemini Canvas作品、ここで紹介してみませんか？<br />
-            投稿は簡単。たくさんの人と楽しさを共有しましょう。
-          </p>
-          
-          <div className="flex justify-center gap-4 mt-4 text-sm mb-8">
-            <a href="/about-geminicanvas" className="text-blue-500 hover:underline font-medium">
-              Gemini Canvasとは？
-            </a>
-            <a href="/submit" className="text-blue-700 hover:underline font-semibold tracking-wide">
-              今すぐ投稿する
-            </a>
-          </div>
 
-        </section>
       </div>
     </div>
   );

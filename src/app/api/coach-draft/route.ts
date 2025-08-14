@@ -46,11 +46,11 @@ const bodySchema = z.object({
     .refine(str => Buffer.byteLength(str, 'utf8') <= 500, {
       message: "タイトルのバイト数が制限を超えています（500バイト以内）"
     }),
-  category: z.string()
+  categoryId: z.string()
     .min(1, "カテゴリは必須です")
     .max(50, "カテゴリは50文字以内で入力してください")
     .transform(str => str.trim()),
-  tags: z.array(
+  tagIds: z.array(
     z.string()
       .max(50, "タグ名は50文字以内にしてください")
       .transform(str => str.trim())
@@ -153,8 +153,8 @@ export async function POST(req: NextRequest) {
       client_ip: clientIP,
       title_length: validatedData.title.length,
       overview_length: validatedData.overview.length,
-      category: validatedData.category,
-      tags_count: validatedData.tags.length,
+      categoryId: validatedData.categoryId,
+      tagIds_count: validatedData.tagIds.length,
       has_optional_fields: Object.keys(validatedData.optional).length > 0,
       locale: validatedData.locale,
       user_agent: req.headers.get('user-agent') || 'unknown',
@@ -165,8 +165,8 @@ export async function POST(req: NextRequest) {
     
     const aiResult = await CoachService.generateCoachAdvice({
       title: validatedData.title,
-      category: validatedData.category,
-      tags: validatedData.tags,
+      categoryId: validatedData.categoryId,
+      tagIds: validatedData.tagIds,
       overview: validatedData.overview,
       optional: validatedData.optional,
       appUrl: validatedData.appUrl,

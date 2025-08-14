@@ -8,12 +8,12 @@ interface UseCategoriesDataReturn {
   posts: Post[];
   loading: boolean;
   error: string | null;
-  getCategoryCount: (categoryName: string) => number;
-  getSelectedCategoryPosts: (selectedCategory: string, limit?: number) => Post[];
+  getCategoryCount: (categoryId: string) => number;
+  getSelectedCategoryPosts: (selectedCategoryId: string, limit?: number) => Post[];
 }
 
 export const useCategoriesData = (): UseCategoriesDataReturn => {
-  // APIから投稿データを取得
+  // API から投稿データを取得
   const { data: postsResponse, loading, error } = useFetch<{
     data?: { posts: Post[] };
   }>('/api/posts?limit=100');
@@ -21,7 +21,7 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
   const posts = postsResponse?.data?.posts || [];
 
   const categories = useMemo(() => {
-    // CATEGORY_MASTERSをベースにして、categoryIdを使用
+    // CATEGORY_MASTERS をベースにして、categoryId を使用
     return CATEGORY_MASTERS.map(cat => ({
       id: cat.id,
       name: cat.name,
@@ -31,24 +31,34 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
     }));
   }, []);
 
-  // カテゴリごとの作品数を取得（メモ化）- categoryIdベースに変更
-  const getCategoryCount = useCallback((categoryName: string): number => {
-    // categoryNameからcategoryIdを逆引き
-    const category = CATEGORY_MASTERS.find(cat => cat.name === categoryName);
-    if (!category) return 0;
-    
-    return posts.filter(post => post.isPublic !== false && post.categoryId === category.id).length;
+  // カテゴリごとの作品数を取得（メモ化）- categoryId ベース
+  const getCategoryCount = useCallback((categoryId: string): number => {
+    return posts.filter(post => post.isPublic !== false && post.categoryId === categoryId).length;
   }, [posts]);
 
-  // 選択されたカテゴリの作品を取得（メモ化）- categoryIdベースに変更
-  const getSelectedCategoryPosts = useCallback((selectedCategory: string, limit = 20): Post[] => {
-    // categoryNameからcategoryIdを逆引き
-    const category = CATEGORY_MASTERS.find(cat => cat.name === selectedCategory);
-    if (!category) return [];
+  // 選択されたカテゴリの作品を取得（メモ化）- categoryId ベース
+  const getSelectedCategoryPosts = useCallback((selectedCategoryId: string, limit = 20): Post[] => {
+    // 空文字列の場合は早期リターン
+    if (!selectedCategoryId || selectedCategoryId.trim() === '') {
+      return [];
+    }
     
-    return posts
-      .filter(post => post.isPublic !== false && post.categoryId === category.id)
-      .slice(0, limit);
+    const filteredPosts = posts.filter(post => post.isPublic !== false && post.categoryId === selectedCategoryId);
+    
+    console.log('getSelectedCategoryPosts Debug:', {
+      selectedCategoryId,
+      totalPosts: posts.length,
+      filteredPosts: filteredPosts.length,
+      allCategoryIds: [...new Set(posts.map(p => p.categoryId))],
+      samplePost: filteredPosts[0] ? {
+        id: filteredPosts[0].id,
+        title: filteredPosts[0].title,
+        categoryId: filteredPosts[0].categoryId,
+        thumbnail: filteredPosts[0].thumbnail
+      } : null
+    });
+    
+    return filteredPosts.slice(0, limit);
   }, [posts]);
 
   return {
@@ -59,4 +69,4 @@ export const useCategoriesData = (): UseCategoriesDataReturn => {
     getCategoryCount,
     getSelectedCategoryPosts,
   };
-};
+};;

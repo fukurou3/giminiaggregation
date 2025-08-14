@@ -18,12 +18,10 @@ interface UrlValidation {
 
 interface UseSubmitFormReturn {
   formData: Partial<PostFormData>;
-  customCategory: string;
   errors: Record<string, string>;
   isSubmitting: boolean;
   submitSuccess: boolean;
   handleInputChange: (field: keyof PostFormData, value: string | boolean | string[]) => void;
-  setCustomCategory: (value: string) => void;
   validateForm: () => boolean;
   isButtonDisabled: (urlValidation: UrlValidation) => boolean;
   handleSubmit: (e: React.FormEvent, urlValidation: UrlValidation) => Promise<void>;
@@ -37,13 +35,14 @@ export function useSubmitForm(): UseSubmitFormReturn {
     title: "",
     url: "",
     description: "",
-    tags: [],
-    category: "",
-    images: [],
+    tagIds: [],
+    categoryId: "",
+    thumbnail: "",
+    prImages: [],
     isPublic: true,
   });
   
-  const [customCategory, setCustomCategory] = useState("");
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -122,6 +121,51 @@ export function useSubmitForm(): UseSubmitFormReturn {
 
     setIsSubmitting(true);
     try {
+      // blob URLをFirebase Storage URLに変換
+      let finalThumbnail = formData.thumbnail;
+      let finalPrImages = formData.prImages || [];
+      
+      // サムネイル画像のアップロード
+      if (finalThumbnail && finalThumbnail.startsWith('blob:')) {
+
+        const response = await fetch(finalThumbnail);
+        const blob = await response.blob();
+        const file = new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
+        
+        const { uploadImageToStorage } = await import('@/lib/utils/storageUtils');
+        const uploadResult = await uploadImageToStorage(file, {
+          userId: user.uid,
+          folder: 'post-images',
+          mode: 'thumbnail'
+        });
+        finalThumbnail = uploadResult.url;
+
+      }
+      
+      // PR画像のアップロード
+      if (finalPrImages.length > 0) {
+
+        const uploadPromises = finalPrImages.map(async (imageUrl, index) => {
+          if (imageUrl.startsWith('blob:')) {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const file = new File([blob], `pr-image-${index}.jpg`, { type: 'image/jpeg' });
+            
+            const { uploadImageToStorage } = await import('@/lib/utils/storageUtils');
+            const uploadResult = await uploadImageToStorage(file, {
+              userId: user.uid,
+              folder: 'post-images',
+              mode: 'pr'
+            });
+            return uploadResult.url;
+          }
+          return imageUrl;
+        });
+        
+        finalPrImages = await Promise.all(uploadPromises);
+
+      }
+      
       // Firebase認証トークンを取得
       const token = await user.getIdToken();
       
@@ -134,7 +178,9 @@ export function useSubmitForm(): UseSubmitFormReturn {
         body: JSON.stringify({
           formData: {
             ...formData,
-            ...(formData.category === "その他" ? { customCategory } : {}),
+            thumbnail: finalThumbnail,
+            prImages: finalPrImages,
+
           },
           userInfo: {
             uid: user.uid,
@@ -185,12 +231,10 @@ export function useSubmitForm(): UseSubmitFormReturn {
 
   return {
     formData,
-    customCategory,
     errors,
     isSubmitting,
     submitSuccess,
     handleInputChange,
-    setCustomCategory,
     validateForm,
     isButtonDisabled,
     handleSubmit,

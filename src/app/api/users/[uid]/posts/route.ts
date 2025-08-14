@@ -76,7 +76,8 @@ export async function GET(
           category: data.category || 'その他',
           categoryId: data.categoryId || 'other',
           customCategory: data.customCategory || undefined,
-          thumbnailUrl: data.thumbnailUrl || '',
+          thumbnail: data.thumbnail || data.ogpImage || '',
+          prImages: data.prImages || [],
           authorId: data.authorId || '',
           authorUsername: data.authorUsername || '匿名ユーザー',
           authorPublicId: data.authorPublicId || '',
@@ -90,6 +91,11 @@ export async function GET(
           ogpTitle: data.ogpTitle || null,
           ogpDescription: data.ogpDescription || null,
           ogpImage: data.ogpImage || null,
+          problemBackground: data.problemBackground,
+          useCase: data.useCase,
+          uniquePoints: data.uniquePoints,
+          futureIdeas: data.futureIdeas,
+          acceptInterview: data.acceptInterview || false
         };
       })
     )

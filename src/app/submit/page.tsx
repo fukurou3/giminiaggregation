@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { TagInput } from "@/components/ui/TagInput";
 import { AutoTagButton } from "@/components/AutoTagButton";
 import { FloatingCoachButton } from "@/components/FloatingCoachButton";
-import { CATEGORIES, findCategoryByValue } from "@/lib/constants/categories";
+import { CATEGORY_MASTERS, findCategoryById } from "@/lib/constants/categories";
 import { Field } from "@/components/Field";
 import { AutosizeTextarea } from "@/components/AutosizeTextarea";
 import { ValidationStatus } from "@/components/ValidationStatus";
@@ -97,12 +97,10 @@ export default function SubmitPage() {
   
   const {
     formData,
-    customCategory,
     errors,
     isSubmitting,
     submitSuccess,
     handleInputChange,
-    setCustomCategory,
     isButtonDisabled,
     handleSubmit,
   } = useSubmitForm();
@@ -111,7 +109,7 @@ export default function SubmitPage() {
   
   // AIアドバイスプロンプト表示の条件管理
   useEffect(() => {
-    const hasBasicInfo = formData.title?.trim() && formData.category?.trim() && formData.description?.trim();
+    const hasBasicInfo = formData.title?.trim() && formData.categoryId?.trim() && formData.description?.trim();
     const hasMinimumDescription = formData.description?.trim().length >= 50;
     const hasNotUsedCoach = !coachAdvice;
     const isNotTyping = !isDescriptionFocused;
@@ -123,7 +121,7 @@ export default function SubmitPage() {
     } else if (!hasBasicInfo || !hasMinimumDescription || !hasNotUsedCoach || !hasNotShownBefore) {
       setShowCoachPrompt(false);
     }
-  }, [formData.title, formData.category, formData.description, coachAdvice, isDescriptionFocused, hasShownCoachPrompt]);
+  }, [formData.title, formData.categoryId, formData.description, coachAdvice, isDescriptionFocused, hasShownCoachPrompt]);
   
   // Extract complex conditional logic to constants  
   const submitButtonText = submitSuccess ? "✅ 投稿完了！リダイレクト中..." :
@@ -284,50 +282,29 @@ export default function SubmitPage() {
               id="submit-category"
               label="カテゴリ"
               required
-              error={errors.category}
+              error={errors.categoryId}
             >
               <select
                 id="submit-category"
-                name="category"
-                value={formData.category || ""}
-                onChange={(e) => handleInputChange("category", e.target.value)}
+                name="categoryId"
+                value={formData.categoryId || ""}
+                onChange={(e) => handleInputChange("categoryId", e.target.value)}
                 className="w-full px-3 py-2 bg-input border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
               >
                 <option value="">カテゴリを選択</option>
-                {CATEGORIES.map(category => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
+                {CATEGORY_MASTERS.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
-              {formData.category && (
+              {formData.categoryId && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  {findCategoryByValue(formData.category || "")?.description}
+                  {findCategoryById(formData.categoryId || "")?.description}
                 </p>
               )}
 
-              {formData.category === "その他" && (
-                <div className="mt-3">
-                  <Field
-                    id="submit-custom-category"
-                    label="追加希望カテゴリ"
-                  >
-                    <AutosizeTextarea
-                      id="submit-custom-category"
-                      name="customCategory"
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      placeholder="新しいカテゴリ名を入力"
-                      rows={1}
-                      minHeight="42px"
-                      className="w-full px-3 py-2 bg-input border border-black rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-input-foreground"
-                    />
-                  </Field>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    運営に送信され、追加が検討されます。
-                  </p>
-                </div>
-              )}
+
             </Field>
 
             {/* タグ */}
@@ -339,8 +316,8 @@ export default function SubmitPage() {
               </label>
               <div>
                 <TagInput
-                  tags={formData.tags || []}
-                  onTagsChange={(tags) => handleInputChange("tags", tags)}
+                  tags={formData.tagIds || []}
+                  onTagsChange={(tags) => handleInputChange("tagIds", tags)}
                   maxTags={5}
                 />
                 
@@ -348,15 +325,15 @@ export default function SubmitPage() {
                   <AutoTagButton
                     title={formData.title || ""}
                     description={formData.description || ""}
-                    currentTags={formData.tags || []}
-                    onTagsGenerated={(tags) => handleInputChange("tags", tags)}
+                    currentTags={formData.tagIds || []}
+                    onTagsGenerated={(tags) => handleInputChange("tagIds", tags)}
                     maxTags={5}
                   />
                 </div>
               </div>
-              {errors.tags && (
+              {errors.tagIds && (
                 <p className="text-error text-sm mt-1">
-                  {errors.tags}
+                  {errors.tagIds}
                 </p>
               )}
             </div>
@@ -805,8 +782,8 @@ export default function SubmitPage() {
         {/* 画面右下固定のAIアドバイスボタン */}
         <FloatingCoachButton
           title={formData.title || ""}
-          category={formData.category || ""}
-          tags={formData.tags || []}
+          categoryId={formData.categoryId || ""}
+          tagIds={formData.tagIds || []}
           overview={formData.description || ""}
           optional={{
             problem: formData.problemBackground,

@@ -9,6 +9,7 @@ interface PostActionsProps {
   isUpdatingFavorite: boolean;
   onFavoriteClick: () => void;
   userLoggedIn: boolean;
+  favoriteCount?: number;
 }
 
 const PostActions = memo<PostActionsProps>(({ 
@@ -16,43 +17,40 @@ const PostActions = memo<PostActionsProps>(({
   isFavorited, 
   isUpdatingFavorite, 
   onFavoriteClick, 
-  userLoggedIn 
+  userLoggedIn,
+  favoriteCount = 0
 }) => {
   return (
-    <div className="flex flex-row gap-3 lg:justify-end">
+    <div className="flex flex-row gap-4 lg:justify-end">
       <a
         href={postUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+        className="text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium"
       >
-        <span>開く</span>
+        開く
       </a>
       
       <button
         onClick={onFavoriteClick}
         disabled={!userLoggedIn || isUpdatingFavorite}
-        className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
-          isFavorited
-            ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
-            : "bg-card border-border text-foreground hover:bg-muted/50"
-        } ${(!userLoggedIn || isUpdatingFavorite) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`flex items-center gap-1 text-sm font-medium transition-colors text-black hover:text-gray-700 ${(!userLoggedIn || isUpdatingFavorite) ? 'opacity-50 cursor-not-allowed' : ''}`}
         aria-label={isFavorited ? 'お気に入りから削除' : 'お気に入りに追加'}
       >
         <Heart 
-          className={`w-4 h-4 mr-2 ${isFavorited ? 'fill-current' : ''}`} 
+          className={`w-4 h-4 ${isFavorited ? 'fill-current text-red-500' : ''}`} 
         />
-        <span>{isFavorited ? 'お気に入り' : 'お気に入り'}</span>
+        <span>{favoriteCount}</span>
         {isUpdatingFavorite && (
-          <div className="ml-2 w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <div className="ml-1 w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
         )}
       </button>
 
       <button 
-        className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold bg-card border border-border text-foreground hover:bg-muted/50 transition-colors"
+        className="text-black hover:text-gray-700 transition-colors text-sm font-medium"
         aria-label="共有"
       >
-        <span>共有</span>
+        共有
       </button>
     </div>
   );

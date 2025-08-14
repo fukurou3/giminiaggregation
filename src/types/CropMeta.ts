@@ -25,7 +25,22 @@ export function generateCropMeta(
   aspectRatio: number = 5/3,
   mode: 'post' | 'avatar' | 'thumbnail' | 'pr' = 'post'
 ): CropMeta {
-  // 5:3比率でセンタークロップの座標を計算
+  // PRモードは元画像をそのまま使用（切り抜きなし）
+  if (mode === 'pr') {
+    return {
+      x: 0,
+      y: 0,
+      w: imageWidth,
+      h: imageHeight,
+      angle: 0,
+      scale: 1,
+      naturalWidth: imageWidth,
+      naturalHeight: imageHeight,
+      ratio: '5:3' // ratioフィールドは必須だが、実際には使用しない
+    };
+  }
+  
+  // 5:3比率でセンタークロップの座標を計算（thumbnail、avatar、postモード用）
   let cropX = 0;
   let cropY = 0;
   let cropWidth = imageWidth;

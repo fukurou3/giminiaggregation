@@ -68,9 +68,10 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (allPosts.length === 0) {
-    return null;
-  }
+  // データがない場合でもヘッダーは表示する
+  // if (allPosts.length === 0) {
+  //   return null;
+  // }
 
   return (
     <section className="space-y-6">
@@ -113,29 +114,35 @@ export function TopicHighlightSection({ topicHighlights, loading = false }: Topi
           onScroll={checkScrollButtons}
         >
           <div className="flex gap-6 pb-4 px-4 sm:px-6 lg:px-8 min-w-max">
-            {topicHighlights.map((highlight) => (
-              <div key={highlight.topic.id} className="flex flex-col gap-4">
-                {/* 副タイトル */}
-                <h3 className="text-lg font-semibold text-foreground px-2">
-                  {highlight.topic.name}
-                </h3>
-                
-                {/* この副タイトルに属する作品群 */}
-                <div className="flex gap-6">
-                  {highlight.featuredPosts.map((post) => (
-                    <div key={post.id} className="w-72 flex-shrink-0">
-                      <BaseCard 
-                        post={post}
-                        size="medium"
-                        layout="vertical"
-                        showViews={false}
-                        showCategory={false}
-                      />
-                    </div>
-                  ))}
-                </div>
+            {allPosts.length === 0 ? (
+              <div className="px-4 py-8 text-center text-muted-foreground">
+                データを読み込み中...
               </div>
-            ))}
+            ) : (
+              topicHighlights.map((highlight) => (
+                <div key={highlight.topic.id} className="flex flex-col gap-4">
+                  {/* 副タイトル */}
+                  <h3 className="text-lg font-semibold text-foreground px-2">
+                    {highlight.topic.name}
+                  </h3>
+                  
+                  {/* この副タイトルに属する作品群 */}
+                  <div className="flex gap-6">
+                    {highlight.featuredPosts.map((post) => (
+                      <div key={post.id} className="w-72 flex-shrink-0">
+                        <BaseCard 
+                          post={post}
+                          size="medium"
+                          layout="vertical"
+                          showViews={false}
+                          showCategory={false}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

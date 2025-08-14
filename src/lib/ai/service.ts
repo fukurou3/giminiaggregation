@@ -257,8 +257,8 @@ export interface CoachResult {
  */
 export interface GenerateCoachRequest {
   title: string;
-  category: string;
-  tags: string[];
+  categoryId: string;
+  tagIds: string[];
   overview: string;
   optional: {
     problem?: string;
@@ -288,8 +288,8 @@ export class CoachService extends BaseAIService {
       const { buildCoachPrompt, CoachInput } = await import('./prompt');
       const promptInput: CoachInput = {
         title: request.title.trim(),
-        category: request.category,
-        tags: request.tags,
+        categoryId: request.categoryId,
+        tagIds: request.tagIds,
         overview: request.overview.trim(),
         optional: request.optional,
         appUrl: request.appUrl,
