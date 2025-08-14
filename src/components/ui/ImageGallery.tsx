@@ -39,17 +39,6 @@ const ImageGallery = memo<ImageGalleryProps>(({
   
   // スクロール管理のstate
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  // スクロール状態をチェック
-  const checkScrollButtons = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-    }
-  }, []);
 
   // スクロール処理
   const scrollLeft = useCallback(() => {
@@ -72,15 +61,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
     }
   }, []);
 
-  // 初期化とスクロールイベント監視
-  useEffect(() => {
-    checkScrollButtons();
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', checkScrollButtons);
-      return () => container.removeEventListener('scroll', checkScrollButtons);
-    }
-  }, [checkScrollButtons, displayImages]);
+
 
   if (displayImages.length === 0) {
     return null;
@@ -90,7 +71,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
     <div className={`bg-card rounded-xl overflow-hidden ${className}`}>
       <div className="relative -mx-4 sm:-mx-6 lg:-mx-8">
         {/* 左矢印 */}
-        {showNavigation && canScrollLeft && (
+        {showNavigation && (
           <button
             onClick={scrollLeft}
             className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
@@ -101,7 +82,7 @@ const ImageGallery = memo<ImageGalleryProps>(({
         )}
         
         {/* 右矢印 */}
-        {showNavigation && canScrollRight && (
+        {showNavigation && (
           <button
             onClick={scrollRight}
             className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background border border-border rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-105"
@@ -115,7 +96,6 @@ const ImageGallery = memo<ImageGalleryProps>(({
         <div 
           ref={scrollContainerRef}
           className="overflow-x-auto scrollbar-hide"
-          onScroll={checkScrollButtons}
         >
           <div className="flex gap-4 pb-4 px-4 sm:px-6 lg:px-8 min-w-max">
             {/* 先頭に空白を追加 */}

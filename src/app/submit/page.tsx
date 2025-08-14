@@ -132,6 +132,34 @@ export default function SubmitPage() {
   
   const showUrlValidationHelp = urlValidation.isValid === false && formData.url && formData.url.trim();
 
+  // 必須項目チェック用の関数
+  const getRequiredFieldsMessage = () => {
+    if (isSubmitting || submitSuccess || urlValidation.isValidating) {
+      return null;
+    }
+    
+    const missingFields = [];
+    
+    if (!formData.title?.trim()) missingFields.push('作品タイトル');
+    if (!formData.url?.trim()) missingFields.push('Gemini共有リンク');
+    if (!formData.description?.trim()) missingFields.push('作品概要');
+    if (!formData.categoryId?.trim()) missingFields.push('カテゴリ');
+    if (!formData.tagIds?.length) missingFields.push('タグ');
+    if (!formData.thumbnail?.trim()) missingFields.push('サムネイル画像');
+    
+    if (formData.url?.trim() && urlValidation.isValid === false) {
+      return '❌ 有効なGemini共有リンクを入力してください';
+    }
+    
+    if (missingFields.length > 0) {
+      return `⚠️ 以下の必須項目を入力してください: ${missingFields.join('、')}`;
+    }
+    
+    return null;
+  };
+  
+  const requiredFieldsMessage = getRequiredFieldsMessage();
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted">
@@ -770,7 +798,14 @@ export default function SubmitPage() {
                 {submitButtonText}
               </button>
               
-              {showUrlValidationHelp && (
+              {/* 必須項目に関するメッセージ */}
+              {requiredFieldsMessage && (
+                <p className="text-sm text-foreground mt-3 text-center">
+                  {requiredFieldsMessage}
+                </p>
+              )}
+              
+              {showUrlValidationHelp && !requiredFieldsMessage && (
                 <p className="text-sm text-muted-foreground mt-2 text-center">
                   有効なGeminiの共有リンクを入力すると投稿できます
                 </p>

@@ -56,7 +56,7 @@ const ErrorState = ({ error, onRetry, onGoHome }: ErrorStateProps) => (
 const BackButton = ({ onBack }: { onBack: () => void }) => (
   <button
     onClick={onBack}
-    className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors ml-2"
+    className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors ml-2 mb-4 p-2 rounded-lg hover:bg-accent/50"
     aria-label="前のページに戻る"
   >
     <ArrowLeft size={20} />
