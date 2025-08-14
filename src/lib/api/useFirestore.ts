@@ -45,7 +45,28 @@ export function useFirestoreDocument<T>(
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        const docData = { id: docSnap.id, ...docSnap.data() } as T;
+        const rawData = docSnap.data();
+        
+        // Convert Firestore timestamps to ISO strings for client components
+        const convertTimestamps = (obj: any): any => {
+          if (obj && typeof obj === 'object') {
+            if (obj.toDate && typeof obj.toDate === 'function') {
+              return obj.toDate().toISOString();
+            }
+            if (Array.isArray(obj)) {
+              return obj.map(convertTimestamps);
+            }
+            const converted: any = {};
+            for (const [key, value] of Object.entries(obj)) {
+              converted[key] = convertTimestamps(value);
+            }
+            return converted;
+          }
+          return obj;
+        };
+
+        const convertedData = convertTimestamps(rawData);
+        const docData = { id: docSnap.id, ...convertedData } as T;
         setData(docData);
       } else {
         setData(null);
@@ -95,8 +116,29 @@ export function useFirestoreCollection<T>(
       const querySnapshot = await getDocs(q);
       
       const results: T[] = [];
+      
+      // Convert Firestore timestamps to ISO strings for client components
+      const convertTimestamps = (obj: any): any => {
+        if (obj && typeof obj === 'object') {
+          if (obj.toDate && typeof obj.toDate === 'function') {
+            return obj.toDate().toISOString();
+          }
+          if (Array.isArray(obj)) {
+            return obj.map(convertTimestamps);
+          }
+          const converted: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            converted[key] = convertTimestamps(value);
+          }
+          return converted;
+        }
+        return obj;
+      };
+      
       querySnapshot.forEach((doc: DocumentSnapshot) => {
-        results.push({ id: doc.id, ...doc.data() } as T);
+        const rawData = doc.data();
+        const convertedData = convertTimestamps(rawData);
+        results.push({ id: doc.id, ...convertedData } as T);
       });
       
       setData(results);

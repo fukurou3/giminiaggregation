@@ -70,18 +70,23 @@ export async function GET(
       if (favoritePostIds.includes(postDoc.id)) {
         const postData = postDoc.data();
         
+        // 削除された投稿をスキップ
+        if (postData.isDeleted === true) {
+          continue;
+        }
+        
         favorites.push({
           id: postDoc.id,
           title: postData.title || '',
           url: postData.url || '',
           description: postData.description || '',
-          tags: postData.tags || [],
-          category: postData.category || 'その他',
+          tagIds: postData.tagIds || [], // tagsからtagIdsに修正
+          categoryId: postData.categoryId || '', // categoryからcategoryIdに修正
           customCategory: postData.customCategory || undefined,
-          thumbnailUrl: postData.thumbnailUrl || '',
+          thumbnail: postData.thumbnail || '', // thumbnailUrlからthumbnailに修正
           authorUsername: postData.authorUsername || '匿名ユーザー',
-          createdAt: postData.createdAt?.toDate() || new Date(),
-          updatedAt: postData.updatedAt?.toDate() || undefined,
+          createdAt: postData.createdAt?.toDate().toISOString() || new Date().toISOString(), // ISO文字列に変換
+          updatedAt: postData.updatedAt?.toDate().toISOString() || undefined,
           likes: postData.likes || 0,
           favoriteCount: postData.favoriteCount || 0,
           views: postData.views || 0,
@@ -94,7 +99,7 @@ export async function GET(
     }
 
     // 作成日時でソート（新しい順）
-    favorites.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    favorites.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     console.log(`User favorites fetched: ${favorites.length} items for user ${uid} - IP: ${ip}`);
 

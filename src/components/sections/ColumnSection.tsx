@@ -33,7 +33,7 @@ export function ColumnSection({ featuredOnly = false, limit = 10 }: ColumnSectio
     excerpt: 'あなたのGemini Canvas作品、ここで紹介してみませんか？投稿は簡単。たくさんの人と楽しさを共有しましょう。',
     category: '投稿募集',
     author: '',
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
     views: 0,
     likes: 0,
     slug: '',

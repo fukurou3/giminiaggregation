@@ -30,8 +30,8 @@ const createPlusNTag = (count: number): Tag => {
     views: 0,
     favorites: 0,
     flagged: false,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
 };
 
@@ -118,8 +118,8 @@ export function HorizontalTagList({
           views: 0,
           favorites: 0,
           flagged: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
         } as Tag;
       }
       return tag;

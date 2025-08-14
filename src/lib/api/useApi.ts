@@ -36,7 +36,36 @@ export function useApi<T>(
       const response = await fetchWithRetry(url, {}, retries, backoffMs);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorDetails = `HTTP ${response.status}`;
+        
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorDetails += `: ${errorData.error}`;
+          }
+          if (errorData.details) {
+            errorDetails += ` (${errorData.details})`;
+          }
+          console.error('API Error Response:', {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            errorData
+          });
+        } catch {
+          // JSON解析に失敗した場合はテキストとして取得を試行
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorDetails += `: ${errorText}`;
+            }
+          } catch {
+            // テキスト取得も失敗した場合はデフォルトメッセージ
+            errorDetails += `: ${response.statusText}`;
+          }
+        }
+        
+        throw new Error(errorDetails);
       }
 
       const result = await response.json();
@@ -44,7 +73,11 @@ export function useApi<T>(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'データの取得に失敗しました';
       setError(errorMessage);
-      console.error('API call failed:', err);
+      console.error('API call failed:', {
+        url,
+        error: err,
+        message: errorMessage
+      });
     } finally {
       setLoading(false);
     }

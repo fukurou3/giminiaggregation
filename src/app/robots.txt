@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://giminiaggregation.vercel.app/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /secure-dashboard-a8f7k2x9/
+Disallow: /settings/
+
+# Allow important pages
+Allow: /posts/
+Allow: /categories/
+Allow: /ranking/
+Allow: /users/
+
+# Crawl delay (optional)
+Crawl-delay: 1

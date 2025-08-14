@@ -497,7 +497,9 @@ export const ImageUploader = ({
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
             if (!disabled && fileInputRef.current) {
               fileInputRef.current.value = '';
               fileInputRef.current.click();
@@ -781,12 +783,14 @@ export const ImageUploader = ({
               transition-colors hover:bg-muted/50 hover:border-primary/50
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
-            onClick={() => {
-                if (!disabled && fileInputRef.current) {
-                fileInputRef.current.value = '';
-                fileInputRef.current.click();
-              }
-            }}
+            onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (!disabled && fileInputRef.current) {
+              fileInputRef.current.value = '';
+              fileInputRef.current.click();
+            }
+          }}
             disabled={disabled}
           >
             <Upload size={16} />

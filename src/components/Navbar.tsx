@@ -12,11 +12,61 @@ import { auth } from '@/lib/firebase';
 import { Settings } from 'lucide-react';
 import { getAvatarDisplayUrl, convertToCdnUrl } from '@/lib/utils/imageUrlHelpers';
 
+// 未読通知カウント用のカスタムフック
+function useUnreadNotifications() {
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const fetchUnreadCount = async () => {
+      if (!user) {
+        setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/users/notifications', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const notifications = data.notifications || [];
+          const unread = notifications.filter((n: any) => !n.read).length;
+          setUnreadCount(unread);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread notifications:', error);
+        setUnreadCount(0);
+      }
+    };
+
+    if (user) {
+      fetchUnreadCount();
+      // 30秒ごとに未読通知をチェック
+      interval = setInterval(fetchUnreadCount, 30000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [user]);
+
+  return unreadCount;
+}
+
 export function Navbar() {
   const { isAuthenticated } = useAuth();
   const { userProfile } = useUserProfile();
+  const unreadNotificationsCount = useUnreadNotifications();
   
-
   console.log('Navbar userProfile:', userProfile);
   console.log('photoURL:', userProfile?.photoURL);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -39,7 +89,6 @@ export function Navbar() {
       console.error('ログアウトエラー:', error);
     }
   };
-
 
   // 管理者権限チェック
   useEffect(() => {
@@ -140,22 +189,30 @@ export function Navbar() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 focus:outline-none"
                 >
-                  {userProfile?.photoURL ? (
-                    <div className="w-7 h-7 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
-                      <Image
-                        src={getAvatarDisplayUrl(userProfile.photoURL, 'small') || convertToCdnUrl(userProfile.photoURL)}
-                        alt={userProfile.username || 'User'}
-                        width={28}
-                        height={28}
-                        className="object-cover w-full h-full"
-                        onError={() => console.error('Failed to load profile image:', userProfile.photoURL)}
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors">
-                      <User size={13} className="text-primary-foreground" />
-                    </div>
-                  )}
+                  <div className="relative">
+                    {userProfile?.photoURL ? (
+                      <div className="w-7 h-7 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all">
+                        <Image
+                          src={getAvatarDisplayUrl(userProfile.photoURL, 'small') || convertToCdnUrl(userProfile.photoURL)}
+                          alt={userProfile.username || 'User'}
+                          width={28}
+                          height={28}
+                          className="object-cover w-full h-full"
+                          onError={() => console.error('Failed to load profile image:', userProfile.photoURL)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 bg-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors">
+                        <User size={13} className="text-primary-foreground" />
+                      </div>
+                    )}
+                    {/* 未読通知のビックリマーク */}
+                    {unreadNotificationsCount > 0 && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-white font-bold">!</span>
+                      </div>
+                    )}
+                  </div>
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-1.5 w-40 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
@@ -178,10 +235,18 @@ export function Navbar() {
                     <Link
                       href="/settings/user"
                       onClick={() => setShowUserMenu(false)}
-                      className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="w-full flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     >
-                      <Settings size={13} />
-                      <span>ユーザー設定</span>
+                      <div className="flex items-center space-x-1.5">
+                        <Settings size={13} />
+                        <span>ユーザー設定</span>
+                      </div>
+                      {/* 未読通知のビックリマーク */}
+                      {unreadNotificationsCount > 0 && (
+                        <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                          <span className="text-xs text-white font-bold">!</span>
+                        </div>
+                      )}
                     </Link>
                     {isAdmin && (
                       <Link
@@ -233,7 +298,7 @@ export function Navbar() {
   @media (min-width: 830px) {
     .navbar {
       /* 1行時（>= 830px） */
-      --nav-pt: 7px;     /* ↑ここを増やすと上下が“厚く”なる */
+      --nav-pt: 7px;     /* ↑ここを増やすと上下が"厚く"なる */
       --nav-pb: 7px;
       --row-h: 44px;      /* 文字上下の余白を増やしたい時はここ */
       --row-gap: 0px;     /* 1行なので 0 のままでOK */
@@ -289,21 +354,21 @@ export function Navbar() {
 
   .search-icon > div { padding: var(--icon-pad); }
 
-  /* 1行レイアウト切替（ブレークポイントは数値の単一ソースに合わせて830pxで統一） */
+  /* PC用レイアウト (830px以上) */
   @media (min-width: 830px) {
     .navbar :global(.navbar-container) {
       grid-template-areas: "logo nav user";
-      grid-template-columns: minmax(200px, auto) 1fr auto;
-      row-gap: 0; /* 念のため：1行なので隙間なし */
+      grid-template-columns: 1fr auto 1fr;
+      grid-auto-rows: var(--row-h);
+      row-gap: 0;
+      column-gap: 0;
+    }
+
+    .nav-group {
+      justify-self: center;
     }
   }
-
-  /* 小画面のタイポ（任意） */
-  @media (max-width: 829px) {
-    .nav-links a { line-height: 1.2; font-size: 14px; }
-  }
 `}</style>
-
     </nav>
   );
 }

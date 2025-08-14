@@ -175,7 +175,8 @@ export const ThumbnailUploader = ({
 
   const removeImage = useCallback(() => {
     if (imageItem) {
-      if (imageItem.previewUrl) {
+      // プレビューURL（新規アップロード時のBlob URL）のクリーンアップ
+      if (imageItem.previewUrl && imageItem.previewUrl.startsWith('blob:')) {
         try {
           URL.revokeObjectURL(imageItem.previewUrl);
           createdBlobUrlsRef.current.delete(imageItem.previewUrl);
@@ -188,6 +189,23 @@ export const ThumbnailUploader = ({
     setImageItem(null);
     onImageChange('');
   }, [imageItem, onImageChange]);
+
+  // 既存の画像URLをimageItemに反映
+  useEffect(() => {
+    if (image && !image.startsWith('blob:') && !imageItem?.previewUrl) {
+      // 既存の画像URL（サーバーから取得したURL）をimageItemとして設定
+      const existingImageItem: ImageItem = {
+        id: `existing-${Date.now()}`,
+        url: image,
+        fileHash: `external-${image}`,
+        uploading: false
+      };
+      setImageItem(existingImageItem);
+    } else if (!image && imageItem) {
+      // 画像がクリアされた場合
+      setImageItem(null);
+    }
+  }, [image, imageItem?.previewUrl]);
 
   // メモリリーク防止
   useEffect(() => {
@@ -263,7 +281,9 @@ export const ThumbnailUploader = ({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
               if (!disabled && fileInputRef.current) {
                 fileInputRef.current.value = '';
                 fileInputRef.current.click();

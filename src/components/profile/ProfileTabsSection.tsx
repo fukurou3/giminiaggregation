@@ -67,7 +67,7 @@ export function ProfileTabsSection({
             }`}
           >
             <Heart className="w-4 h-4" />
-            <span className="text-sm font-medium">お気に入り ({favorites.length})</span>
+            <span className="text-sm font-medium">お気に入り</span>
           </button>
         </div>
       </div>

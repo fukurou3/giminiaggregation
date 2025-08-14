@@ -1,420 +1,172 @@
-'use client';
-
-import { Suspense, useEffect } from 'react';
-import { useFirestoreDocument } from '@/lib/api';
-import Head from 'next/head';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Globe, BarChart3, Users, Zap, Sparkles, Award } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { usePostDetail } from '@/hooks/usePostDetail';
-import { ImageGallery } from '@/components/ui/ImageGallery';
-import { PostActions } from '@/components/posts/PostActions';
-import { TagChip } from '@/components/ui/TagChip';
-import { formatDate } from '@/lib/utils/date';
+import { Suspense } from 'react';
+import { Metadata } from 'next';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { findCategoryById } from '@/lib/constants/categories';
-import Link from 'next/link';
-import { RelatedPostsSection } from '@/components/sections/RelatedPostsSection';
-import { useRelatedPosts } from '@/hooks/useRelatedPosts';
-import { Spinner } from '@/components/ui/Spinner';
 import type { Post } from '@/types/Post';
-import type { UserProfile } from '@/types/UserProfile';
+import PostDetailClient from './PostDetailClient';
+import { StructuredData } from '@/components/seo/StructuredData';
 
-// ローディングコンポーネント
-const LoadingSpinner = () => <Spinner />;
-
-// エラーコンポーネント
-interface ErrorStateProps {
-  error?: string;
-  onRetry: () => void;
-  onGoHome: () => void;
-}
-
-const ErrorState = ({ error, onRetry, onGoHome }: ErrorStateProps) => (
-  <div className="flex items-center justify-center py-20">
-    <div className="text-center">
-      <h1 className="text-2xl font-bold text-foreground mb-4">
-        {error || '投稿が見つかりません'}
-      </h1>
-      <div className="space-x-4">
-        <button
-          onClick={onRetry}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          再試行
-        </button>
-        <button
-          onClick={onGoHome}
-          className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
-        >
-          ホームに戻る
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-// 戻るボタンコンポーネント
-const BackButton = ({ onBack }: { onBack: () => void }) => (
-  <button
-    onClick={onBack}
-    className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors ml-2 mb-4 p-2 rounded-lg hover:bg-accent/50"
-    aria-label="前のページに戻る"
-  >
-    <ArrowLeft size={20} />
-    <span className="text-base font-medium">戻る</span>
-  </button>
-);
-
-// メインコンポーネント
-export default function PostDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
-  const postId = params.id as string;
-
-  // データ取得
-  const { data: post, loading, error, refetch } = useFirestoreDocument<Post>(
-    'posts',
-    postId
-  );
-
-  // 作成者のユーザー情報を取得
-  const { data: authorProfile } = useFirestoreDocument<UserProfile>(
-    'userProfiles',
-    post?.authorId || ''
-  );
-
-  // 投稿詳細のロジック
-  const { isFavorited, handleFavorite, isUpdatingFavorite, actualFavoriteCount } = usePostDetail({
-    post,
-    postId,
-    refetch,
-  });
-
-  // 関連作品を取得
-  const { relatedPosts, loading: relatedLoading } = useRelatedPosts(postId);
-
-  // 動的メタデータ設定
-  useEffect(() => {
-    if (post) {
-      const category = post.categoryId ? findCategoryById(post.categoryId) : null;
-      const categoryName = category?.name || post.customCategory || 'その他';
+// Firestoreから投稿データを取得
+async function getPost(id: string): Promise<Post | null> {
+  try {
+    const docRef = doc(db, 'posts', id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
       
-      // 説明文を適切な長さに制限
-      const description = post.description 
-        ? post.description.length > 160 
-          ? post.description.substring(0, 157) + '...'
-          : post.description
-        : `${categoryName}カテゴリの作品です。`;
-
-      const title = `${post.title} - AI活用創作フォーラム`;
-      
-      // ページタイトルを設定
-      document.title = title;
-      
-      // メタタグを動的に設定
-      const updateMeta = (property: string, content: string) => {
-        let meta = document.querySelector(`meta[property="${property}"]`) || 
-                   document.querySelector(`meta[name="${property}"]`);
-        if (!meta) {
-          meta = document.createElement('meta');
-          if (property.startsWith('og:') || property.startsWith('twitter:')) {
-            meta.setAttribute('property', property);
-          } else {
-            meta.setAttribute('name', property);
+      // Convert Firestore timestamps to ISO strings for client components
+      const convertTimestamps = (obj: any): any => {
+        if (obj && typeof obj === 'object') {
+          if (obj.toDate && typeof obj.toDate === 'function') {
+            return obj.toDate().toISOString();
           }
-          document.head.appendChild(meta);
+          if (Array.isArray(obj)) {
+            return obj.map(convertTimestamps);
+          }
+          const converted: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            converted[key] = convertTimestamps(value);
+          }
+          return converted;
         }
-        meta.setAttribute('content', content);
+        return obj;
       };
 
-      // 基本メタタグ
-      updateMeta('description', description);
-      
-      // OGPメタタグ
-      updateMeta('og:title', title);
-      updateMeta('og:description', description);
-      updateMeta('og:type', 'article');
-      updateMeta('og:url', window.location.href);
-      updateMeta('og:site_name', 'AI活用創作フォーラム');
-      updateMeta('og:locale', 'ja_JP');
-      
-      if (post.thumbnail) {
-        updateMeta('og:image', post.thumbnail);
-        updateMeta('og:image:width', '1200');
-        updateMeta('og:image:height', '630');
-        updateMeta('og:image:alt', post.title);
-      }
-      
-      // Twitter Cardメタタグ
-      updateMeta('twitter:card', 'summary_large_image');
-      updateMeta('twitter:title', title);
-      updateMeta('twitter:description', description);
-      updateMeta('twitter:site', '@yoursite'); // 実際のTwitterアカウントに置き換え
-      
-      if (post.thumbnail) {
-        updateMeta('twitter:image', post.thumbnail);
-      }
-      
-      // キーワード
-      const keywords = [
-        categoryName,
-        'AI',
-        'Canvas',
-        'アイデア',
-        'クリエイティブ',
-        ...(post.tagIds || [])
-      ].join(', ');
-      updateMeta('keywords', keywords);
+      const convertedData = convertTimestamps(data);
+      return { id: docSnap.id, ...convertedData } as Post;
     }
-  }, [post]);
+    return null;
+  } catch (error) {
+    console.error('Error fetching post:', error);
+    return null;
+  }
+}
 
-  // ハンドラー
-  const handleRetry = () => refetch();
-  const handleGoHome = () => router.push('/');
-  const handleGoBack = () => router.back();
+// OGPメタデータを生成（サーバーサイド）
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPost(id);
+  
+  if (!post) {
+    return {
+      title: '投稿が見つかりません - AI活用創作フォーラム',
+      description: 'お探しの投稿は見つかりませんでした。',
+    };
+  }
 
-  // カテゴリ名取得
-  const getCategoryName = (post: Post): string => {
-    const category = post.categoryId ? findCategoryById(post.categoryId) : null;
-    return category?.name || post.customCategory || 'その他';
+  const category = post.categoryId ? findCategoryById(post.categoryId) : null;
+  const categoryName = category?.name || post.customCategory || 'その他';
+  
+  // タイトル最適化（60文字以内推奨）
+  const siteName = 'AI活用創作フォーラム';
+  const maxTitleLength = 60 - siteName.length - 3; // " - "分を引く
+  const optimizedTitle = post.title.length > maxTitleLength 
+    ? post.title.substring(0, maxTitleLength - 3) + '...'
+    : post.title;
+  const title = `${optimizedTitle} - ${siteName}`;
+  
+  // 説明文最適化（モバイル120文字、デスクトップ160文字）
+  const maxDescLength = 150; // モバイル・デスクトップ両対応
+  let description: string;
+  
+  if (post.description) {
+    // 説明文がある場合は最適化
+    if (post.description.length > maxDescLength) {
+      description = post.description.substring(0, maxDescLength - 3) + '...';
+    } else {
+      description = post.description;
+    }
+  } else {
+    // 説明文がない場合は他の情報から生成
+    const hasExtraInfo = post.problemBackground || post.useCase || post.uniquePoints;
+    if (hasExtraInfo) {
+      const extraInfo = post.problemBackground || post.useCase || post.uniquePoints || '';
+      description = extraInfo.length > maxDescLength 
+        ? extraInfo.substring(0, maxDescLength - 3) + '...'
+        : extraInfo;
+    } else {
+      description = `${categoryName}カテゴリのAI作品。${post.authorUsername}さんが投稿した創作アイデアをご覧ください。`;
+    }
+  }
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://giminiaggregation.vercel.app';
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${siteUrl}/posts/${id}`,
+    },
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      url: `${siteUrl}/posts/${id}`,
+      siteName,
+      images: post.thumbnail ? [
+        {
+          url: post.thumbnail,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        }
+      ] : [],
+      locale: 'ja_JP',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: post.thumbnail ? [post.thumbnail] : [],
+      site: '@AICreativeForum', // 実際のTwitterアカウントに変更
+    },
+    authors: [{ name: post.authorUsername }],
+    keywords: [
+      // メインキーワード
+      'AI',
+      'AI活用',
+      '創作フォーラム',
+      '創作アイデア',
+      
+      // カテゴリ関連
+      categoryName,
+      category?.description || '',
+      
+      // 作品関連
+      'アイデア共有',
+      'クリエイティブ',
+      'イノベーション',
+      
+      // タグ（重複除去）
+      ...(post.tagIds || []).filter(tag => tag.length > 0),
+      
+      // 作者関連
+      post.authorUsername,
+      
+      // 特徴的なキーワード（内容から抽出）
+      ...(post.problemBackground ? ['課題解決', '背景分析'] : []),
+      ...(post.useCase ? ['活用事例', '利用シーン'] : []),
+      ...(post.uniquePoints ? ['差別化', '独自性'] : []),
+      ...(post.futureIdeas ? ['発展性', '応用'] : []),
+    ].filter((keyword, index, array) => 
+      keyword && keyword.trim() && array.indexOf(keyword) === index
+    ),
   };
+}
 
-  // ローディング状態
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  // エラー状態
-  if (error || !post) {
-    return (
-      <ErrorState
-        error={error}
-        onRetry={handleRetry}
-        onGoHome={handleGoHome}
-      />
-    );
-  }
+// メインコンポーネント（サーバーコンポーネント）
+export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const post = await getPost(id);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://giminiaggregation.vercel.app';
 
   return (
-    <div className="bg-background min-h-screen">
-      <div className="max-w-6xl mx-auto px-2 pt-3 space-y-3">
-        {/* 戻るボタン */}
-        <BackButton onBack={handleGoBack} />
-        
-        {/* 投稿ヘッダー */}
-        <div className="bg-card rounded-xl overflow-hidden">
-          <div className="p-3">
-            <div className="flex flex-col">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col lg:flex-row lg:items-start gap-3 mb-3">
-                  <div className="flex-1">
-                    <h1 className="text-xl font-semibold text-foreground mb-2 leading-tight">
-                      {post.title}
-                    </h1>
-                  </div>
-
-                  {/* アクションボタン */}
-                  <PostActions
-                    postUrl={post.url}
-                    isFavorited={isFavorited}
-                    isUpdatingFavorite={isUpdatingFavorite}
-                    onFavoriteClick={handleFavorite}
-                    userLoggedIn={!!user}
-                    favoriteCount={actualFavoriteCount}
-                    title={post.title}
-                    description={post.description}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 画像ギャラリー */}
-        {/* 画像ギャラリー - 最新スキーマのみ */}
-        {post.thumbnail && (
-          <Suspense fallback={<div className="bg-card rounded-xl h-64 animate-pulse" />}>
-            <ImageGallery
-              thumbnail={post.thumbnail}
-              prImages={post.prImages}
-              title={post.title}
-            />
-          </Suspense>
-        )}
-
-        {/* カテゴリとタグ */}
-        <div className="space-y-2">
-          {/* カテゴリ */}
-          <div>
-            <Link 
-              href={`/categories?category=${post.categoryId || 'other'}`}
-              className="text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium cursor-pointer"
-            >
-              {getCategoryName(post)}
-            </Link>
-          </div>
-
-          {/* タグ */}
-          {post.tagIds && post.tagIds.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {post.tagIds.map((tagId) => (
-                <TagChip
-                  key={`tagid-${tagId}`}
-                  tag={{ 
-                    id: tagId, 
-                    name: tagId.replace(/_/g, ' '),
-                    aliases: [], 
-                    count: 0, 
-                    isOfficial: false, 
-                    views: 0, 
-                    favorites: 0, 
-                    flagged: false,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                  }}
-                  size="md"
-                  variant="outlined"
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* メインコンテンツ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 左側：投稿内容 */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 作品概要セクション */}
-            <div className="bg-card rounded-xl p-3">
-              <h3 className="text-lg font-semibold text-foreground mb-2">作品概要</h3>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {post.description}
-              </p>
-            </div>
-
-            {/* 詳細情報（任意項目のみ表示） */}
-            {(post.problemBackground || post.useCase || post.uniquePoints || post.futureIdeas || (post.customSections && post.customSections.length > 0)) && (
-              <div className="bg-card rounded-xl p-3">
-                <div className="space-y-6">
-                  {post.problemBackground && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        課題・背景
-                      </h3>
-                      <p className="text-foreground leading-relaxed">{post.problemBackground}</p>
-                    </div>
-                  )}
-                  {post.useCase && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        想定シーン・利用者
-                      </h3>
-                      <p className="text-foreground leading-relaxed">{post.useCase}</p>
-                    </div>
-                  )}
-                  {post.uniquePoints && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        差別化ポイント
-                      </h3>
-                      <p className="text-foreground leading-relaxed">{post.uniquePoints}</p>
-                    </div>
-                  )}
-                  {post.futureIdeas && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        応用・発展アイデア
-                      </h3>
-                      <p className="text-foreground leading-relaxed">{post.futureIdeas}</p>
-                    </div>
-                  )}
-                  {/* カスタムセクション */}
-                  {post.customSections?.map((section, index) => (
-                    <div key={section.id}>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        {section.title}
-                      </h3>
-                      <p className="text-foreground leading-relaxed whitespace-pre-wrap">{section.content}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* OGP情報 */}
-            {post.ogpTitle && post.ogpTitle !== post.title && (
-              <div className="bg-card rounded-xl p-3">
-                <h2 className="text-xl font-bold text-foreground mb-4 flex items-center">
-                  <Globe size={20} className="mr-2 text-blue-600" />
-                  Canvas情報
-                </h2>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">タイトル</span>
-                    <p className="text-foreground">{post.ogpTitle}</p>
-                  </div>
-                  {post.ogpDescription && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">説明</span>
-                      <p className="text-foreground">{post.ogpDescription}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 右側：サイドバー */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-3">
-              <h3 className="text-lg font-bold text-foreground mb-4">情報</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">作成者</span>
-                  {authorProfile?.publicId ? (
-                    <Link 
-                      href={`/users/${authorProfile.publicId}`}
-                      className="font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer underline-offset-4 hover:underline"
-                    >
-                      {post.authorUsername}
-                    </Link>
-                  ) : (
-                    <span className="font-medium text-blue-600">{post.authorUsername}</span>
-                  )}
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">公開日</span>
-                  <span className="text-foreground">
-                    {formatDate(post.createdAt, { fallback: '不明' })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">更新日</span>
-                  <span className="text-foreground">
-                    {formatDate(post.updatedAt, { fallback: '不明' })}
-                  </span>
-                </div>
-                {post.featured && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">注目</span>
-                    <div className="flex items-center text-amber-600">
-                      <Award size={16} className="mr-1" />
-                      <span className="font-medium">おすすめ</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* おすすめの作品セクション */}
-        <RelatedPostsSection
-          posts={relatedPosts}
-          loading={relatedLoading}
-        />
-      </div>
-    </div>
+    <>
+      {/* {post && <StructuredData post={post} siteUrl={siteUrl} />} */}
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen">読み込み中...</div>}>
+        <PostDetailClient postId={id} />
+      </Suspense>
+    </>
   );
 }

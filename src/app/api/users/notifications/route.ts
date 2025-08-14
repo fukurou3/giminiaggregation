@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { authenticateUser } from '@/app/api/_middleware/auth';
 
@@ -19,15 +19,18 @@ export async function GET(request: NextRequest) {
     const notificationsRef = collection(db, 'userNotifications');
     const notificationsQuery = query(
       notificationsRef,
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
     
     const snapshot = await getDocs(notificationsQuery);
-    const notifications = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const notifications = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .sort((a: { createdAt?: { toDate(): Date } }, b: { createdAt?: { toDate(): Date } }) => 
+        (b.createdAt?.toDate()?.getTime() || 0) - (a.createdAt?.toDate()?.getTime() || 0)
+      );
 
     return NextResponse.json({ notifications });
 

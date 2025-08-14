@@ -50,11 +50,21 @@ export async function GET(
     }
 
     const profileDoc = profileSnapshot.docs[0];
+    const profileData = profileDoc.data();
+    
+    // 削除されたユーザーの場合は404を返す
+    if (profileData.isDeleted) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+    
     const profile = {
       id: profileDoc.id,
-      ...profileDoc.data(),
-      createdAt: profileDoc.data().createdAt?.toDate?.() || null,
-      updatedAt: profileDoc.data().updatedAt?.toDate?.() || null,
+      ...profileData,
+      createdAt: profileData.createdAt?.toDate?.() || null,
+      updatedAt: profileData.updatedAt?.toDate?.() || null,
     } as UserProfile;
 
     const userId = profile.uid || profile.id;
@@ -76,6 +86,12 @@ export async function GET(
       const postsSnapshot = await getDocs(postsQuery);
       posts = postsSnapshot.docs.map(doc => {
         const data = doc.data();
+        
+        // 削除された投稿をスキップ
+        if (data.isDeleted === true) {
+          return null;
+        }
+        
         return {
           id: doc.id,
           title: data.title || '',
@@ -102,6 +118,7 @@ export async function GET(
           ogpImage: data.ogpImage || null,
         } as Post;
       })
+      .filter(post => post !== null) // 削除された投稿を除外
       // 一時的にクライアント側ソートを復活（インデックス作成まで）
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 20);

@@ -207,8 +207,8 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                       views: 0, 
                       favorites: 0, 
                       flagged: false,
-                      createdAt: new Date(), 
-                      updatedAt: new Date()
+                      createdAt: new Date().toISOString(), 
+                      updatedAt: new Date().toISOString()
                     }))
                     .sort((a, b) => a.name.length - b.name.length)}
                   postTitle={post.title}
@@ -333,8 +333,8 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
                     views: 0, 
                     favorites: 0, 
                     flagged: false,
-                    createdAt: new Date(), 
-                    updatedAt: new Date()
+                    createdAt: new Date().toISOString(), 
+                    updatedAt: new Date().toISOString()
                   }))
                   .sort((a, b) => a.name.length - b.name.length)}
                 postTitle={post.title}

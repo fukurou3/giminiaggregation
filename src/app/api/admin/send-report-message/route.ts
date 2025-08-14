@@ -6,14 +6,21 @@ import { authenticateAdmin } from '@/lib/adminAuth';
 // 通報関連メッセージ送信
 export async function POST(request: NextRequest) {
   try {
+    console.log('Send report message API called');
+    
     // 管理者認証
-    const { user } = await authenticateAdmin(request);
+    const user = await authenticateAdmin(request);
+    console.log('Auth result:', { user: user ? 'authenticated' : 'not authenticated', details: user });
+    
     if (!user) {
+      console.log('Authentication failed - returning 403');
       return NextResponse.json(
         { error: '管理者権限が必要です' },
         { status: 403 }
       );
     }
+    
+    console.log('Authentication successful, proceeding with message send');
 
     const body = await request.json();
     const {

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     // クエリ制限値（デフォルト10、最大50）
     const queryLimit = limitParam ? Math.min(parseInt(limitParam, 10), 50) : 10;
 
-    // Firestoreクエリを構築（公開投稿のみ）
+    // Firestoreクエリを構築（公開投稿のみ、削除されていない投稿のみ）
     let postsQuery;
     
     if (featuredOnly) {
@@ -63,13 +63,15 @@ export async function GET(request: NextRequest) {
       postsQuery = query(
         collection(db, 'posts'),
         where('isPublic', '==', true),
-        where('featured', '==', true)
+        where('featured', '==', true),
+        // 削除された投稿を除外（isDeletedフィールドが存在しないか、falseの場合のみ）
       );
     } else {
       // 通常の公開記事のみ
       postsQuery = query(
         collection(db, 'posts'),
-        where('isPublic', '==', true)
+        where('isPublic', '==', true),
+        // 削除された投稿を除外（isDeletedフィールドが存在しないか、falseの場合のみ）
       );
     }
 
@@ -88,11 +90,11 @@ export async function GET(request: NextRequest) {
         const { getFavoriteCount } = await import('@/lib/favorites');
         const actualFavoriteCount = await getFavoriteCount(doc.id);
         
-        // 全Timestampフィールドを安全に変換する関数
+        // 全Timestampフィールドを安全に変換する関数（ISO文字列に変換）
         const convertTimestamps = (obj: any): any => {
           if (obj && typeof obj === 'object') {
             if (obj.toDate && typeof obj.toDate === 'function') {
-              return obj.toDate();
+              return obj.toDate().toISOString();
             }
             if (Array.isArray(obj)) {
               return obj.map(convertTimestamps);
@@ -108,6 +110,11 @@ export async function GET(request: NextRequest) {
 
         const convertedData = convertTimestamps(data);
         
+        // 削除された投稿をスキップ
+        if (convertedData.isDeleted === true) {
+          return null;
+        }
+        
         return {
           id: doc.id,
           favoriteCount: actualFavoriteCount, // 実際のお気に入り数で上書き
@@ -115,6 +122,9 @@ export async function GET(request: NextRequest) {
         };
       })
     );
+
+    // nullの投稿（削除された投稿）をフィルタリング
+    posts = posts.filter(post => post !== null);
 
     // カテゴリフィルターを適用
     if (categoryFilter && categoryFilter !== 'all') {
@@ -125,7 +135,10 @@ export async function GET(request: NextRequest) {
     if (period === 'week') {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      posts = posts.filter(post => post.createdAt >= oneWeekAgo);
+      posts = posts.filter(post => {
+        const postDate = new Date(post.createdAt);
+        return postDate >= oneWeekAgo;
+      });
     }
 
     // ソートを適用
@@ -145,7 +158,7 @@ export async function GET(request: NextRequest) {
           return b.views - a.views;
         case 'createdAt':
         default:
-          return b.createdAt.getTime() - a.createdAt.getTime();
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
 

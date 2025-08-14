@@ -43,8 +43,8 @@ export function TagChip({
         views: 0,
         favorites: 0,
         flagged: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
     : tag;
 

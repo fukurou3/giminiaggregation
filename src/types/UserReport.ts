@@ -1,5 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
-
 export enum UserReportReason {
   HARASSMENT = '嫌がらせ・攻撃的な行動',
   SPAM = 'スパム',
@@ -20,10 +18,10 @@ export interface UserReport {
   targetUserId: string;
   reason: UserReportReason;
   description: string;
-  createdAt: Timestamp;
+  createdAt: any;
   status: UserReportStatus;
   adminNotes?: string;
-  updatedAt?: Timestamp;
+  updatedAt?: any;
 }
 
 export interface CreateUserReportRequest {
