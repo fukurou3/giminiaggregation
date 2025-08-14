@@ -1,4 +1,4 @@
-import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, ArrowLeft, Settings } from "lucide-react";
+import { MapPin, Link as LinkIcon, Twitter, Github, Mail, User, ArrowLeft, Settings, Flag } from "lucide-react";
 import Image from "next/image";
 import { UserProfile } from "@/types/User";
 import { getAvatarDisplayUrl, convertToCdnUrl } from "@/lib/utils/imageUrlHelpers";
@@ -10,6 +10,7 @@ interface ProfileInfoSectionProps {
   onBack: () => void;
   isOwnProfile?: boolean;
   onEditProfile?: () => void;
+  onReportUser?: () => void;
 }
 
 export function ProfileInfoSection({
@@ -19,6 +20,7 @@ export function ProfileInfoSection({
   onBack,
   isOwnProfile,
   onEditProfile,
+  onReportUser,
 }: ProfileInfoSectionProps) {
   return (
     <div className="relative px-0 pb-1">
@@ -61,6 +63,16 @@ export function ProfileInfoSection({
             aria-label="プロフィール編集"
           >
             <Settings className="w-5 h-5" />
+          </button>
+        )}
+        
+        {!isOwnProfile && onReportUser && (
+          <button
+            onClick={onReportUser}
+            className="p-2 rounded-full hover:bg-muted transition-colors"
+            aria-label="ユーザーを通報"
+          >
+            <Flag className="w-5 h-5" />
           </button>
         )}
       </div>

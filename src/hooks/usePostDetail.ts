@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { toggleFavorite, isFavorited as checkIsFavorited, getFavoriteCount } from '@/lib/favorites';
+import { apiSetFavorite, isFavorited as checkIsFavorited, getFavoriteCount } from '@/lib/favorites';
 import { useAuth } from '@/hooks/useAuth';
 import type { Post } from '@/types/Post';
 
@@ -27,6 +27,7 @@ export const usePostDetail = ({
   const [isFavorited, setIsFavorited] = useState(false);
   const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
   const [actualFavoriteCount, setActualFavoriteCount] = useState(0);
+  const seqRef = useRef(0);
 
   // ビュー数の更新とお気に入り状態の取得
   useEffect(() => {
@@ -58,20 +59,26 @@ export const usePostDetail = ({
   }, [post, postId, user]);
 
   const handleFavorite = async () => {
-    if (!post || !user || isUpdatingFavorite) return;
+    if (!post || !user || isUpdatingFavorite) return; // 直列化
     
+    const desired = !isFavorited; // 最終状態を先に決める
     setIsUpdatingFavorite(true);
+    const seq = ++seqRef.current;
+    
+    // 楽観更新
+    setIsFavorited(desired);
     
     try {
-      await toggleFavorite(post.id, isFavorited, user.uid);
-      refetch();
-      setIsFavorited(!isFavorited);
+      await apiSetFavorite(post.id, user.uid, desired); // 冪等API
       
-      // お気に入り数を再取得
+      // カウント更新
       const count = await getFavoriteCount(post.id);
       setActualFavoriteCount(count);
       
     } catch (error) {
+      // ロールバック
+      setIsFavorited(!desired);
+      
       console.error('Favorite operation failed:', error);
       
       // 詳細なエラー情報を取得
@@ -99,7 +106,10 @@ export const usePostDetail = ({
       
       alert(errorMessage);
     } finally {
-      setIsUpdatingFavorite(false);
+      if (seq === seqRef.current) { // 応答逆転を無視
+        await refetch(); // 真実で上書き（件数も整合）
+        setIsUpdatingFavorite(false);
+      }
     }
   };
 

@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AI-Canvas研究所 -AIでアプリのユーザー投稿型フォーラム",
-  description: "AIのCanvas機能で作られた素晴らしいアイデアを発見・共有できるプラットフォーム",
+  title: "AI活用創作フォーラム",
+  description: "AIで作られた素晴らしいアイデアを発見・共有できるプラットフォーム",
 };
 
 export default function RootLayout({

@@ -330,7 +330,7 @@ export default function TopicHighlightsPage() {
                       }`}>
                         {highlight.isActive ? '有効' : '無効'}
                       </span>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                      <span className="text-blue-600 text-xs font-medium">
                         順序: {highlight.order}
                       </span>
                     </div>

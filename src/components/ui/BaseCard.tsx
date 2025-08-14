@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, Eye } from 'lucide-react';
 import { Post } from '@/types/Post';
 import { HorizontalTagList } from './HorizontalTagList';
 import { findCategoryById } from '@/lib/constants/categories';
+import { useAuth } from '@/hooks/useAuth';
+import { apiSetFavorite, isFavorited as checkIsFavorited, getFavoriteCount } from '@/lib/favorites';
 
 const SIZE_STYLES = {
   small: {
@@ -59,13 +61,68 @@ export interface BaseCardProps {
  */
 export function BaseCard({ post, size = 'medium', layout = 'vertical', showCategory = true, showViews = true, className, rank }: BaseCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
+  
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
+  const [actualFavoriteCount, setActualFavoriteCount] = useState(post.favoriteCount ?? post.likes ?? 0);
 
   const category = post.categoryId ? findCategoryById(post.categoryId) : null;
   const categoryName = category?.name || post.customCategory || 'その他';
   const sizeStyles = SIZE_STYLES[size];
 
+  // いいね状態の初期化
+  useEffect(() => {
+    const initializeFavoriteState = async () => {
+      if (user) {
+        try {
+          const fav = await checkIsFavorited(post.id, user.uid);
+          setIsFavorited(fav);
+        } catch (error) {
+          console.error('Failed to check favorite status:', error);
+        }
+      }
+      
+      try {
+        const count = await getFavoriteCount(post.id);
+        setActualFavoriteCount(count);
+      } catch (error) {
+        console.error('Failed to get favorite count:', error);
+      }
+    };
+
+    initializeFavoriteState();
+  }, [post.id, user]);
+
   const handleCardClick = () => {
     router.push(`/posts/${post.id}`);
+  };
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // カードクリックを防ぐ
+    
+    if (!user || isUpdatingFavorite) return;
+    
+    const desired = !isFavorited;
+    setIsUpdatingFavorite(true);
+    
+    // 楽観更新
+    setIsFavorited(desired);
+    
+    try {
+      await apiSetFavorite(post.id, user.uid, desired);
+      
+      // カウント更新
+      const count = await getFavoriteCount(post.id);
+      setActualFavoriteCount(count);
+      
+    } catch (error) {
+      // ロールバック
+      setIsFavorited(!desired);
+      console.error('Favorite operation failed:', error);
+    } finally {
+      setIsUpdatingFavorite(false);
+    }
   };
 
 
@@ -103,7 +160,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
               <img 
                 src={post.thumbnail} 
                 alt={post.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover border border-gray-300"
                 loading="lazy"
               />
             ) : (
@@ -168,18 +225,33 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             
             {/* いいね数と閲覧数 */}
             <div 
-                className="flex items-center space-x-3 text-muted-foreground flex-shrink-0"
+                className="flex items-center space-x-3 flex-shrink-0"
                 style={{ transform: 'translateY(+2px)' }} 
               >
-              <div className="flex items-center space-x-0.5">
-                <Heart size={16} className="flex-shrink-0" />
-                <span className="text-sm font-bold">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
-              </div>
+              <button
+                onClick={handleFavoriteClick}
+                disabled={!user || isUpdatingFavorite}
+                className={`flex items-center space-x-0.5 transition-colors ${
+                  user ? 'cursor-pointer hover:text-red-500' : 'cursor-default'
+                } ${isUpdatingFavorite ? 'opacity-50' : ''}`}
+                title={isFavorited ? 'お気に入りから削除' : 'お気に入りに追加'}
+              >
+                <Heart 
+                  size={16} 
+                  className={`flex-shrink-0 ${isFavorited ? 'fill-current text-red-500' : 'text-muted-foreground'}`} 
+                />
+                <span className={`text-sm font-bold ${isFavorited ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {formatNumber(actualFavoriteCount)}
+                </span>
+                {isUpdatingFavorite && (
+                  <div className="ml-1 w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                )}
+              </button>
               {showViews && (
-                <div className="flex items-center space-x-0.5">
+                <div className="flex items-center space-x-0.5 text-muted-foreground">
                   <Eye size={14} className="flex-shrink-0" />
                   <span className="text-sm font-medium">{formatNumber(post.views || 0)}</span>
-              </div>
+                </div>
               )}
             </div>
           </div>
@@ -216,7 +288,7 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
             <img 
               src={post.thumbnail} 
               alt={post.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover border border-gray-300"
               loading="lazy"
             />
           ) : (
@@ -278,13 +350,28 @@ export function BaseCard({ post, size = 'medium', layout = 'vertical', showCateg
           </div>
           
           {/* いいね数と閲覧数 */}
-          <div className="flex items-center space-x-3 text-muted-foreground flex-shrink-0">
-            <div className="flex items-center space-x-0.5">
-              <Heart size={14} className="flex-shrink-0" />
-              <span className="text-sm font-medium">{formatNumber(post.favoriteCount ?? post.likes ?? 0)}</span>
-            </div>
+          <div className="flex items-center space-x-3 flex-shrink-0">
+            <button
+              onClick={handleFavoriteClick}
+              disabled={!user || isUpdatingFavorite}
+              className={`flex items-center space-x-0.5 transition-colors ${
+                user ? 'cursor-pointer hover:text-red-500' : 'cursor-default'
+              } ${isUpdatingFavorite ? 'opacity-50' : ''}`}
+              title={isFavorited ? 'お気に入りから削除' : 'お気に入りに追加'}
+            >
+              <Heart 
+                size={14} 
+                className={`flex-shrink-0 ${isFavorited ? 'fill-current text-red-500' : 'text-muted-foreground'}`} 
+              />
+              <span className={`text-sm font-medium ${isFavorited ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {formatNumber(actualFavoriteCount)}
+              </span>
+              {isUpdatingFavorite && (
+                <div className="ml-1 w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+              )}
+            </button>
             {showViews && (
-              <div className="flex items-center space-x-0.5">
+              <div className="flex items-center space-x-0.5 text-muted-foreground">
                 <Eye size={14} className="flex-shrink-0" />
                 <span className="text-sm font-medium">{formatNumber(post.views || 0)}</span>
               </div>

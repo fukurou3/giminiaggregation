@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useFirestoreDocument } from '@/lib/api';
+import Head from 'next/head';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Globe, BarChart3, Users, Zap, Sparkles, Award } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -93,6 +94,81 @@ export default function PostDetailPage() {
   // 関連作品を取得
   const { relatedPosts, loading: relatedLoading } = useRelatedPosts(postId);
 
+  // 動的メタデータ設定
+  useEffect(() => {
+    if (post) {
+      const category = post.categoryId ? findCategoryById(post.categoryId) : null;
+      const categoryName = category?.name || post.customCategory || 'その他';
+      
+      // 説明文を適切な長さに制限
+      const description = post.description 
+        ? post.description.length > 160 
+          ? post.description.substring(0, 157) + '...'
+          : post.description
+        : `${categoryName}カテゴリの作品です。`;
+
+      const title = `${post.title} - AI活用創作フォーラム`;
+      
+      // ページタイトルを設定
+      document.title = title;
+      
+      // メタタグを動的に設定
+      const updateMeta = (property: string, content: string) => {
+        let meta = document.querySelector(`meta[property="${property}"]`) || 
+                   document.querySelector(`meta[name="${property}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          if (property.startsWith('og:') || property.startsWith('twitter:')) {
+            meta.setAttribute('property', property);
+          } else {
+            meta.setAttribute('name', property);
+          }
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      // 基本メタタグ
+      updateMeta('description', description);
+      
+      // OGPメタタグ
+      updateMeta('og:title', title);
+      updateMeta('og:description', description);
+      updateMeta('og:type', 'article');
+      updateMeta('og:url', window.location.href);
+      updateMeta('og:site_name', 'AI活用創作フォーラム');
+      updateMeta('og:locale', 'ja_JP');
+      
+      if (post.thumbnail) {
+        updateMeta('og:image', post.thumbnail);
+        updateMeta('og:image:width', '1200');
+        updateMeta('og:image:height', '630');
+        updateMeta('og:image:alt', post.title);
+      }
+      
+      // Twitter Cardメタタグ
+      updateMeta('twitter:card', 'summary_large_image');
+      updateMeta('twitter:title', title);
+      updateMeta('twitter:description', description);
+      updateMeta('twitter:site', '@yoursite'); // 実際のTwitterアカウントに置き換え
+      
+      if (post.thumbnail) {
+        updateMeta('twitter:image', post.thumbnail);
+      }
+      
+      // キーワード
+      const keywords = [
+        categoryName,
+        'AI',
+        'Canvas',
+        'アイデア',
+        'クリエイティブ',
+        ...(post.tagIds || [])
+      ].join(', ');
+      updateMeta('keywords', keywords);
+    }
+  }, [post]);
+
   // ハンドラー
   const handleRetry = () => refetch();
   const handleGoHome = () => router.push('/');
@@ -122,7 +198,7 @@ export default function PostDetailPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="max-w-6xl mx-auto px-2 pt-3 space-y-6">
+      <div className="max-w-6xl mx-auto px-2 pt-3 space-y-3">
         {/* 戻るボタン */}
         <BackButton onBack={handleGoBack} />
         
@@ -131,40 +207,11 @@ export default function PostDetailPage() {
           <div className="p-3">
             <div className="flex flex-col">
               <div className="flex-1 min-w-0">
-                <div className="flex flex-col lg:flex-row lg:items-start gap-3 mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-3 mb-3">
                   <div className="flex-1">
                     <h1 className="text-xl font-semibold text-foreground mb-2 leading-tight">
                       {post.title}
                     </h1>
-
-                    {/* カテゴリとタグ */}
-                    <div className="flex flex-wrap gap-3 mb-6">
-                      <Link 
-                        href={`/categories?category=${post.categoryId || 'other'}`}
-                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors cursor-pointer"
-                      >
-                        {getCategoryName(post)}
-                      </Link>
-                      {post.tagIds?.map((tagId) => (
-                        <TagChip
-                          key={`tagid-${tagId}`}
-                          tag={{ 
-                            id: tagId, 
-                            name: tagId.replace(/_/g, ' '),
-                            aliases: [], 
-                            count: 0, 
-                            isOfficial: false, 
-                            views: 0, 
-                            favorites: 0, 
-                            flagged: false,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                          }}
-                          size="sm"
-                          variant="outlined"
-                        />
-                      ))}
-                    </div>
                   </div>
 
                   {/* アクションボタン */}
@@ -175,6 +222,8 @@ export default function PostDetailPage() {
                     onFavoriteClick={handleFavorite}
                     userLoggedIn={!!user}
                     favoriteCount={actualFavoriteCount}
+                    title={post.title}
+                    description={post.description}
                   />
                 </div>
               </div>
@@ -193,6 +242,44 @@ export default function PostDetailPage() {
             />
           </Suspense>
         )}
+
+        {/* カテゴリとタグ */}
+        <div className="space-y-2">
+          {/* カテゴリ */}
+          <div>
+            <Link 
+              href={`/categories?category=${post.categoryId || 'other'}`}
+              className="text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium cursor-pointer"
+            >
+              {getCategoryName(post)}
+            </Link>
+          </div>
+
+          {/* タグ */}
+          {post.tagIds && post.tagIds.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {post.tagIds.map((tagId) => (
+                <TagChip
+                  key={`tagid-${tagId}`}
+                  tag={{ 
+                    id: tagId, 
+                    name: tagId.replace(/_/g, ' '),
+                    aliases: [], 
+                    count: 0, 
+                    isOfficial: false, 
+                    views: 0, 
+                    favorites: 0, 
+                    flagged: false,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  }}
+                  size="md"
+                  variant="outlined"
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* メインコンテンツ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -288,12 +375,12 @@ export default function PostDetailPage() {
                   {authorProfile?.publicId ? (
                     <Link 
                       href={`/users/${authorProfile.publicId}`}
-                      className="font-medium text-foreground hover:text-primary transition-colors cursor-pointer underline-offset-4 hover:underline"
+                      className="font-medium text-blue-600 hover:text-blue-800 transition-colors cursor-pointer underline-offset-4 hover:underline"
                     >
                       {post.authorUsername}
                     </Link>
                   ) : (
-                    <span className="font-medium text-foreground">{post.authorUsername}</span>
+                    <span className="font-medium text-blue-600">{post.authorUsername}</span>
                   )}
                 </div>
                 <div className="flex justify-between items-center">
@@ -306,12 +393,6 @@ export default function PostDetailPage() {
                   <span className="text-muted-foreground">更新日</span>
                   <span className="text-foreground">
                     {formatDate(post.updatedAt, { fallback: '不明' })}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">カテゴリ</span>
-                  <span className="text-foreground">
-                    {getCategoryName(post)}
                   </span>
                 </div>
                 {post.featured && (

@@ -43,6 +43,24 @@ export default function AdminPage() {
             </p>
           </Link>
 
+          {/* ユーザー通報管理 */}
+          <Link
+            href="/secure-dashboard-a8f7k2x9/user-reports"
+            className="bg-white p-6 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center mb-3">
+              <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 ml-3">ユーザー通報管理</h2>
+            </div>
+            <p className="text-gray-600 text-sm">
+              ユーザーからの通報を確認・対応
+            </p>
+          </Link>
+
           {/* 将来の拡張用 */}
           <div className="bg-white p-6 rounded-lg border border-gray-200 opacity-50">
             <div className="flex items-center mb-3">

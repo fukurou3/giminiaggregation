@@ -92,7 +92,7 @@ export function Navbar() {
         {/* ロゴエリア */}
         <div className="logo-area">
           <Link href="/" className="text-base sm:text-lg font-bold text-foreground whitespace-nowrap">
-            AIアイデア＆試作フォーラム
+            AI活用創作フォーラム
           </Link>
         </div>
 
@@ -174,6 +174,14 @@ export function Navbar() {
                     >
                       <User size={13} />
                       <span>プロフィール</span>
+                    </Link>
+                    <Link
+                      href="/settings/user"
+                      onClick={() => setShowUserMenu(false)}
+                      className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Settings size={13} />
+                      <span>ユーザー設定</span>
                     </Link>
                     {isAdmin && (
                       <Link

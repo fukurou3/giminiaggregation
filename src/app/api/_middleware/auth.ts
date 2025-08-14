@@ -93,3 +93,8 @@ export async function requireAuth(request: NextRequest): Promise<{
 
   return { auth, error: null };
 }
+
+export async function authenticateUser(request: NextRequest): Promise<{ user: AuthContext | null }> {
+  const auth = await verifyAuth(request);
+  return { user: auth };
+}

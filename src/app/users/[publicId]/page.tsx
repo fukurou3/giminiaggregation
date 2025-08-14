@@ -12,6 +12,8 @@ import { ProfileInfoSection } from "@/components/profile/ProfileInfoSection";
 import { ProfileTabsSection } from "@/components/profile/ProfileTabsSection";
 import { ProfileLoading, ProfileError } from "@/components/profile/ProfileStates";
 import { ProfileEditModal } from "@/components/ProfileEditModal";
+import { ReportUserModal } from "@/components/ui/ReportUserModal";
+import { CreateUserReportRequest } from "@/types/UserReport";
 
 interface ProfileData {
   profile: UserProfile;
@@ -29,6 +31,7 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   
   const isOwnProfile = user && profileData?.profile.uid === user.uid;
 
@@ -66,6 +69,34 @@ export default function UserProfilePage() {
     }
   }, [publicId, fetchProfileData]);
 
+  // 通報処理
+  const handleReportUser = async (reportData: CreateUserReportRequest) => {
+    try {
+      if (!user) {
+        throw new Error('ログインが必要です');
+      }
+
+      const response = await fetch(`/api/users/${profileData?.profile.uid}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getIdToken()}`
+        },
+        body: JSON.stringify(reportData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '通報の送信に失敗しました');
+      }
+
+      const result = await response.json();
+      alert(result.message || '通報を受け付けました');
+    } catch (error) {
+      throw error; // ReportUserModalでエラーハンドリング
+    }
+  };
+
   // Loading state
   if (loading) {
     return <ProfileLoading />;
@@ -94,6 +125,7 @@ export default function UserProfilePage() {
           onBack={() => router.back()}
           isOwnProfile={!!isOwnProfile}
           onEditProfile={() => setShowEditModal(true)}
+          onReportUser={() => setShowReportModal(true)}
         />
 
         <ProfileTabsSection
@@ -113,6 +145,16 @@ export default function UserProfilePage() {
             setShowEditModal(false);
             fetchProfileData();
           }}
+        />
+      )}
+
+      {showReportModal && (
+        <ReportUserModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetUserId={profile.uid}
+          targetUsername={profile.displayName || profile.username || 'Unknown'}
+          onSubmit={handleReportUser}
         />
       )}
     </div>

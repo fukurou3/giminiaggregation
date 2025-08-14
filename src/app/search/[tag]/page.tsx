@@ -106,7 +106,7 @@ export default function TagSearchPage() {
                   <span className="text-primary"># </span>{tag.name}
                 </span>
                 {tag.isOfficial && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                  <span className="text-blue-600 text-xs font-medium">
                     公式
                   </span>
                 )}
