@@ -4,6 +4,7 @@ import { memo, useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { convertToCdnUrl } from '@/lib/utils/imageUrlHelpers';
+import { ImageModal } from './ImageModal';
 
 interface ImageGalleryProps {
   // 最新スキーマのみ
@@ -37,6 +38,10 @@ const ImageGallery = memo<ImageGalleryProps>(({
   const displayImages = buildDisplayImages();
   const showNavigation = displayImages.length > 1;
   
+  // モーダル管理のstate
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentModalIndex, setCurrentModalIndex] = useState(0);
+  
   // スクロール管理のstate
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +65,24 @@ const ImageGallery = memo<ImageGalleryProps>(({
       });
     }
   }, []);
+
+  // モーダル制御関数
+  const openModal = useCallback((index: number) => {
+    setCurrentModalIndex(index);
+    setIsModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
+  const goToPrevious = useCallback(() => {
+    setCurrentModalIndex(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const goToNext = useCallback(() => {
+    setCurrentModalIndex(prev => Math.min(displayImages.length - 1, prev + 1));
+  }, [displayImages.length]);
 
 
 
@@ -102,17 +125,22 @@ const ImageGallery = memo<ImageGalleryProps>(({
             {displayImages.length > 0 && <div className="w-3 flex-shrink-0" />}
             {displayImages.map((imageUrl, index) => (
               index === 0 ? (
-                // サムネイル画像: 固定幅・5:3アスペクト比
-                <div key={`${imageUrl}-${index}`} className="w-80 flex-shrink-0">
-                  <div className="relative bg-muted rounded-lg overflow-hidden border border-black/20 aspect-[5/3]">
-                    <Image
-                      src={convertToCdnUrl(imageUrl)}
-                      alt={`${title} - 画像 ${index + 1}`}
-                      fill
-                      loading="lazy"
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
+                // サムネイル画像: 他の画像と高さを合わせる
+                <div key={`${imageUrl}-${index}`} className="flex-shrink-0">
+                  <div className="h-60 flex items-center">
+                    <div 
+                      className="relative bg-muted rounded-lg overflow-hidden border border-black/20 w-80 aspect-[5/3] cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => openModal(index)}
+                    >
+                      <Image
+                        src={convertToCdnUrl(imageUrl)}
+                        alt={`${title} - 画像 ${index + 1}`}
+                        fill
+                        loading="lazy"
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -123,7 +151,8 @@ const ImageGallery = memo<ImageGalleryProps>(({
                       src={convertToCdnUrl(imageUrl)}
                       alt={`${title} - 画像 ${index + 1}`}
                       loading="lazy"
-                      className="max-h-full w-auto rounded-lg border border-black/20"
+                      className="max-h-full w-auto rounded-lg border border-black/20 cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => openModal(index)}
                     />
                   </div>
                 </div>
@@ -134,6 +163,17 @@ const ImageGallery = memo<ImageGalleryProps>(({
           </div>
         </div>
       </div>
+
+      {/* 画像拡大モーダル */}
+      <ImageModal
+        isOpen={isModalOpen}
+        images={displayImages}
+        currentIndex={currentModalIndex}
+        title={title}
+        onClose={closeModal}
+        onPrevious={goToPrevious}
+        onNext={goToNext}
+      />
     </div>
   );
 });
