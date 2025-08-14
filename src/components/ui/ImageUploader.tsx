@@ -551,7 +551,7 @@ export const ImageUploader = ({
             <div 
               key={item.id}
               data-idx={index}
-              className={`relative group ${mode === 'avatar' ? 'aspect-square' : 'aspect-[5/3]'} bg-muted rounded-lg overflow-hidden border border-border
+              className={`relative group ${mode === 'avatar' ? 'aspect-square' : mode === 'pr' ? 'h-40' : ''} bg-muted rounded-lg overflow-hidden border border-border
                 ${draggedItemIndex === index ? 'opacity-50 scale-95' : ''}
                 ${!item.uploading && !disabled ? 'cursor-move' : ''}
                 transition-all duration-150
@@ -693,7 +693,7 @@ export const ImageUploader = ({
                       <img 
                         src={item.previewUrl}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-full object-cover opacity-60"
+                        className={`w-full h-full ${mode === 'pr' ? 'object-contain' : 'object-cover'} opacity-60`}
                       />
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -722,7 +722,7 @@ export const ImageUploader = ({
                   src={item.url} 
                   alt={`Upload ${index + 1}`}
                   loading="lazy"
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full ${mode === 'pr' ? 'object-contain' : 'object-cover'}`}
                 />
               ) : null}
 
