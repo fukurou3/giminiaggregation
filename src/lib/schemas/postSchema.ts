@@ -17,6 +17,12 @@ export const postSchema = z.object({
   useCase: z.string().max(1000, "想定シーン・利用者は1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   uniquePoints: z.string().max(1000, "差別化ポイントは1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   futureIdeas: z.string().max(1000, "応用・発展アイデアは1000文字以内で入力してください").optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  // カスタムセクション
+  customSections: z.array(z.object({
+    id: z.string().min(1, "セクションIDは必須です"),
+    title: z.string().min(1, "セクションタイトルは必須です").max(50, "セクションタイトルは50文字以内で入力してください"),
+    content: z.string().max(1000, "セクション内容は1000文字以内で入力してください")
+  })).max(10, "カスタムセクションは10個まで追加できます").optional(),
   // その他のフィールド
   acceptInterview: z.boolean().optional().default(false),
 });;

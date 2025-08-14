@@ -30,6 +30,12 @@ export type Post = {
   useCase?: string;           // 想定シーン・利用者
   uniquePoints?: string;      // 差別化ポイント
   futureIdeas?: string;       // 応用・発展アイデア
+  // カスタムセクション
+  customSections?: Array<{
+    id: string;
+    title: string;
+    content: string;
+  }>;
   acceptInterview?: boolean;  // 運営取材の受け入れ
 };
 

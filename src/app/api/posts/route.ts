@@ -138,7 +138,11 @@ export async function GET(request: NextRequest) {
         case 'views':
           return b.views - a.views;
         case 'favorites':
-          return b.favoriteCount - a.favoriteCount;
+          // お気に入り数優先、同数の場合は観覧数で判定
+          if (b.favoriteCount !== a.favoriteCount) {
+            return b.favoriteCount - a.favoriteCount;
+          }
+          return b.views - a.views;
         case 'createdAt':
         default:
           return b.createdAt.getTime() - a.createdAt.getTime();
@@ -271,6 +275,12 @@ export async function POST(request: NextRequest) {
       useCase: validatedData.useCase ? sanitizeHtml(validatedData.useCase) : undefined,
       uniquePoints: validatedData.uniquePoints ? sanitizeHtml(validatedData.uniquePoints) : undefined,
       futureIdeas: validatedData.futureIdeas ? sanitizeHtml(validatedData.futureIdeas) : undefined,
+      // カスタムセクションのサニタイズ
+      customSections: validatedData.customSections?.map(section => ({
+        ...section,
+        title: sanitizeHtml(section.title),
+        content: sanitizeHtml(section.content)
+      })),
     };
 
     // undefinedフィールドを除去してFirestoreに投稿を保存

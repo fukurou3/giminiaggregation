@@ -197,24 +197,22 @@ export default function PostDetailPage() {
         {/* メインコンテンツ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* 左側：投稿内容 */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* 説明セクション */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* 作品概要セクション */}
             <div className="bg-card rounded-xl p-3">
-              <h2 className="text-xl font-bold text-foreground mb-4">説明</h2>
+              <h3 className="text-lg font-semibold text-foreground mb-2">作品概要</h3>
               <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {post.description}
               </p>
             </div>
 
             {/* 詳細情報（任意項目のみ表示） */}
-            {(post.problemBackground || post.useCase || post.uniquePoints || post.futureIdeas) && (
+            {(post.problemBackground || post.useCase || post.uniquePoints || post.futureIdeas || (post.customSections && post.customSections.length > 0)) && (
               <div className="bg-card rounded-xl p-3">
-                <h2 className="text-xl font-bold text-foreground mb-6">詳細情報</h2>
                 <div className="space-y-6">
                   {post.problemBackground && (
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-                        <BarChart3 size={20} className="mr-2 text-blue-600" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         課題・背景
                       </h3>
                       <p className="text-foreground leading-relaxed">{post.problemBackground}</p>
@@ -222,8 +220,7 @@ export default function PostDetailPage() {
                   )}
                   {post.useCase && (
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-                        <Users size={20} className="mr-2 text-green-600" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         想定シーン・利用者
                       </h3>
                       <p className="text-foreground leading-relaxed">{post.useCase}</p>
@@ -231,8 +228,7 @@ export default function PostDetailPage() {
                   )}
                   {post.uniquePoints && (
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-                        <Zap size={20} className="mr-2 text-purple-600" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         差別化ポイント
                       </h3>
                       <p className="text-foreground leading-relaxed">{post.uniquePoints}</p>
@@ -240,13 +236,21 @@ export default function PostDetailPage() {
                   )}
                   {post.futureIdeas && (
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-                        <Sparkles size={20} className="mr-2 text-amber-600" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         応用・発展アイデア
                       </h3>
                       <p className="text-foreground leading-relaxed">{post.futureIdeas}</p>
                     </div>
                   )}
+                  {/* カスタムセクション */}
+                  {post.customSections?.map((section, index) => (
+                    <div key={section.id}>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                        {section.title}
+                      </h3>
+                      <p className="text-foreground leading-relaxed whitespace-pre-wrap">{section.content}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

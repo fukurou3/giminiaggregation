@@ -24,7 +24,7 @@ interface UseSubmitFormReturn {
   handleInputChange: (field: keyof PostFormData, value: string | boolean | string[]) => void;
   validateForm: () => boolean;
   isButtonDisabled: (urlValidation: UrlValidation) => boolean;
-  handleSubmit: (e: React.FormEvent, urlValidation: UrlValidation) => Promise<void>;
+  handleSubmit: (e: React.FormEvent, urlValidation: UrlValidation, customSectionData?: {[key: string]: string}, customSections?: {id: string, title: string}[]) => Promise<void>;
 }
 
 export function useSubmitForm(): UseSubmitFormReturn {
@@ -93,7 +93,7 @@ export function useSubmitForm(): UseSubmitFormReturn {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent, urlValidation: UrlValidation): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent, urlValidation: UrlValidation, customSectionData?: {[key: string]: string}, customSections?: {id: string, title: string}[]): Promise<void> => {
     e.preventDefault();
     
     if (!user) {
@@ -166,6 +166,17 @@ export function useSubmitForm(): UseSubmitFormReturn {
 
       }
       
+      // カスタムセクションデータを処理
+      const processedCustomSections = customSections && customSectionData 
+        ? customSections
+            .filter(section => customSectionData[section.id]?.trim()) // 内容があるもののみ
+            .map(section => ({
+              id: section.id,
+              title: section.title,
+              content: customSectionData[section.id].trim()
+            }))
+        : undefined;
+      
       // Firebase認証トークンを取得
       const token = await user.getIdToken();
       
@@ -180,7 +191,7 @@ export function useSubmitForm(): UseSubmitFormReturn {
             ...formData,
             thumbnail: finalThumbnail,
             prImages: finalPrImages,
-
+            customSections: processedCustomSections,
           },
           userInfo: {
             uid: user.uid,

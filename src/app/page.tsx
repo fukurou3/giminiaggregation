@@ -18,7 +18,7 @@ export default function HomePage() {
   // 共通フックを使用してAPI呼び出しを統一
   const { data: postsResponse, loading } = useFetch<{
     data?: { posts: Post[] };
-  }>('/api/posts?limit=50&sortBy=trending');
+  }>('/api/posts?limit=50&sortBy=favorites&period=week');
 
   const posts = postsResponse?.data?.posts || [];
   

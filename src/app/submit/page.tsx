@@ -177,7 +177,7 @@ export default function SubmitPage() {
         <div className="bg-background border border-border rounded-lg shadow-md p-6">
           <h1 className="text-2xl font-bold text-foreground mb-6">作品を投稿</h1>
           
-          <form onSubmit={(e) => handleSubmit(e, urlValidation)} className="space-y-8">
+          <form onSubmit={(e) => handleSubmit(e, urlValidation, customSectionData, customSections)} className="space-y-8">
             {/* ① 基本情報 */}
             <div className="space-y-6">
               <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">① 基本情報</h2>
